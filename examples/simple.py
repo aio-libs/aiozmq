@@ -6,10 +6,11 @@ loop = zmqtulip.new_event_loop()
 tulip.set_event_loop(loop)
 
 # server
-print (zmqtulip.Context)
+print(zmqtulip.Context)
 ctx = zmqtulip.Context()
 sock1 = ctx.socket(zmq.PUSH)
 sock1.bind('ipc:///tmp/zmqtest')
+
 
 def send_data():
     sock1.send_pyobj(('this', 'is', 'a', 'python', 'tuple'))
@@ -25,21 +26,23 @@ def send_data():
 
 
 # client
-ctx = zmqtulip.Context() # create a new context to kick the wheels
+ctx = zmqtulip.Context()  # create a new context to kick the wheels
 sock2 = ctx.socket(zmq.PULL)
 sock2.connect('ipc:///tmp/zmqtest')
+
 
 def get_objs(sock):
     while True:
         o = yield from sock.recv_pyobj()
-        print ('received python object:', o)
+        print('received python object:', o)
         if o == 'quit':
-            print ('exiting.')
+            print('exiting.')
             break
+
 
 def print_every(s, t=None):
     while 1:
-        print (s)
+        print(s)
         yield from tulip.sleep(t)
 
 

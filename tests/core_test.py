@@ -18,7 +18,7 @@ class CoreTests(unittest.TestCase):
         self.loop.close()
 
     def test_context_global_event_loop(self):
-        loop = tulip.set_event_loop(self.loop)
+        tulip.set_event_loop(self.loop)
         try:
             ctx = zmqtulip.Context()
             self.assertIs(ctx._loop, self.loop)
@@ -74,9 +74,9 @@ class CoreTests(unittest.TestCase):
         sock.clear_exception()
         self.assertIsNone(sock.exception())
         self.assertFalse(add_writer.called)
-        
+
         sock._send_exc = (ValueError('err'), 1)
-        sock._buffer.append((1,2,3))
+        sock._buffer.append((1, 2, 3))
         sock.clear_exception()
         add_writer.assert_called_with(sock._sock_fd, sock._send_ready)
 

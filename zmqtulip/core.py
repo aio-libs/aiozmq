@@ -110,7 +110,7 @@ class Socket(zmq.Socket):
             args = self._buffer.popleft()
 
             try:
-                data = super().send(*args)
+                super().send(*args)
             except zmq.ZMQError as exc:
                 if exc.errno != zmq.EAGAIN:
                     self._send_exc = (exc, args)

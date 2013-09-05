@@ -3,7 +3,6 @@
 
 import argparse
 import email.message
-import logging
 import os
 import sys
 import zmqtulip
