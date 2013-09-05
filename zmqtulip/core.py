@@ -30,6 +30,12 @@ class Socket(zmq.Socket):
     def exception(self):
         return self._send_exc
 
+    def clear_exception(self):
+        if self._send_exc and self._buffer:
+            self._loop.add_writer(self._sock_fd, self._send_ready)
+
+        self._send_exc = None
+
     @tulip.coroutine
     def recv(self, flags=0, copy=True, track=False):
         if flags & zmq.NOBLOCK:
@@ -40,7 +46,7 @@ class Socket(zmq.Socket):
 
         # Attempt to complete this operation indefinitely
         try:
-            return super().recv(flags, copy, track)
+            return zmq.Socket.recv(self, flags, copy, track)
         except zmq.ZMQError as e:
             if e.errno != zmq.EAGAIN:
                 raise
@@ -106,14 +112,14 @@ class Socket(zmq.Socket):
             try:
                 data = super().send(*args)
             except zmq.ZMQError as exc:
-                self._buffer.appendleft(args)
-
                 if exc.errno != zmq.EAGAIN:
-                    self._send_exc = exc
+                    self._send_exc = (exc, args)
                     self._loop.remove_writer(self._sock_fd)
                     return
+
+                self._buffer.appendleft(args)
             except Exception as exc:
-                self._send_exc = exc
+                self._send_exc = (exc, args)
                 self._loop.remove_writer(self._sock_fd)
                 return
 
