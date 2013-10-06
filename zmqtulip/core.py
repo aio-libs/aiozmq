@@ -14,7 +14,6 @@ class Socket(zmq.Socket):
     _loop = None
     _sock_fd = None
     _buffer = None
-    _send_exc = None
 
     def __init__(self, context, socket_type, *, loop=None):
         super().__init__(context, socket_type)
@@ -25,16 +24,6 @@ class Socket(zmq.Socket):
         self._loop = loop
         self._buffer = collections.deque()
         self._sock_fd = self.getsockopt(zmq.FD)
-        self._send_exc = None
-
-    def exception(self):
-        return self._send_exc
-
-    def clear_exception(self):
-        if self._send_exc and self._buffer:
-            self._loop.add_writer(self._sock_fd, self._send_ready)
-
-        self._send_exc = None
 
     @tulip.coroutine
     def recv(self, flags=0, copy=True, track=False):
@@ -79,48 +68,50 @@ class Socket(zmq.Socket):
         if not data:
             return
 
-        # fatal error
-        if self._send_exc:
-            raise self._send_exc
+        fut = tulip.Future(loop=self._loop)
 
         if not self._buffer:
             # if we're given the NOBLOCK flag act as normal
             # and let the EAGAIN get raised
             if flags & zmq.NOBLOCK:
-                super().send(data, flags, copy, track)
+                res = super().send(data, flags, copy, track)
+                fut.set_result(res)
+                return fut
 
             # ensure the zmq.NOBLOCK flag is part of flags
             flags |= zmq.NOBLOCK
 
             # Attempt to complete this operation indefinitely
             try:
-                super().send(data, flags, copy, track)
-            except zmq.ZMQError as e:
-                if e.errno != zmq.EAGAIN:
-                    raise
-            else:
-                return
+                res = super().send(data, flags, copy, track)
+                fut.set_result(res)
+                return fut
+            except zmq.ZMQError as exc:
+                if exc.errno != zmq.EAGAIN:
+                    fut.set_exception(exc)
+                    return
 
             self._loop.add_writer(self._sock_fd, self._send_ready)
 
-        self._buffer.append((data, flags, copy, track))
+        self._buffer.append((fut, data, flags, copy, track))
+        return fut
 
     def _send_ready(self):
         while self._buffer:
-            args = self._buffer.popleft()
+            entry = self._buffer.popleft()
+            fut, *args = entry
 
             try:
-                super().send(*args)
+                res = super().send(*args)
+                fut.set_result(res)
             except zmq.ZMQError as exc:
                 if exc.errno != zmq.EAGAIN:
-                    self._send_exc = (exc, args)
-                    self._loop.remove_writer(self._sock_fd)
-                    return
-
-                self._buffer.appendleft(args)
+                    fut.set_exception(exc)
+                else:
+                    self._buffer.appendleft(entry)
+                return
             except Exception as exc:
-                self._send_exc = (exc, args)
-                self._loop.remove_writer(self._sock_fd)
+                fut.set_exception(exc)
                 return
 
         self._loop.remove_writer(self._sock_fd)

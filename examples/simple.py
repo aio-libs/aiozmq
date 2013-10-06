@@ -6,10 +6,9 @@ loop = zmqtulip.new_event_loop()
 tulip.set_event_loop(loop)
 
 # server
-print(zmqtulip.Context)
-ctx = zmqtulip.Context()
-sock1 = ctx.socket(zmq.PUSH)
-sock1.bind('ipc:///tmp/zmqtest')
+ctx = zmqtulip.Context(loop=loop)
+#sock1 = ctx.socket(zmq.PUSH)
+#sock1.bind('ipc:///tmp/zmqtest')
 
 
 def send_data():
@@ -26,7 +25,7 @@ def send_data():
 
 
 # client
-ctx = zmqtulip.Context()  # create a new context to kick the wheels
+ctx = zmqtulip.Context(loop=loop)  # create a new context to kick the wheels
 sock2 = ctx.socket(zmq.PULL)
 sock2.connect('ipc:///tmp/zmqtest')
 
@@ -41,12 +40,14 @@ def get_objs(sock):
 
 
 def print_every(s, t=None):
+    idx = 1
     while 1:
-        print(s)
+        print('%s: %s'%(idx, s))
         yield from tulip.sleep(t)
+        idx += 1
 
 
-t0 = tulip.Task(send_data())
+#t0 = tulip.Task(send_data())
 t1 = tulip.Task(print_every('printing every half second', 0.5))
 t2 = tulip.Task(get_objs(sock2))
 
