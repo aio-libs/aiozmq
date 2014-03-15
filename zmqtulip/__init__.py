@@ -7,5 +7,5 @@ __all__ = ['new_event_loop'] + (core.__all__ + selector.__all__)
 
 def new_event_loop():
     """Create new event loop with zmq selector."""
-    from tulip import unix_events
+    from asyncio import unix_events
     return unix_events.SelectorEventLoop(selector=ZmqSelector())

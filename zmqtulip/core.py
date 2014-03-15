@@ -1,10 +1,10 @@
-"""Tulip compatibility with zeromq."""
+"""Asyncio compatibility with zeromq."""
 __all__ = ['Socket', 'Context']
 
 import collections
 import functools
 import pickle
-import tulip
+import asyncio
 import zmq
 
 
@@ -19,13 +19,13 @@ class Socket(zmq.Socket):
         super().__init__(context, socket_type)
 
         if loop is None:
-            loop = tulip.get_event_loop()
+            loop = asyncio.get_event_loop()
 
         self._loop = loop
         self._buffer = collections.deque()
         self._sock_fd = self.getsockopt(zmq.FD)
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def recv(self, flags=0, copy=True, track=False):
         if flags & zmq.NOBLOCK:
             return super().recv(flags, copy, track)
@@ -41,7 +41,7 @@ class Socket(zmq.Socket):
                 raise
 
         # defer to the event loop until we're notified the socket is readable
-        fut = tulip.Future(loop=self._loop)
+        fut = asyncio.Future(loop=self._loop)
         self._recv(fut, False, flags, copy, track)
         return (yield from fut)
 
@@ -68,7 +68,7 @@ class Socket(zmq.Socket):
         if not data:
             return
 
-        fut = tulip.Future(loop=self._loop)
+        fut = asyncio.Future(loop=self._loop)
 
         if not self._buffer:
             # if we're given the NOBLOCK flag act as normal
@@ -133,7 +133,7 @@ class Context(zmq.Context):
         super().__init__(io_threads)
 
         if loop is None:
-            loop = tulip.get_event_loop()
+            loop = asyncio.get_event_loop()
 
         self._loop = loop
         self._socket_class = functools.partial(Socket, loop=loop)

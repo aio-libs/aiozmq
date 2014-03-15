@@ -1,5 +1,5 @@
 """tests for core.py"""
-import tulip
+import asyncio
 import unittest
 import unittest.mock
 import zmq
@@ -12,18 +12,18 @@ class CoreTests(unittest.TestCase):
     def setUp(self):
         self.loop = zmqtulip.new_event_loop()
         self.ctx = zmqtulip.Context(loop=self.loop)
-        tulip.set_event_loop(None)
+        asyncio.set_event_loop(None)
 
     def tearDown(self):
         self.loop.close()
 
     def test_context_global_event_loop(self):
-        tulip.set_event_loop(self.loop)
+        asyncio.set_event_loop(self.loop)
         try:
             ctx = zmqtulip.Context()
             self.assertIs(ctx._loop, self.loop)
         finally:
-            tulip.set_event_loop(None)
+            asyncio.set_event_loop(None)
 
     def test_context_socket(self):
         ctx = zmqtulip.Context(loop=self.loop)
@@ -57,29 +57,6 @@ class CoreTests(unittest.TestCase):
         self.assertRaises(AssertionError, sock.send, 'test')
         self.assertIsNone(sock.send(b''))
 
-        sock._send_exc = ValueError('err')
-        self.assertRaises(ValueError, sock.send, b'test')
-
-    def test_exception(self):
-        sock = self.ctx.socket(zmq.PUSH)
-
-        val = sock._send_exc = (ValueError('err'), 1)
-        self.assertEqual(sock.exception(), val)
-
-    def test_clear_exception(self):
-        sock = self.ctx.socket(zmq.PUSH)
-        add_writer = self.loop.add_writer = unittest.mock.Mock()
-
-        sock._send_exc = (ValueError('err'), 1)
-        sock.clear_exception()
-        self.assertIsNone(sock.exception())
-        self.assertFalse(add_writer.called)
-
-        sock._send_exc = (ValueError('err'), 1)
-        sock._buffer.append((1, 2, 3))
-        sock.clear_exception()
-        add_writer.assert_called_with(sock._sock_fd, sock._send_ready)
-
 
 class CoreIntegrationalTests(unittest.TestCase):
 
@@ -87,7 +64,7 @@ class CoreIntegrationalTests(unittest.TestCase):
         self.loop = zmqtulip.new_event_loop()
         self.srv_ctx = zmqtulip.Context(loop=self.loop)
         self.c_ctx = zmqtulip.Context(loop=self.loop)
-        tulip.set_event_loop(None)
+        asyncio.set_event_loop(None)
 
     def tearDown(self):
         self.loop.close()
@@ -102,7 +79,7 @@ class CoreIntegrationalTests(unittest.TestCase):
         client_sock = self.c_ctx.socket(zmq.PULL)
         client_sock.connect('ipc:///tmp/zmqtest')
 
-        @tulip.coroutine
+        @asyncio.coroutine
         def get_data(sock):
             return (yield from sock.recv())
 
@@ -115,21 +92,21 @@ class CoreIntegrationalTests(unittest.TestCase):
         client_sock = self.c_ctx.socket(zmq.PULL)
         client_sock.connect('ipc:///tmp/zmqtest')
 
-        @tulip.coroutine
+        @asyncio.coroutine
         def get_data(sock):
             return (yield from sock.recv())
 
-        task = tulip.Task(get_data(client_sock), loop=self.loop)
+        task = asyncio.Task(get_data(client_sock), loop=self.loop)
         self.loop.call_later(0.1, task.cancel)
         self.assertRaises(
-            tulip.CancelledError,
+            asyncio.CancelledError,
             self.loop.run_until_complete, task)
 
     def test_recv_noblock(self):
         client_sock = self.c_ctx.socket(zmq.PULL)
         client_sock.connect('ipc:///tmp/zmqtest')
 
-        @tulip.coroutine
+        @asyncio.coroutine
         def get_data(sock):
             return (yield from sock.recv(zmq.NOBLOCK))
 
@@ -146,7 +123,7 @@ class CoreIntegrationalTests(unittest.TestCase):
         client_sock = self.c_ctx.socket(zmq.PULL)
         client_sock.connect('ipc:///tmp/zmqtest')
 
-        @tulip.coroutine
+        @asyncio.coroutine
         def get_data(sock):
             return (yield from sock.recv_pyobj())
 

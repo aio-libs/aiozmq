@@ -1,21 +1,103 @@
-"""ZMQ pooler for Tulip."""
-__all__ = ['ZmqSelector']
-import zmq
-from zmq import ZMQError, POLLIN, POLLOUT, POLLERR
-from tulip.selectors import BaseSelector, EVENT_READ, EVENT_WRITE
+"""ZMQ pooler for asyncio."""
 
-EVENT_ALL = EVENT_READ | EVENT_WRITE
+
+__all__ = ['ZmqSelector']
+
+
+from asyncio.selectors import BaseSelector, SelectorKey, EVENT_READ, EVENT_WRITE
+from collections import Mapping
+from errno import EINTR
+from zmq import (ZMQError, POLLIN, POLLOUT, POLLERR,
+                 Socket as ZMQSocket, Poller as ZMQPoller)
+
+
+def _fileobj_to_fd(fileobj):
+    """Return a file descriptor from a file object.
+
+    Parameters:
+    fileobj -- file object or file descriptor
+
+    Returns:
+    corresponding file descriptor or zmq.Socket instance
+
+    Raises:
+    ValueError if the object is invalid
+    """
+    if isinstance(fileobj, int):
+        fd = fileobj
+    elif isinstance(fileobj, ZMQSocket):
+        return fileobj
+    else:
+        try:
+            fd = int(fileobj.fileno())
+        except (AttributeError, TypeError, ValueError):
+            raise ValueError("Invalid file object: "
+                             "{!r}".format(fileobj)) from None
+    if fd < 0:
+        raise ValueError("Invalid file descriptor: {}".format(fd))
+    return fd
+
+
+class _SelectorMapping(Mapping):
+    """Mapping of file objects to selector keys."""
+
+    def __init__(self, selector):
+        self._selector = selector
+
+    def __len__(self):
+        return len(self._selector._fd_to_key)
+
+    def __getitem__(self, fileobj):
+        try:
+            fd = self._selector._fileobj_lookup(fileobj)
+            return self._selector._fd_to_key[fd]
+        except KeyError:
+            raise KeyError("{!r} is not registered".format(fileobj)) from None
+
+    def __iter__(self):
+        return iter(self._selector._fd_to_key)
 
 
 class ZmqSelector(BaseSelector):
-    """A selector that can be used with tulip's selector base event loops."""
+    """A selector that can be used with asyncio's selector base event loops."""
 
     def __init__(self):
-        super().__init__()
-        self._poller = zmq.Poller()
+        # this maps file descriptors to keys
+        self._fd_to_key = {}
+        # read-only mapping returned by get_map()
+        self._map = _SelectorMapping(self)
+        self._poller = ZMQPoller()
+
+    def _fileobj_lookup(self, fileobj):
+        """Return a file descriptor from a file object.
+
+        This wraps _fileobj_to_fd() to do an exhaustive search in case
+        the object is invalid but we still have it in our map.  This
+        is used by unregister() so we can unregister an object that
+        was previously registered even if it is closed.  It is also
+        used by _SelectorMapping.
+        """
+        try:
+            return _fileobj_to_fd(fileobj)
+        except ValueError:
+            # Do an exhaustive search.
+            for key in self._fd_to_key.values():
+                if key.fileobj is fileobj:
+                    return key.fd
+            # Raise ValueError after all.
+            raise
 
     def register(self, fileobj, events, data=None):
-        key = super().register(fileobj, events, data)
+        if (not events) or (events & ~(EVENT_READ | EVENT_WRITE)):
+            raise ValueError("Invalid events: {!r}".format(events))
+
+        key = SelectorKey(fileobj, self._fileobj_lookup(fileobj), events, data)
+
+        if key.fd in self._fd_to_key:
+            raise KeyError("{!r} (FD {}) is already registered"
+                           .format(fileobj, key.fd))
+
+        self._fd_to_key[key.fd] = key
 
         z_events = 0
         if events & EVENT_READ:
@@ -27,9 +109,52 @@ class ZmqSelector(BaseSelector):
         return key
 
     def unregister(self, fileobj):
-        key = super().unregister(fileobj)
+        try:
+            key = self._fd_to_key.pop(self._fileobj_lookup(fileobj))
+        except KeyError:
+            raise KeyError("{!r} is not registered".format(fileobj)) from None
         self._poller.unregister(key.fd)
         return key
+
+    def modify(self, fileobj, events, data=None):
+        try:
+            fd = self._fileobj_lookup(fileobj)
+            key = self._fd_to_key[fd]
+        except KeyError:
+            raise KeyError("{!r} is not registered".format(fileobj)) from None
+        if events != key.events:
+            z_events = 0
+            if events & EVENT_READ:
+                z_events |= POLLIN
+            if events & EVENT_WRITE:
+                z_events |= POLLOUT
+            self._poller.modify(fd, z_events)
+        if data != key.data or events != key.events:
+            # Use a shortcut to update the data.
+            key = key._replace(data=data, events=events)
+            self._fd_to_key[key.fd] = key
+        return key
+
+    def close(self):
+        self._fd_to_key.clear()
+        self._poller = None
+
+    def get_map(self):
+        return self._map
+
+    def _key_from_fd(self, fd):
+        """Return the key associated to a given file descriptor.
+
+        Parameters:
+        fd -- file descriptor
+
+        Returns:
+        corresponding key, or None if not found
+        """
+        try:
+            return self._fd_to_key[fd]
+        except KeyError:
+            return None
 
     def select(self, timeout=None):
         timeout = None if timeout is None else max(timeout, 0)
@@ -37,8 +162,11 @@ class ZmqSelector(BaseSelector):
         ready = []
         try:
             z_events = self._poller.poll(timeout)
-        except ZMQError:
-            return ready
+        except ZMQError as exc:
+            if exc.errno == EINTR:
+                return ready
+            else:
+                raise
 
         for fd, evt in z_events:
             events = 0
@@ -47,7 +175,7 @@ class ZmqSelector(BaseSelector):
             if evt & POLLOUT:
                 events |= EVENT_WRITE
             if evt & POLLERR:
-                events = EVENT_ALL
+                events = EVENT_READ | EVENT_WRITE
 
             key = self._key_from_fd(fd)
             if key:
