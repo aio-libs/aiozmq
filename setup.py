@@ -1,7 +1,7 @@
 import os
+import re
 from setuptools import setup, find_packages
 
-version = '0.1'
 
 install_requires = ['pyzmq']
 
@@ -12,8 +12,20 @@ def read(f):
     return open(os.path.join(os.path.dirname(__file__), f)).read().strip()
 
 
+def read_version():
+    regexp = re.compile(r"^__version__\W*=\W*'([\d.]+)'")
+    init_py = os.path.join(os.path.dirname(__file__), 'zmqtulip', '__init__.py')
+    with open(init_py) as f:
+        for line in f:
+            match = regexp.match(line)
+            if match is not None:
+                return match.group(1)
+        else:
+            raise RuntimeError('Cannot find version in zmqtulip/__init__.py')
+
+
 setup(name='pyzmqtulip',
-      version=version,
+      version=read_version(),
       description=('zmq integration with tulip.'),
       long_description='\n\n'.join((read('README.rst'), read('CHANGES.txt'))),
       classifiers=[
