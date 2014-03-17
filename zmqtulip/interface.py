@@ -6,7 +6,14 @@ __all__ = ['ZmqTransport', 'ZmqProtocol']
 class ZmqTransport(BaseTransport):
 
     def write(self, data, *multipart):
-        pass
+        """Write message to the transport.
+
+        The whole message is `(data,) + multipart`
+
+        This does not block; it buffers the data and arranges for it
+        to be sent out asynchronously.
+        """
+        raise NotImplementedError
 
     def abort(self):
         """Close the transport immediately.
@@ -17,14 +24,32 @@ class ZmqTransport(BaseTransport):
         """
         raise NotImplementedError
 
-    def getopt(self, option):
-        pass
+    def getsockopt(self, option):
+        """Get ZeroMQ socket option.
 
-    def setopt(self, option, value):
-        pass
+        option is a constant like zmq.SUBSCRIBE, zmq.UNSUBSCRIBE, zmq.TYPE etc.
+
+        For list of available options please see:
+        http://api.zeromq.org/master:zmq-getsockopt
+        """
+        raise NotImplementedError
+
+    def setsockopt(self, option, value):
+        """Set ZeroMQ socket option.
+
+        option is a constant like zmq.SUBSCRIBE, zmq.UNSUBSCRIBE, zmq.TYPE etc.
+        value is a new option value, it's type depend of option name.
+
+        For list of available options please see:
+        http://api.zeromq.org/master:zmq-setsockopt
+        """
+        raise NotImplementedError
 
 
 class ZmqProtocol(BaseProtocol):
 
     def msg_received(self, data, *multipart):
-        pass
+        """Called when some ZeroMQ message is received.
+
+        The whole received message is `(data,) + multipart`
+        """

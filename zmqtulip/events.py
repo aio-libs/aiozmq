@@ -183,6 +183,12 @@ class _ZmqTransportImpl(ZmqTransport):
             self._protocol = None
             self._loop = None
 
+    def getsockopt(self, option):
+        return self._zmq_sock.getsockopt(option)
+
+    def setsockopt(self, option, value):
+        self._zmq_sock.setsockopt(option, value)
+
 
 class ZmqEventLoopPolicy(DefaultEventLoopPolicy):
 

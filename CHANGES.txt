@@ -1,3 +1,8 @@
 CHANGES
 =======
 
+0.0.2 (XXXX-XX-XX)
+------------------
+
+Implement ZmqEventLoop with method create_zmq_connection which operates
+on zmq transport and protocol.

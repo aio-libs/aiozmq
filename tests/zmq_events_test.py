@@ -41,7 +41,7 @@ class Protocol(zmqtulip.ZmqProtocol):
 class ZmqEventLoopTests(unittest.TestCase):
 
     def setUp(self):
-        self.loop = zmqtulip.new_event_loop()
+        self.loop = zmqtulip.ZmqEventLoop()
         asyncio.set_event_loop(None)
 
     def tearDown(self):
@@ -52,47 +52,110 @@ class ZmqEventLoopTests(unittest.TestCase):
 
         @asyncio.coroutine
         def connect_req():
-            trq, prq = yield from self.loop.create_zmq_connection(
+            tr1, pr1 = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 bind='tcp://127.0.0.1:{}'.format(port))
-            self.assertEqual('CONNECTED', prq.state)
-            yield from prq.connected
-            return trq, prq
+            self.assertEqual('CONNECTED', pr1.state)
+            yield from pr1.connected
+            return tr1, pr1
 
-        trq, prq = self.loop.run_until_complete(connect_req())
+        tr1, pr1 = self.loop.run_until_complete(connect_req())
 
         @asyncio.coroutine
         def connect_rep():
-            trp, prp = yield from self.loop.create_zmq_connection(
+            tr2, pr2 = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.REP,
                 connect='tcp://127.0.0.1:{}'.format(port))
-            self.assertEqual('CONNECTED', prp.state)
-            yield from prp.connected
-            return trp, prp
+            self.assertEqual('CONNECTED', pr2.state)
+            yield from pr2.connected
+            return tr2, pr2
 
-        trp, prp = self.loop.run_until_complete(connect_rep())
+        tr2, pr2 = self.loop.run_until_complete(connect_rep())
 
         @asyncio.coroutine
         def communicate():
-            trq.write(b'request')
-            request = yield from prp.received.get()
+            tr1.write(b'request')
+            request = yield from pr2.received.get()
             self.assertEqual((b'request',), request)
-            trp.write(b'answer')
-            answer = yield from prq.received.get()
+            tr2.write(b'answer')
+            answer = yield from pr1.received.get()
             self.assertEqual((b'answer',), answer)
 
         self.loop.run_until_complete(communicate())
 
         @asyncio.coroutine
         def closing():
-            trq.close()
-            trp.close()
+            tr1.close()
+            tr2.close()
 
-            yield from prq.closed
-            self.assertEqual('CLOSED', prq.state)
-            yield from prp.closed
-            self.assertEqual('CLOSED', prp.state)
+            yield from pr1.closed
+            self.assertEqual('CLOSED', pr1.state)
+            yield from pr2.closed
+            self.assertEqual('CLOSED', pr2.state)
 
         self.loop.run_until_complete(closing())
+
+    def test_pub_sub(self):
+        port = support.find_unused_port()
+
+        @asyncio.coroutine
+        def connect_pub():
+            tr1, pr1 = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.PUB,
+                bind='tcp://127.0.0.1:{}'.format(port))
+            self.assertEqual('CONNECTED', pr1.state)
+            yield from pr1.connected
+            return tr1, pr1
+
+        tr1, pr1 = self.loop.run_until_complete(connect_pub())
+
+        @asyncio.coroutine
+        def connect_sub():
+            tr2, pr2 = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                connect='tcp://127.0.0.1:{}'.format(port))
+            self.assertEqual('CONNECTED', pr2.state)
+            yield from pr2.connected
+            tr2.setsockopt(zmq.SUBSCRIBE, b'node_id')
+            return tr2, pr2
+
+        tr2, pr2 = self.loop.run_until_complete(connect_sub())
+
+        @asyncio.coroutine
+        def communicate():
+            tr1.write(b'node_id', b'publish')
+            request = yield from pr2.received.get()
+            self.assertEqual((b'node_id', b'publish'), request)
+
+        self.loop.run_until_complete(communicate())
+
+        @asyncio.coroutine
+        def closing():
+            tr1.close()
+            tr2.close()
+
+            yield from pr1.closed
+            self.assertEqual('CLOSED', pr1.state)
+            yield from pr2.closed
+            self.assertEqual('CLOSED', pr2.state)
+
+        self.loop.run_until_complete(closing())
+
+    def test_getsockopt(self):
+        port = support.find_unused_port()
+
+        @asyncio.coroutine
+        def coro():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:{}'.format(port))
+            yield from pr.connected
+            self.assertEqual(zmq.DEALER, tr.getsockopt(zmq.TYPE))
+            return tr, pr
+
+        self.loop.run_until_complete(coro())
