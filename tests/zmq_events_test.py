@@ -35,7 +35,7 @@ class Protocol(zmqtulip.ZmqProtocol):
 
     def msg_received(self, data, *multipart):
         assert self.state == 'CONNECTED', self.state
-        self.received.put((data,) + multipart)
+        self.received.put_nowait((data,) + multipart)
 
 
 class ZmqEventLoopTests(unittest.TestCase):
@@ -52,24 +52,24 @@ class ZmqEventLoopTests(unittest.TestCase):
 
         @asyncio.coroutine
         def connect_req():
-            trq, prq = self.loop.create_zmq_connection(
+            trq, prq = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 bind='tcp://127.0.0.1:{}'.format(port))
-            self.assertEqual('CONNECTED', pr.state)
-            yield from pr.connected
+            self.assertEqual('CONNECTED', prq.state)
+            yield from prq.connected
             return trq, prq
 
         trq, prq = self.loop.run_until_complete(connect_req())
 
         @asyncio.coroutine
         def connect_rep():
-            trp, prp = self.loop.create_zmq_connection(
+            trp, prp = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.REP,
                 connect='tcp://127.0.0.1:{}'.format(port))
-            self.assertEqual('CONNECTED', pr.state)
-            yield from pr.connected
+            self.assertEqual('CONNECTED', prp.state)
+            yield from prp.connected
             return trp, prp
 
         trp, prp = self.loop.run_until_complete(connect_rep())
@@ -78,10 +78,10 @@ class ZmqEventLoopTests(unittest.TestCase):
         def communicate():
             trq.write(b'request')
             request = yield from prp.received.get()
-            self.assertEqual(b'request', request)
+            self.assertEqual((b'request',), request)
             trp.write(b'answer')
             answer = yield from prq.received.get()
-            self.assertEqual(b'answer', answer)
+            self.assertEqual((b'answer',), answer)
 
         self.loop.run_until_complete(communicate())
 

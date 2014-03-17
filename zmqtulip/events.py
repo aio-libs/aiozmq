@@ -69,6 +69,7 @@ class _ZmqTransportImpl(ZmqTransport):
         self._closing = False
         self._buffer = collections.deque()
         self._loop.add_reader(self._zmq_sock, self._read_ready)
+        self._loop.call_soon(self._protocol.connection_made, self)
         if waiter is not None:
             self._loop.call_soon(waiter.set_result, None)
 
@@ -84,15 +85,17 @@ class _ZmqTransportImpl(ZmqTransport):
         except Exception as exc:
             self._fatal_error(exc, 'Fatal read error on zmq socket transport')
         else:
-            self.msg_received(data)
+            self._protocol.msg_received(*data)
 
     def write(self, data, *multipart):
         if multipart:
             data = (data,) + multipart
+        else:
+            data = (data,)
         for part in data:
-            if not isinstance(data, (bytes, bytearray, memoryview)):
-                raise TypeError('data argument must be byte-ish (%r)',
-                                type(data))
+            if not isinstance(part, (bytes, bytearray, memoryview)):
+                raise TypeError('data argument must be byte-ish (%r)' %
+                                type(part))
         if not data:
             return
 
@@ -163,8 +166,6 @@ class _ZmqTransportImpl(ZmqTransport):
         self._force_close(exc)
 
     def _force_close(self, exc):
-        if self._conn_lost:
-            return
         if self._buffer:
             self._buffer.clear()
             self._loop.remove_writer(self._zmq_sock)
