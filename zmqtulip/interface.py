@@ -4,6 +4,7 @@ __all__ = ['ZmqTransport', 'ZmqProtocol']
 
 
 class ZmqTransport(BaseTransport):
+    """Interface for ZeroMQ transport."""
 
     def write(self, data, *multipart):
         """Write message to the transport.
@@ -47,6 +48,7 @@ class ZmqTransport(BaseTransport):
 
 
 class ZmqProtocol(BaseProtocol):
+    """Interface for ZeroMQ protocol."""
 
     def msg_received(self, data, *multipart):
         """Called when some ZeroMQ message is received.

@@ -12,6 +12,11 @@ __all__ = ['ZmqEventLoop', 'ZmqEventLoopPolicy']
 
 
 class ZmqEventLoop(SelectorEventLoop):
+    """ZeroMQ event loop.
+
+    Follows asyncio.AbstractEventLoop specification, in addition implements
+    create_zmq_connection method for working with ZeroMQ sockets.
+    """
 
     def __init__(self, *, io_threads=1):
         super().__init__(selector=ZmqSelector())
