@@ -24,6 +24,53 @@ class ZmqEventLoop(SelectorEventLoop):
     @asyncio.coroutine
     def create_zmq_connection(self, protocol_factory, zmq_type, *,
                                bind=None, connect=None, zmq_sock=None):
+        """A coroutine which creates a ZeroMQ connection endpoint.
+
+        The return value is a pair of (transport, protocol),
+        where transport support ZmqTransport interface.
+
+        protocol_factory should instantiate object with ZmqProtocol interface.
+
+        zmq_type is type of ZeroMQ socket (zmq.REQ, zmq.REP, zmq.PUB, zmq.SUB,
+        zmq.PAIR, zmq.DEALER, zmq.ROUTER, zmq.PULL, zmq.PUSH, etc.)
+
+        bind is string or iterable of strings that specifies enpoints.
+        Every endpoint creates ending for acceptin connections
+        and binds it to the transport.
+        Other side should use connect parameter to connect to this transport.
+        See http://api.zeromq.org/master:zmq-bind for details.
+
+        connect is string or iterable of strings that specifies enpoints.
+        Every endpoint connects transport to specified transport.
+        Other side should use bind parameter to wait for incoming connections.
+        See http://api.zeromq.org/master:zmq-connect for details.
+
+        endpoint is a string consisting of two parts as follows:
+        transport://address.
+        connect to this transport.
+        The transport part specifies the underlying transport protocol to use.
+        The meaning of the address part is specific to the underlying
+        transport protocol selected.
+
+        The following transports are defined:
+
+        inproc - local in-process (inter-thread) communication transport,
+        see http://api.zeromq.org/master:zmq-inproc.
+
+        ipc - local inter-process communication transport,
+        see http://api.zeromq.org/master:zmq-ipc
+
+        tcp - unicast transport using TCP,
+        see http://api.zeromq.org/master:zmq_tcp
+
+        pgm, epgm - reliable multicast transport using PGM,
+        see http://api.zeromq.org/master:zmq_pgm
+
+        zmq_sock is a zmq.Socket instance to use preexisting object
+        with created transport.
+
+        The only one of bind, connect or zmq_sock should be specified.
+        """
         if 1 != sum(
                 1 if i is not None else 0 for i in [zmq_sock, bind, connect]):
             raise ValueError(
