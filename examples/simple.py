@@ -1,12 +1,12 @@
 import tulip
 import zmq
-import zmqtulip
+import aiozmq
 
-loop = zmqtulip.new_event_loop()
+loop = aiozmq.new_event_loop()
 tulip.set_event_loop(loop)
 
 # server
-ctx = zmqtulip.Context(loop=loop)
+ctx = aiozmq.Context(loop=loop)
 #sock1 = ctx.socket(zmq.PUSH)
 #sock1.bind('ipc:///tmp/zmqtest')
 
@@ -25,7 +25,7 @@ def send_data():
 
 
 # client
-ctx = zmqtulip.Context(loop=loop)  # create a new context to kick the wheels
+ctx = aiozmq.Context(loop=loop)  # create a new context to kick the wheels
 sock2 = ctx.socket(zmq.PULL)
 sock2.connect('ipc:///tmp/zmqtest')
 

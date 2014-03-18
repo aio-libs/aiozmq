@@ -29,7 +29,7 @@ from asyncio import selector_events
 from asyncio import test_utils
 
 
-import zmqtulip
+import aiozmq
 
 
 def data_file(filename):
@@ -1619,4 +1619,4 @@ class SubprocessTestsMixin:
 class ZmqSelectorEventLoopTests(EventLoopTestsMixin, unittest.TestCase):
 
     def create_event_loop(self):
-        return zmqtulip.new_event_loop()
+        return aiozmq.new_event_loop()

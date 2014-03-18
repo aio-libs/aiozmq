@@ -4,7 +4,7 @@ import argparse
 import sys
 import signal
 import tulip
-import zmqtulip
+import aiozmq
 
 
 class MyServerUdpEchoProtocol:
@@ -84,7 +84,7 @@ if __name__ == '__main__':
         print('Please specify --server or --client\n')
         ARGS.print_help()
     else:
-        loop = zmqtulip.new_event_loop()
+        loop = aiozmq.new_event_loop()
         loop.add_signal_handler(signal.SIGINT, loop.stop)
 
         tulip.set_event_loop(loop)

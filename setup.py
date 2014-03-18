@@ -14,17 +14,17 @@ def read(f):
 
 def read_version():
     regexp = re.compile(r"^__version__\W*=\W*'([\d.]+)'")
-    init_py = os.path.join(os.path.dirname(__file__), 'zmqtulip', '__init__.py')
+    init_py = os.path.join(os.path.dirname(__file__), 'aiozmq', '__init__.py')
     with open(init_py) as f:
         for line in f:
             match = regexp.match(line)
             if match is not None:
                 return match.group(1)
         else:
-            raise RuntimeError('Cannot find version in zmqtulip/__init__.py')
+            raise RuntimeError('Cannot find version in aiozmq/__init__.py')
 
 
-setup(name='pyzmqtulip',
+setup(name='pyaiozmq',
       version=read_version(),
       description=('zmq integration with tulip.'),
       long_description='\n\n'.join((read('README.rst'), read('CHANGES.txt'))),
@@ -35,7 +35,7 @@ setup(name='pyzmqtulip',
           'Programming Language :: Python :: 3.3'],
       author='Nikolay Kim',
       author_email='fafhrd91@gmail.com',
-      url='https://github.com/fafhrd91/pyzmqtulip/',
+      url='https://github.com/fafhrd91/pyaiozmq/',
       license='BSD',
       packages=find_packages(),
       install_requires = install_requires,

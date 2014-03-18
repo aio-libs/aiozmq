@@ -1,12 +1,12 @@
 import unittest
 import asyncio
-import zmqtulip
+import aiozmq
 import zmq
 
 from test import support  # import from standard python test suite
 
 
-class Protocol(zmqtulip.ZmqProtocol):
+class Protocol(aiozmq.ZmqProtocol):
 
     def __init__(self, loop):
         self.transport = None
@@ -41,7 +41,7 @@ class Protocol(zmqtulip.ZmqProtocol):
 class ZmqEventLoopTests(unittest.TestCase):
 
     def setUp(self):
-        self.loop = zmqtulip.ZmqEventLoop()
+        self.loop = aiozmq.ZmqEventLoop()
         asyncio.set_event_loop(None)
 
     def tearDown(self):

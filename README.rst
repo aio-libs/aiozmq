@@ -9,23 +9,23 @@ Event loop
 To use tulip with zmq event loop you have to install new event loop::
 
    import tulip
-   import zmqtulip
+   import aiozmq
 
-   loop = zmqtulip.new_event_loop()
+   loop = aiozmq.new_event_loop()
    tulip.set_event_loop(loop)
 
 
 Usage
 -----
 
-Instead of using `zmq.Context` directly, use `zmqtulip.Context`.
+Instead of using `zmq.Context` directly, use `aiozmq.Context`.
 All `recvXXX` methods of Socket object are coroutines::
 
   # simple client
 
   import tulip
   import zmq
-  import zmqtulip
+  import aiozmq
 
   @tulip.coroutine
   def read_socket(sock):
@@ -35,10 +35,10 @@ All `recvXXX` methods of Socket object are coroutines::
           # do_some_work(msg)
 
   if __name__ == '__main__':
-      loop = zmqtulip.new_event_loop()
+      loop = aiozmq.new_event_loop()
       tulip.set_event_loop(loop)
 
-      ctx = zmqtulip.Context(loop=loop) # create a new context
+      ctx = aiozmq.Context(loop=loop) # create a new context
       sock = ctx.socket(zmq.PULL)
       sock.connect('ipc:///tmp/zmqtest')
 
@@ -59,4 +59,4 @@ Requirements
 License
 -------
 
-pyzmqtulip is offered under the BSD license.
+pyaiozmq is offered under the BSD license.

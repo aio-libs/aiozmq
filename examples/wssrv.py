@@ -6,7 +6,7 @@ import os
 import socket
 import signal
 import time
-import zmqtulip
+import aiozmq
 import tulip
 import tulip.http
 from tulip.http import websocket
@@ -302,7 +302,7 @@ def main():
         args.host, port = args.host.split(':', 1)
         args.port = int(port)
 
-    tulip.set_event_loop(zmqtulip.new_event_loop())
+    tulip.set_event_loop(aiozmq.new_event_loop())
 
     superviser = Superviser(args)
     superviser.start()

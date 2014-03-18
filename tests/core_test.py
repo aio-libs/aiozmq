@@ -3,15 +3,15 @@ import asyncio
 import unittest
 import unittest.mock
 import zmq
-import zmqtulip
-import zmqtulip.core
+import aiozmq
+import aiozmq.core
 
 
 class CoreTests(unittest.TestCase):
 
     def setUp(self):
-        self.loop = zmqtulip.new_event_loop()
-        self.ctx = zmqtulip.Context(loop=self.loop)
+        self.loop = aiozmq.new_event_loop()
+        self.ctx = aiozmq.Context(loop=self.loop)
         asyncio.set_event_loop(None)
 
     def tearDown(self):
@@ -20,21 +20,21 @@ class CoreTests(unittest.TestCase):
     def test_context_global_event_loop(self):
         asyncio.set_event_loop(self.loop)
         try:
-            ctx = zmqtulip.Context()
+            ctx = aiozmq.Context()
             self.assertIs(ctx._loop, self.loop)
         finally:
             asyncio.set_event_loop(None)
 
     def test_context_socket(self):
-        ctx = zmqtulip.Context(loop=self.loop)
+        ctx = aiozmq.Context(loop=self.loop)
         self.assertIs(ctx._loop, self.loop)
 
         socket = ctx.socket(zmq.PUB)
         socket.close()
-        self.assertIsInstance(socket, zmqtulip.core.Socket)
+        self.assertIsInstance(socket, aiozmq.core.Socket)
         self.assertIs(socket._loop, self.loop)
 
-    @unittest.mock.patch('zmqtulip.core.zmq.Socket')
+    @unittest.mock.patch('aiozmq.core.zmq.Socket')
     def test_recv_err(self, zmqSocket):
         err = zmq.ZMQError()
         err.errno = -1
@@ -61,9 +61,9 @@ class CoreTests(unittest.TestCase):
 class CoreIntegrationalTests(unittest.TestCase):
 
     def setUp(self):
-        self.loop = zmqtulip.new_event_loop()
-        self.srv_ctx = zmqtulip.Context(loop=self.loop)
-        self.c_ctx = zmqtulip.Context(loop=self.loop)
+        self.loop = aiozmq.new_event_loop()
+        self.srv_ctx = aiozmq.Context(loop=self.loop)
+        self.c_ctx = aiozmq.Context(loop=self.loop)
         asyncio.set_event_loop(None)
 
     def tearDown(self):

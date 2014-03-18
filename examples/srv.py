@@ -5,7 +5,7 @@ import argparse
 import email.message
 import os
 import sys
-import zmqtulip
+import aiozmq
 try:
     import ssl
 except ImportError:  # pragma: no cover
@@ -138,7 +138,7 @@ def main():
     else:
         sslcontext = None
 
-    loop = zmqtulip.new_event_loop()
+    loop = aiozmq.new_event_loop()
     tulip.set_event_loop(loop)
     f = loop.start_serving(
         lambda: HttpServer(debug=True, keep_alive=75), args.host, args.port,
