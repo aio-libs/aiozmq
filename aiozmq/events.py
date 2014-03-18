@@ -150,8 +150,7 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         for part in data:
             if not isinstance(part, (bytes, bytearray, memoryview)):
                 raise TypeError('data argument must be byte-ish (%r)' %
-                                type(part))
-
+                                data)
         data_len = sum(len(part) for part in data)
         if not data_len:
             return
