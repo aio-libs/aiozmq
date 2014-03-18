@@ -1,9 +1,19 @@
 import os
 import re
+import sys
 from setuptools import setup, find_packages
 
 
 install_requires = ['pyzmq']
+
+PY_VER = sys.version_info
+
+if PY_VER >= (3, 4):
+    pass
+elif PY_VER >= (3, 3):
+    install_requires.append('asyncio')
+else:
+    raise RuntimeError("aiozmq doesn't suppport Python earllier than 3.3")
 
 tests_require = install_requires + ['nose']
 
@@ -24,18 +34,23 @@ def read_version():
             raise RuntimeError('Cannot find version in aiozmq/__init__.py')
 
 
-setup(name='pyaiozmq',
+setup(name='aiozmq',
       version=read_version(),
-      description=('zmq integration with tulip.'),
+      description=('zmq integration with asyncio.'),
       long_description='\n\n'.join((read('README.rst'), read('CHANGES.txt'))),
       classifiers=[
           'License :: OSI Approved :: BSD License',
           'Intended Audience :: Developers',
           'Programming Language :: Python',
-          'Programming Language :: Python :: 3.3'],
+          'Programming Language :: Python :: 3.3',
+          'Programming Language :: Python :: 3.4',
+          'Operating System :: POSIX',
+          ],
       author='Nikolay Kim',
       author_email='fafhrd91@gmail.com',
-      url='https://github.com/fafhrd91/pyaiozmq/',
+      maintainer='Andrew Svetlov',
+      maintainer_email='andrew.svetlov@gmail.com',
+      url='https://github.com/fafhrd91/aiozmq/',
       license='BSD',
       packages=find_packages(),
       install_requires = install_requires,
