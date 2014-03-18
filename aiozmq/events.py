@@ -1,4 +1,5 @@
 import asyncio
+import errno
 import zmq
 
 from asyncio.unix_events import SelectorEventLoop, DefaultEventLoopPolicy
@@ -148,17 +149,19 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
             if not isinstance(part, (bytes, bytearray, memoryview)):
                 raise TypeError('data argument must be byte-ish (%r)' %
                                 type(part))
-        if not data:
+
+        data_len = sum(len(part) for part in data)
+        if not data_len:
             return
 
         if not self._buffer:
             try:
                 try:
-                    self._zmq_sock.send_multipart(data)
+                    self._zmq_sock.send_multipart(data, zmq.DONTWAIT)
                     return
-                except ZMQError as exc:
+                except zmq.ZMQError as exc:
                     if exc.errno in (errno.EAGAIN, errno.EINTR):
-                        pass
+                        self._loop.add_writer(self._zmq_sock, self._write_ready)
                     else:
                         raise
             except Exception as exc:
@@ -167,7 +170,7 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
                 return
 
         self._buffer.append(data)
-        self._buffer_size += sum(len(part) for part in data)
+        self._buffer_size += data_len
         self._maybe_pause_protocol()
 
     def _write_ready(self):
@@ -175,27 +178,28 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
 
         try:
             try:
-                self._zmq_sock.send_multipart(self._buffer[0])
-            except ZMQError as exc:
+                self._zmq_sock.send_multipart(self._buffer[0], zmq.DONTWAIT)
+            except zmq.ZMQError as exc:
                 if exc.errno in (errno.EAGAIN, errno.EINTR):
-                    return
+                    pass
                 else:
                     raise
         except Exception as exc:
             self._loop.remove_writer(self._zmq_sock)
             self._buffer.clear()
+            self._buffer_size = 0
             self._fatal_error(exc,
                               'Fatal write error on zmq socket transport')
-            return
         else:
-            self._buffer.popleft()
+            sent_data = self._buffer.popleft()
+            self._buffer_size -= sum(len(part) for part in sent_data)
 
-        self._maybe_resume_protocol()
+            self._maybe_resume_protocol()
 
-        if not self._buffer:
-            self._loop.remove_writer(self._zmq_sock)
-            if self._closing:
-                self._call_connection_lost(None)
+            if not self._buffer:
+                self._loop.remove_writer(self._zmq_sock)
+                if self._closing:
+                    self._call_connection_lost(None)
 
     def can_write_eof(self):
         return False

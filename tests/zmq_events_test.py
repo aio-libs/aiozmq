@@ -159,3 +159,49 @@ class ZmqEventLoopTests(unittest.TestCase):
             return tr, pr
 
         self.loop.run_until_complete(coro())
+
+    def xtest_pending_writer(self):
+        port = support.find_unused_port()
+
+        @asyncio.coroutine
+        def connect_pub():
+            tr1, pr1 = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.PUB,
+                bind='tcp://127.0.0.1:{}'.format(port))
+            yield from pr1.connected
+            return tr1, pr1
+
+        tr1, pr1 = self.loop.run_until_complete(connect_pub())
+
+        @asyncio.coroutine
+        def connect_sub():
+            tr2, pr2 = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                connect='tcp://127.0.0.1:{}'.format(port))
+            yield from pr2.connected
+            tr2.setsockopt(zmq.SUBSCRIBE, b'node')
+            return tr2, pr2
+
+        tr2, pr2 = self.loop.run_until_complete(connect_sub())
+
+        @asyncio.coroutine
+        def communicate():
+            tr1.setsockopt(zmq.SNDBUF, 5)
+            import pdb;pdb.set_trace()
+            tr1.write(b'node', b'1'*100)
+            tr1.write(b'node', b'2'*100)
+            tr1.setsockopt(zmq.SNDBUF, 0)
+            tr1.write(b'node', b'3'*100)
+            r1 = yield from pr2.received.get()
+            self.assertEqual((b'node', b'1'*100,), r1)
+            r2 = yield from pr2.received.get()
+            self.assertEqual((b'node', b'2'*100,), r2)
+            r3 = yield from pr2.received.get()
+            self.assertEqual((b'node', b'3'*100,), r3)
+
+        self.loop.run_until_complete(communicate())
+
+        tr1.close()
+        tr2.close()
