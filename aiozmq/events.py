@@ -144,11 +144,9 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         else:
             self._protocol.msg_received(*data)
 
-    def write(self, data, *multipart):
-        if multipart:
-            data = (data,) + multipart
-        else:
-            data = (data,)
+    def write(self, *data):
+        if not data:
+            return
         for part in data:
             if not isinstance(part, (bytes, bytearray, memoryview)):
                 raise TypeError('data argument must be byte-ish (%r)' %
