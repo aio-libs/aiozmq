@@ -8,3 +8,4 @@ coverage
 *.egg
 build
 htmlcov
+docs/_build
