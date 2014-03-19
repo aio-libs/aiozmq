@@ -1,25 +1,43 @@
 import asyncio
+import builtins
 import zmq
 import msgpack
+import struct
+import time
+import sys
 
 from . import events
 from . import interface
+from .log import logger
 
 __all__ = [
     'ns',
     'method',
-    'make_client',
-    'make_server',
+    'open_client',
+    'start_server',
     ]
 
 
+class RPCError(Exception):
+    """Base RPC exception"""
+
+
+class GenericRPCError(RPCError):
+    """Exception class used for all untranslated exceptions."""
+
+    def __init__(self, exc_type, args):
+        super().__init__(exc_type, args)
+        self.exc_type = exc_type
+        self.arguments = args
+
+
 def ns(obj):
-    """ Marks object as RPC namespace """
+    """Marks object as RPC namespace."""
     return obj
 
 
 def method(fun):
-    """ Marks method as RPC endpoint handler.
+    """Marks method as RPC endpoint handler.
 
     Also validates function params using annotations.
     """
@@ -28,129 +46,190 @@ def method(fun):
     #       (also validate annotations);
     return fun
 
-# TODO: make exceptions classes
-
 
 @asyncio.coroutine
-def make_client(connect=None, bind=None, *, loop=None):
+def open_client(*, connect=None, bind=None, loop=None):
     """A coroutine that creates and connects/binds RPC client
 
     Return value is a client instance.
     """
     # TODO: describe params
-    if connect and bind:
-        raise ValueError("Either connect or bind must be specified, not both")
-    if not connect and not bind:
-        raise ValueError("Either connect or bind must be specified")
+    if loop is None:
+        loop = asyncio.get_event_loop()
 
-    client = _Client(loop=loop)
-    if connect:
-        yield from client.connect(connect)
-    else:
-        yield from client.bind(bind)
-    return client
+    transp, proto = yield from loop.create_zmq_connection(
+        lambda: _ClientProtocol(loop), zmq.ROUTER, connect=connect, bind=bind)
+    return _Client(proto)
+
+
+class _ClientProtocol(interface.ZmqProtocol):
+    """Client protocol implementation."""
+
+    REQ_PREFIX = struct.Struct('HH')
+    REQ_SUFFIX = struct.Struct('Ld')
+    RESP = struct.Struct('HHLd?')
+
+    def __init__(self, loop):
+        self.loop = loop
+        self.transport = None
+        self.calls = {}
+        self.prefix = self.REQ_PREFIX.pack('HH',
+            os.getpid() % 65536, random.randrange(65536))
+        self.counter = 0
+        self.error_table = self._fill_error_table()
+
+    def _fill_error_table(self):
+        # Fill error table with standard exceptions
+        error_table = {}
+        for name in dir(builtins):
+            val = getattr(builtins, name)
+            if issubclass(val, Exception):
+                error_table['builtins.'+name] = val
+        return error_table
+
+    def connection_made(self, transport):
+        self.transport = transport
+
+    def connection_lost(self, exc):
+        self.transport = None
+
+    def msg_received(self, data):
+        try:
+            header, packed_answer = data
+            pid, rnd, req_id, timestamp, is_error = self.RESP.unpackb(header)
+            answer = msgpack.unpackb(packed_answer,
+                                     encoding='utf-8', use_list=True)
+        except Exception as exc:
+            logger.critical("Cannot unpack %r", data. exc_info=sys.exc_info())
+            return
+        call = self.calls.pop(req_id, None)
+        if call is None:
+            logger.critical("Unknown answer id: %d (%d %d %f %d) -> %s",
+                            req_id, pid, rnd, timestamp, is_error, answer)
+            return
+        if iserror:
+            call.set_exception(self._translate_error(answer))
+        else:
+            call.set_result(answer)
+
+    def _translate_error(self, exc_type, exc_args):
+        found = self.error_table.get(exc_type)
+        if found is None:
+            return GenericRPCError(exc_type, exc_args)
+        else:
+            return found(*exc_args)
+
+    def _new_id(self):
+        self.counter += 1
+        if self.counter > 0xffffffff
+            self.counter = 0
+        return (self.prefix + self.REQ_SUFFIX.pack(self.counter, time.time()),
+                self.counter)
+
+    def call(self, name, args, kwargs):
+        packed_name = name.encode('utf-8')
+        packed_args = msgpack.dumps(args)
+        packed_kwargs = msgpack.dumps(kwargs)
+        header, req_id = self._new_id()
+        assert req_id not in self.calls, (req_id, self.calls)
+        fut = asyncio.Future(loop=self.loop)
+        self.calls[req_id] = fut
+        self.transport.write([header, packed_name, packed_args, packed_kwargs])
+        return fut
+
+
+class _Client:
+    def __init__(self, proto, names=(,)):
+        self._proto = proto
+        self._names = names
+
+    def __getattr__(self, name):
+        return self.__class__(connection, self._names + (name,))
+
+    def __call__(self, *args, **kwargs):
+        if not self._names:
+            raise ValueError('RPC method name is empty')
+        return self._proto.call('.'.join(self.names), args, kwargs)
+
 
 
 @asyncio.coroutine
-def make_server(handler, connect, bind, *, loop=None):
-    """A coroutine that creates and connects/binds RPC server instance
-    """
+def start_server(handler, *, connect=None, bind=None, loop=None):
+    """A coroutine that creates and connects/binds RPC server instance."""
     # TODO: describe params
-    if connect and bind:
-        raise ValueError("Either connect or bind must be specified, not both")
-    if not connect and not bind:
-        raise ValueError("Either connect or bind must be specified")
 
-    server = _Server(handler, loop=loop)
-    if connect:
-        yield from server.connect(connect)
-    else:
-        yield from server.bind(bind)
-    return server
+    transp, proto = yield from loop.create_zmq_connection(
+        lambda: _ServerProtocol(loop, handler),
+        zmq.DEALER, connect=connect, bind=bind)
+
+    return None
 
 
-# TODO: implement protocol -- two parts:
-#           read & write
-#           ie: decode msg & encode msg
+class _RPCServer(asyncio.AbstractServer):
+
+    def __init__(self, loop, proto):
+        self.loop = loop
+        self.proto = proto
+
+    def close(self):
+        if self.proto.transport is None:
+            return
+        self.proto.transport.close()
+
+    @task.coroutine
+    def wait_closed(self):
+        if self.proto.transport is None:
+            return
+        waiter = asyncio.Future(loop=self.loop)
+        self.proto.done_waiters.append(waiter)
+        yield from waiter
 
 
-class ClientProtocol(interface.ZmqProtocol):
-    """Client protocol implementation
-    """
+class _ServerProtocol(ZmqProtocol):
 
-    def msg_received(self, data, *multipart):
-        try:
-            unpacked = msgpack.loads(data, encoding='utf-8', use_list=True)
-        except ValueError as err:
-            pass
+    REQ = struct.Struct('HHLd')
+    RESP_PREFIX = struct.Struct('HH')
+    RESP_SUFFIX = struct.Struct('Ld?')
 
+    def __init__(self, loop, handler):
+        self.loop = loop
+        self.handler = handler
+        self.done_waiters = []
+        self.prefix = self.REQ_PREFIX.pack('HH',
+            os.getpid() % 65536, random.randrange(65536))
 
+    def connection_made(self, transport):
+        self.transport = transport
 
-# TODO: get rid of _Client; do all this in make_client
-#       and return ResourceWrapper
-#       do the same with _Server
-class _Client:
-    """ZeroMQ RPC Client
-    """
+    def connection_lost(self, exc):
+        self.transport = None
+        for waiter in self.done_waiters:
+            waiter.set_result(None)
 
-    def __init__(self, loop=None):
-        if loop is None:
-            loop = events.ZmqEventLoop()
-        self._loop = loop
+    def msg_received(self, data):
+        header, packed_name, packed_args, packed_kwargs = data
+        pid, rnd, timestamp, req_id = self.REQ.unpack(header)
+        coro = self.dispatch(packed_name.decode('utf-8'))
+        args = msgpack.unpackb(packed_args, encoding='utf-8', use_list=True)
+        kwargs = msgpack.unpackb(packed_kwargs, encoding='utf-8', use_list=True)
+        fut = asyncio.async(coro(*args, **kwargs), loop=self.loop)
+        fut.add_done_callback(process_result)
 
-    @asyncio.coroutine
-    def connect(self, connect):
-        create = self._loop.create_zmq_connection
-        transport, protocol = yield from create(ClientProtocol,
-                                                zmq_type=zmq.DEALER,
-                                                connect=connect)
-        self._transport = transport
-        self._protocol = protocol
+        def process_result(res_fut):
+            try:
+                ret = res_fut.result()
+                prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
+                                                             time.time(), False)
+                self.wransport.write([prefix, msgpack.packb(ret)])
+            except Exception as exc:
+                prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
+                                                             time.time(), True)
+                exc_type = exc.__class__
+                exc_info = (exc_type.__module__ + '.' + exc_type.__name__,
+                            exc.args)
+                self.transport.write([prefix, msgpack.packb(exc_info)])
 
-    @asyncio.coroutine
-    def bind(self, bind):
-        create = self._loop.create_zmq_connection
-        transport, protocol = yield from create(ClientProtocol,
-                                                zmq_type=zmq.DEALER,
-                                                bind=bind)
-        self._transport = transport
-        self._protocol = protocol
+    def dispatch(self, name):
+        namespaces, sep, method = name.rpartition('.')
+        handler = self.handler
 
-    def __getattr__(self, name):
-        pass
-        # make and return wrapper;
-
-
-class _Server:
-    """ZeroMQ RPC Server
-    """
-
-    def __init__(self, handler *, loop=None):
-        if loop is None:
-            loop = events.ZmqEventLoop()
-        self._loop = loop
-        self._handler = handler
-
-    @asyncio.coroutine
-    def connect(self, connect):
-        pass
-
-    @asyncio.coroutine
-    def bind(self, bind):
-        pass
-
-    def run(self):
-        pass
-        # listen for connections;
-
-
-class ResourceWrapper:
-
-    def __init__(self):
-        pass
-
-    def __getattr__(self, name):
-        pass
-
-    def __call__(self, *agrs, **kwargs):
-        pass
