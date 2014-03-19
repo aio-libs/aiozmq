@@ -129,7 +129,7 @@ class _ClientProtocol(interface.ZmqProtocol):
             answer = msgpack.unpackb(packed_answer,
                                      encoding='utf-8', use_list=True)
         except Exception as exc:
-            logger.critical("Cannot unpack %r", data. exc_info=sys.exc_info())
+            logger.critical("Cannot unpack %r", data, exc_info=sys.exc_info())
             return
         call = self.calls.pop(req_id, None)
         if call is None:
@@ -150,7 +150,7 @@ class _ClientProtocol(interface.ZmqProtocol):
 
     def _new_id(self):
         self.counter += 1
-        if self.counter > 0xffffffff
+        if self.counter > 0xffffffff:
             self.counter = 0
         return (self.prefix + self.REQ_SUFFIX.pack(self.counter, time.time()),
                 self.counter)
@@ -168,7 +168,7 @@ class _ClientProtocol(interface.ZmqProtocol):
 
 
 class _Client:
-    def __init__(self, proto, names=(,)):
+    def __init__(self, proto, names=()):
         self._proto = proto
         self._names = names
 
