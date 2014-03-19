@@ -142,15 +142,15 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         except Exception as exc:
             self._fatal_error(exc, 'Fatal read error on zmq socket transport')
         else:
-            self._protocol.msg_received(*data)
+            self._protocol.msg_received(tuple(data))
 
-    def write(self, *data):
+    def write(self, data):
         if not data:
             return
         for part in data:
             if not isinstance(part, (bytes, bytearray, memoryview)):
-                raise TypeError('data argument must be byte-ish (%r)' %
-                                data)
+                raise TypeError('data argument must be iterable of '
+                                'byte-ish (%r)' % data)
         data_len = sum(len(part) for part in data)
         if not data_len:
             return

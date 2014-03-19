@@ -6,8 +6,10 @@ __all__ = ['ZmqTransport', 'ZmqProtocol']
 class ZmqTransport(BaseTransport):
     """Interface for ZeroMQ transport."""
 
-    def write(self, *data):
+    def write(self, data):
         """Write message to the transport.
+
+        data is iterable to send as multipart message.
 
         This does not block; it buffers the data and arranges for it
         to be sent out asynchronously.
@@ -73,7 +75,7 @@ class ZmqTransport(BaseTransport):
 class ZmqProtocol(BaseProtocol):
     """Interface for ZeroMQ protocol."""
 
-    def msg_received(self, *data):
+    def msg_received(self, data):
         """Called when some ZeroMQ message is received.
 
         data is the multipart tuple of bytes with at least one item.

@@ -22,7 +22,7 @@ class TransportTests(unittest.TestCase):
         self.fatal_error = self.tr._fatal_error = mock.Mock()
 
     def test_empty_write(self):
-        self.tr.write(b'')
+        self.tr.write([b''])
         self.assertFalse(self.sock.send_multipart.called)
         self.assertFalse(self.proto.pause_writing.called)
         self.assertFalse(self.tr._buffer)
@@ -30,7 +30,7 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.fatal_error.called)
 
     def test_write(self):
-        self.tr.write(b'a', b'b')
+        self.tr.write((b'a', b'b'))
         self.sock.send_multipart.assert_called_with((b'a', b'b'), zmq.DONTWAIT)
         self.assertFalse(self.proto.pause_writing.called)
         self.assertFalse(self.tr._buffer)
@@ -39,7 +39,7 @@ class TransportTests(unittest.TestCase):
 
     def test_partial_write(self):
         self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
-        self.tr.write(b'a', b'b')
+        self.tr.write((b'a', b'b'))
         self.sock.send_multipart.assert_called_with((b'a', b'b'), zmq.DONTWAIT)
         self.assertFalse(self.proto.pause_writing.called)
         self.assertEqual([(b'a', b'b')], list(self.tr._buffer))
@@ -49,8 +49,8 @@ class TransportTests(unittest.TestCase):
 
     def test_partial_double_write(self):
         self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
-        self.tr.write(b'a', b'b')
-        self.tr.write(b'c')
+        self.tr.write((b'a', b'b'))
+        self.tr.write((b'c',))
         self.sock.send_multipart.mock_calls = [
             mock.call((b'a', b'b'), zmq.DONTWAIT)]
         self.assertFalse(self.proto.pause_writing.called)
