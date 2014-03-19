@@ -1,3 +1,5 @@
+"""ZeroMQ RPC"""
+
 import asyncio
 import builtins
 import zmq
@@ -11,10 +13,13 @@ from . import interface
 from .log import logger
 
 __all__ = [
-    'ns',
-    'method',
+    'Handler',
+    'rpc',
     'open_client',
     'start_server',
+    'RPCError',
+    'GenericRPCError',
+    'UnknownNamespace'
     ]
 
 
@@ -23,7 +28,7 @@ class RPCError(Exception):
 
 
 class GenericRPCError(RPCError):
-    """Exception class used for all untranslated exceptions."""
+    """Error used for all untranslated exceptions from rpc method calls."""
 
     def __init__(self, exc_type, args):
         super().__init__(exc_type, args)
@@ -31,12 +36,35 @@ class GenericRPCError(RPCError):
         self.arguments = args
 
 
-def ns(obj):
-    """Marks object as RPC namespace."""
-    return obj
+class RPCLookupError(RPCError):
+    """Error raised by server when RPC namespace/method lookup failed."""
 
 
-def method(fun):
+class UnknownNamespace(RPCLookupError):
+    """RPC namespace not found."""
+
+
+class UnknownMethod(RPCLookupError):
+    """RPC method not found."""
+
+
+class Handler:
+    """Base class for server-side RPC handlers.
+
+    Do not use metaclass to allowing easy multiple inheritance
+    (can be used as mixin).
+    Thereof checking for correctnes of RPC nested namespaces and
+    methods is done at start_server call.
+    """
+
+    def __init__(self, subhandlers=None):
+        if subhandlers is None:
+            subhandlers = {}
+        self.subhandlers = subhandlers
+        self.rpc_methods = {}
+
+
+def rpc(func):
     """Marks method as RPC endpoint handler.
 
     Also validates function params using annotations.
@@ -44,7 +72,8 @@ def method(fun):
     # TODO: fun with flag;
     #       parse annotations and create(?) checker;
     #       (also validate annotations);
-    return fun
+    func.__rpc__ = {}  # TODO: assign to trafaret?
+    return func
 
 
 @asyncio.coroutine
@@ -193,10 +222,16 @@ class _ServerProtocol(ZmqProtocol):
 
     def __init__(self, loop, handler):
         self.loop = loop
+        self.prepare_handler(handler)
         self.handler = handler
         self.done_waiters = []
         self.prefix = self.REQ_PREFIX.pack('HH',
             os.getpid() % 65536, random.randrange(65536))
+
+    def prepare_handler(self, handler):
+        # TODO: check handler and subhandlers for correctness
+        # raise exception if needed
+        pass
 
     def connection_made(self, transport):
         self.transport = transport
@@ -209,7 +244,10 @@ class _ServerProtocol(ZmqProtocol):
     def msg_received(self, data):
         header, packed_name, packed_args, packed_kwargs = data
         pid, rnd, timestamp, req_id = self.REQ.unpack(header)
+
+        # TODO: send exception back to transport if lookup is failed
         coro = self.dispatch(packed_name.decode('utf-8'))
+
         args = msgpack.unpackb(packed_args, encoding='utf-8', use_list=True)
         kwargs = msgpack.unpackb(packed_kwargs, encoding='utf-8', use_list=True)
         fut = asyncio.async(coro(*args, **kwargs), loop=self.loop)
@@ -232,4 +270,16 @@ class _ServerProtocol(ZmqProtocol):
     def dispatch(self, name):
         namespaces, sep, method = name.rpartition('.')
         handler = self.handler
+        for namespace in namespaces:
+            try:
+                handler = handler.subhandlers[namespace]
+            except KeyError:
+                raise UnknownNamespace(name)
 
+        try:
+            func = handler.rpc_methods[method]
+        except KeyError:
+            raise UnknownMethod(name)
+        else:
+            # TODO: validate trafaret
+            return func
