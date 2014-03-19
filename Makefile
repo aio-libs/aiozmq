@@ -1,26 +1,23 @@
 # Some simple testing tasks (sorry, UNIX only).
 
 PYTHON=python3.3
-NOSE=../../bin/nosetests
 FLAKE=flake8
-FLAGS=
 
 
 pep:
 	$(FLAKE) ./
 
 test:
-	$(NOSE) -s $(FLAGS)
+	$(PYTHON) runtests.py
 
 vtest:
-	$(NOSE) -s -v $(FLAGS)
+	$(PYTHON) runtests.py -v
 
 testloop:
-	while sleep 1; do $(PYTHON) runtests.py $(FLAGS); done
+	$(PYTHON) runtests.py --forever
 
 cov cover coverage:
-	$(NOSE) -s --with-cover --cover-html --cover-html-dir ./coverage $(FLAGS)
-	echo "open file://`pwd`/coverage/index.html"
+	$(PYTHON) runtests.py --coverage
 
 clean:
 	rm -rf `find . -name __pycache__`
