@@ -9,12 +9,12 @@ from test import support  # import from standard python test suite
 
 class MyHandler(aiozmq.rpc.Handler):
 
-    @aiozmq.rpc.rpc
+    @aiozmq.rpc.method
     @asyncio.coroutine
     def func(self, arg):
         return arg + 1
 
-    @aiozmq.rpc.rpc
+    @aiozmq.rpc.method
     @asyncio.coroutine
     def exc(self, arg):
         raise RuntimeError("bad arg", arg)
@@ -51,8 +51,10 @@ class RpcTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            ret = yield from client.func(1)
+            ret = yield from client.rpc.func(1)
             self.assertEqual(2, ret)
+            client.close()
+            yield from client.wait_closed()
 
         self.loop.run_until_complete(communicate())
 
@@ -62,7 +64,7 @@ class RpcTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             with self.assertRaises(RuntimeError) as exc:
-                yield from client.exc(1)
+                yield from client.rpc.exc(1)
                 self.assertEqual(('bad arg', 1), exc.exception.args)
 
         self.loop.run_until_complete(communicate())

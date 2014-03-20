@@ -18,7 +18,7 @@ from .log import logger
 
 __all__ = [
     'Handler',
-    'rpc',
+    'method',
     'open_client',
     'start_server',
     'RPCError',
@@ -77,7 +77,7 @@ class Handler:
             self._rpc_methods[name] = val
 
 
-def rpc(func):
+def method(func):
     """Marks method as RPC endpoint handler.
 
     Also validates function params using annotations.
@@ -104,7 +104,7 @@ def open_client(*, connect=None, bind=None, loop=None):
 
     transp, proto = yield from loop.create_zmq_connection(
         lambda: _ClientProtocol(loop), zmq.DEALER, connect=connect, bind=bind)
-    return _RPCClient(proto)
+    return _RPCClient(loop, proto)
 
 
 @asyncio.coroutine
@@ -119,7 +119,43 @@ def start_server(handler, *, connect=None, bind=None, loop=None):
     return _RPCServer(loop, proto)
 
 
-class _ClientProtocol(interface.ZmqProtocol):
+class _BaseProtocol(interface.ZmqProtocol):
+
+    def __init__(self, loop):
+        self.loop = loop
+        self.transport = None
+        self.done_waiters = []
+
+    def connection_made(self, transport):
+        self.transport = transport
+
+    def connection_lost(self, exc):
+        self.transport = None
+        for waiter in self.done_waiters:
+            waiter.set_result(None)
+
+
+class _RPCServer(asyncio.AbstractServer):
+
+    def __init__(self, loop, proto):
+        self._loop = loop
+        self._proto = proto
+
+    def close(self):
+        if self._proto.transport is None:
+            return
+        self._proto.transport.close()
+
+    @asyncio.coroutine
+    def wait_closed(self):
+        if self._proto.transport is None:
+            return
+        waiter = asyncio.Future(loop=self._loop)
+        self._proto.done_waiters.append(waiter)
+        yield from waiter
+
+
+class _ClientProtocol(_BaseProtocol):
     """Client protocol implementation."""
 
     REQ_PREFIX = struct.Struct('=HH')
@@ -127,8 +163,7 @@ class _ClientProtocol(interface.ZmqProtocol):
     RESP = struct.Struct('=HHLd?')
 
     def __init__(self, loop):
-        self.loop = loop
-        self.transport = None
+        super().__init__(loop)
         self.calls = {}
         self.prefix = self.REQ_PREFIX.pack(os.getpid() % 0x10000,
                                            random.randrange(0x10000))
@@ -143,12 +178,6 @@ class _ClientProtocol(interface.ZmqProtocol):
             if isinstance(val, type) and issubclass(val, Exception):
                 error_table['builtins.'+name] = val
         return error_table
-
-    def connection_made(self, transport):
-        self.transport = transport
-
-    def connection_lost(self, exc):
-        self.transport = None
 
     def msg_received(self, data):
         try:
@@ -195,7 +224,15 @@ class _ClientProtocol(interface.ZmqProtocol):
         return fut
 
 
-class _RPCClient:
+class _RPCClient(_RPCServer):
+
+    def __init__(self, loop, proto):
+        super().__init__(loop, proto)
+        self.rpc = _MethodCall(self._proto)
+
+
+class _MethodCall:
+
     def __init__(self, proto, names=()):
         self._proto = proto
         self._names = names
@@ -209,37 +246,16 @@ class _RPCClient:
         return self._proto.call('.'.join(self._names), args, kwargs)
 
 
-class _RPCServer(asyncio.AbstractServer):
-
-    def __init__(self, loop, proto):
-        self.loop = loop
-        self.proto = proto
-
-    def close(self):
-        if self.proto.transport is None:
-            return
-        self.proto.transport.close()
-
-    @asyncio.coroutine
-    def wait_closed(self):
-        if self.proto.transport is None:
-            return
-        waiter = asyncio.Future(loop=self.loop)
-        self.proto.done_waiters.append(waiter)
-        yield from waiter
-
-
-class _ServerProtocol(interface.ZmqProtocol):
+class _ServerProtocol(_BaseProtocol):
 
     REQ = struct.Struct('=HHLd')
     RESP_PREFIX = struct.Struct('=HH')
     RESP_SUFFIX = struct.Struct('=Ld?')
 
     def __init__(self, loop, handler):
-        self.loop = loop
+        super().__init__(loop)
         self.prepare_handler(handler)
         self.handler = handler
-        self.done_waiters = []
         self.prefix = self.RESP_PREFIX.pack(os.getpid() % 0x10000,
                                             random.randrange(0x10000))
 
@@ -247,14 +263,6 @@ class _ServerProtocol(interface.ZmqProtocol):
         # TODO: check handler and subhandlers for correctness
         # raise exception if needed
         pass
-
-    def connection_made(self, transport):
-        self.transport = transport
-
-    def connection_lost(self, exc):
-        self.transport = None
-        for waiter in self.done_waiters:
-            waiter.set_result(None)
 
     def msg_received(self, data):
         peer_addr, header, bname, bargs, bkwargs = data
