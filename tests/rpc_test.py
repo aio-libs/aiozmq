@@ -43,6 +43,7 @@ class RpcTests(unittest.TestCase):
             return client, server
 
         client, server = self.loop.run_until_complete(create())
+
         return client, server
 
     def test_func(self):
@@ -65,4 +66,3 @@ class RpcTests(unittest.TestCase):
                 self.assertEqual(('bad arg', 1), exc.exception.args)
 
         self.loop.run_until_complete(communicate())
-        

@@ -23,7 +23,10 @@ __all__ = [
     'start_server',
     'RPCError',
     'GenericRPCError',
-    'UnknownNamespace'
+    'RPCLookupError'
+    'UnknownNamespace',
+    'UnknownMethod',
+    'Handler'
     ]
 
 
@@ -136,9 +139,9 @@ class _ClientProtocol(interface.ZmqProtocol):
 
     def msg_received(self, data):
         try:
-            header, packed_answer = data
+            header, banswer = data
             pid, rnd, req_id, timestamp, is_error = self.RESP.unpack(header)
-            answer = msgpack.unpackb(packed_answer,
+            answer = msgpack.unpackb(banswer,
                                      encoding='utf-8', use_list=True)
         except Exception as exc:
             logger.critical("Cannot unpack %r", data, exc_info=sys.exc_info())
@@ -168,14 +171,14 @@ class _ClientProtocol(interface.ZmqProtocol):
                 self.counter)
 
     def call(self, name, args, kwargs):
-        packed_name = name.encode('utf-8')
-        packed_args = msgpack.dumps(args)
-        packed_kwargs = msgpack.dumps(kwargs)
+        bname = name.encode('utf-8')
+        bargs = msgpack.dumps(args)
+        bkwargs = msgpack.dumps(kwargs)
         header, req_id = self._new_id()
         assert req_id not in self.calls, (req_id, self.calls)
         fut = asyncio.Future(loop=self.loop)
         self.calls[req_id] = fut
-        self.transport.write([header, packed_name, packed_args, packed_kwargs])
+        self.transport.write([header, bname, bargs, bkwargs])
         return fut
 
 
@@ -203,7 +206,7 @@ def start_server(handler, *, connect=None, bind=None, loop=None):
         lambda: _ServerProtocol(loop, handler),
         zmq.ROUTER, connect=connect, bind=bind)
 
-    return None
+    return _RPCServer(loop, proto)
 
 
 class _RPCServer(asyncio.AbstractServer):
@@ -254,14 +257,14 @@ class _ServerProtocol(interface.ZmqProtocol):
             waiter.set_result(None)
 
     def msg_received(self, data):
-        peer_addr, header, packed_name, packed_args, packed_kwargs = data
+        peer_addr, header, bname, bargs, bkwargs = data
         pid, rnd, req_id, timestamp = self.REQ.unpack(header)
 
         # TODO: send exception back to transport if lookup is failed
         coro = self.dispatch(packed_name.decode('utf-8'))
 
-        args = msgpack.unpackb(packed_args, encoding='utf-8', use_list=True)
-        kwargs = msgpack.unpackb(packed_kwargs, encoding='utf-8', use_list=True)
+        args = msgpack.unpackb(bargs, encoding='utf-8', use_list=True)
+        kwargs = msgpack.unpackb(bkwargs, encoding='utf-8', use_list=True)
         fut = asyncio.async(coro(*args, **kwargs), loop=self.loop)
 
         def process_result(res_fut):
@@ -278,6 +281,7 @@ class _ServerProtocol(interface.ZmqProtocol):
                             exc.args)
                 self.transport.write([peer_addr, prefix,
                                       msgpack.packb(exc_info)])
+
         fut.add_done_callback(process_result)
 
     def dispatch(self, name):
