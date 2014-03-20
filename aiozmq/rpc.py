@@ -98,12 +98,13 @@ def open_client(*, connect=None, bind=None, loop=None):
     Return value is a client instance.
     """
     # TODO: describe params
+    # TODO: add a way to pass exception translator
     if loop is None:
         loop = asyncio.get_event_loop()
 
     transp, proto = yield from loop.create_zmq_connection(
         lambda: _ClientProtocol(loop), zmq.DEALER, connect=connect, bind=bind)
-    return _Client(proto)
+    return _RPCClient(proto)
 
 
 @asyncio.coroutine
@@ -194,7 +195,7 @@ class _ClientProtocol(interface.ZmqProtocol):
         return fut
 
 
-class _Client:
+class _RPCClient:
     def __init__(self, proto, names=()):
         self._proto = proto
         self._names = names
@@ -260,7 +261,7 @@ class _ServerProtocol(interface.ZmqProtocol):
         pid, rnd, req_id, timestamp = self.REQ.unpack(header)
 
         # TODO: send exception back to transport if lookup is failed
-        coro = self.dispatch(packed_name.decode('utf-8'))
+        coro = self.dispatch(bname.decode('utf-8'))
 
         args = msgpack.unpackb(bargs, encoding='utf-8', use_list=True)
         kwargs = msgpack.unpackb(bkwargs, encoding='utf-8', use_list=True)
