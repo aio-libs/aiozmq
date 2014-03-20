@@ -106,6 +106,18 @@ def open_client(*, connect=None, bind=None, loop=None):
     return _Client(proto)
 
 
+@asyncio.coroutine
+def start_server(handler, *, connect=None, bind=None, loop=None):
+    """A coroutine that creates and connects/binds RPC server instance."""
+    # TODO: describe params
+
+    transp, proto = yield from loop.create_zmq_connection(
+        lambda: _ServerProtocol(loop, handler),
+        zmq.ROUTER, connect=connect, bind=bind)
+
+    return _RPCServer(loop, proto)
+
+
 class _ClientProtocol(interface.ZmqProtocol):
     """Client protocol implementation."""
 
@@ -194,19 +206,6 @@ class _Client:
         if not self._names:
             raise ValueError('RPC method name is empty')
         return self._proto.call('.'.join(self._names), args, kwargs)
-
-
-
-@asyncio.coroutine
-def start_server(handler, *, connect=None, bind=None, loop=None):
-    """A coroutine that creates and connects/binds RPC server instance."""
-    # TODO: describe params
-
-    transp, proto = yield from loop.create_zmq_connection(
-        lambda: _ServerProtocol(loop, handler),
-        zmq.ROUTER, connect=connect, bind=bind)
-
-    return _RPCServer(loop, proto)
 
 
 class _RPCServer(asyncio.AbstractServer):
