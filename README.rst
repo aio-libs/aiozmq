@@ -1,18 +1,18 @@
-Tulip integration with ZeroMQ
+asyncio integration with ZeroMQ
 =============================
 
-Experimental Tulip (PEP 3156) compatibility with ZeroMQ.
+Experimental asyncio (PEP 3156) compatibility with ZeroMQ.
 
 Event loop
 ----------
 
-To use tulip with zmq event loop you have to install new event loop::
+To use asyncio with zmq event loop you have to install new event loop::
 
-   import tulip
+   import asyncio
    import aiozmq
 
    loop = aiozmq.new_event_loop()
-   tulip.set_event_loop(loop)
+   asyncio.set_event_loop(loop)
 
 
 Usage
@@ -23,11 +23,11 @@ All `recvXXX` methods of Socket object are coroutines::
 
   # simple client
 
-  import tulip
+  import asyncio
   import zmq
   import aiozmq
 
-  @tulip.coroutine
+  @asyncio.coroutine
   def read_socket(sock):
       while True:
           msg = yield from sock.recv()
@@ -36,27 +36,28 @@ All `recvXXX` methods of Socket object are coroutines::
 
   if __name__ == '__main__':
       loop = aiozmq.new_event_loop()
-      tulip.set_event_loop(loop)
+      asyncio.set_event_loop(loop)
 
       ctx = aiozmq.Context(loop=loop) # create a new context
       sock = ctx.socket(zmq.PULL)
       sock.connect('ipc:///tmp/zmqtest')
 
-      t = tulip.Task(read_socket(sock))
+      t = asyncio.Task(read_socket(sock))
       loop.run_forever()
 
 
 Requirements
 ------------
 
-- Python 3.3
+- Python 3.3+
 
 - pyzmq 13.1
 
-- tulip http://code.google.com/p/tulip/
+- asyncio http://code.google.com/p/tulip/ or Python 3.4+
+
 
 
 License
 -------
 
-pyaiozmq is offered under the BSD license.
+aiozmq is offered under the BSD license.
