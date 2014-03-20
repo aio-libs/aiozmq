@@ -2,11 +2,15 @@
 
 import asyncio
 import builtins
-import zmq
-import msgpack
+import os
 import struct
+import sys
+import random
 import time
 import sys
+
+import msgpack
+import zmq
 
 from . import events
 from . import interface
@@ -60,8 +64,14 @@ class Handler:
     def __init__(self, subhandlers=None):
         if subhandlers is None:
             subhandlers = {}
-        self.subhandlers = subhandlers
-        self.rpc_methods = {}
+        self._rpc_subhandlers = subhandlers
+        self._rpc_methods = {}
+        for name in dir(self):
+            val = getattr(self, name)
+            rpc_info = getattr(val, '__rpc__', None)
+            if rpc_info is None:
+                continue
+            self._rpc_methods[name] = val
 
 
 def rpc(func):
@@ -72,6 +82,8 @@ def rpc(func):
     # TODO: fun with flag;
     #       parse annotations and create(?) checker;
     #       (also validate annotations);
+    if not asyncio.iscoroutinefunction(func):
+        raise TypeError('rpc decorator can work only with coroutines')
     func.__rpc__ = {}  # TODO: assign to trafaret?
     return func
 
@@ -87,23 +99,23 @@ def open_client(*, connect=None, bind=None, loop=None):
         loop = asyncio.get_event_loop()
 
     transp, proto = yield from loop.create_zmq_connection(
-        lambda: _ClientProtocol(loop), zmq.ROUTER, connect=connect, bind=bind)
+        lambda: _ClientProtocol(loop), zmq.DEALER, connect=connect, bind=bind)
     return _Client(proto)
 
 
 class _ClientProtocol(interface.ZmqProtocol):
     """Client protocol implementation."""
 
-    REQ_PREFIX = struct.Struct('HH')
-    REQ_SUFFIX = struct.Struct('Ld')
-    RESP = struct.Struct('HHLd?')
+    REQ_PREFIX = struct.Struct('=HH')
+    REQ_SUFFIX = struct.Struct('=Ld')
+    RESP = struct.Struct('=HHLd?')
 
     def __init__(self, loop):
         self.loop = loop
         self.transport = None
         self.calls = {}
-        self.prefix = self.REQ_PREFIX.pack('HH',
-            os.getpid() % 65536, random.randrange(65536))
+        self.prefix = self.REQ_PREFIX.pack(os.getpid() % 0x10000,
+                                           random.randrange(0x10000))
         self.counter = 0
         self.error_table = self._fill_error_table()
 
@@ -112,7 +124,7 @@ class _ClientProtocol(interface.ZmqProtocol):
         error_table = {}
         for name in dir(builtins):
             val = getattr(builtins, name)
-            if issubclass(val, Exception):
+            if isinstance(val, type) and issubclass(val, Exception):
                 error_table['builtins.'+name] = val
         return error_table
 
@@ -125,7 +137,7 @@ class _ClientProtocol(interface.ZmqProtocol):
     def msg_received(self, data):
         try:
             header, packed_answer = data
-            pid, rnd, req_id, timestamp, is_error = self.RESP.unpackb(header)
+            pid, rnd, req_id, timestamp, is_error = self.RESP.unpack(header)
             answer = msgpack.unpackb(packed_answer,
                                      encoding='utf-8', use_list=True)
         except Exception as exc:
@@ -136,8 +148,8 @@ class _ClientProtocol(interface.ZmqProtocol):
             logger.critical("Unknown answer id: %d (%d %d %f %d) -> %s",
                             req_id, pid, rnd, timestamp, is_error, answer)
             return
-        if iserror:
-            call.set_exception(self._translate_error(answer))
+        if is_error:
+            call.set_exception(self._translate_error(*answer))
         else:
             call.set_result(answer)
 
@@ -173,12 +185,12 @@ class _Client:
         self._names = names
 
     def __getattr__(self, name):
-        return self.__class__(connection, self._names + (name,))
+        return self.__class__(self._proto, self._names + (name,))
 
     def __call__(self, *args, **kwargs):
         if not self._names:
             raise ValueError('RPC method name is empty')
-        return self._proto.call('.'.join(self.names), args, kwargs)
+        return self._proto.call('.'.join(self._names), args, kwargs)
 
 
 
@@ -189,7 +201,7 @@ def start_server(handler, *, connect=None, bind=None, loop=None):
 
     transp, proto = yield from loop.create_zmq_connection(
         lambda: _ServerProtocol(loop, handler),
-        zmq.DEALER, connect=connect, bind=bind)
+        zmq.ROUTER, connect=connect, bind=bind)
 
     return None
 
@@ -205,7 +217,7 @@ class _RPCServer(asyncio.AbstractServer):
             return
         self.proto.transport.close()
 
-    @task.coroutine
+    @asyncio.coroutine
     def wait_closed(self):
         if self.proto.transport is None:
             return
@@ -214,19 +226,19 @@ class _RPCServer(asyncio.AbstractServer):
         yield from waiter
 
 
-class _ServerProtocol(ZmqProtocol):
+class _ServerProtocol(interface.ZmqProtocol):
 
-    REQ = struct.Struct('HHLd')
-    RESP_PREFIX = struct.Struct('HH')
-    RESP_SUFFIX = struct.Struct('Ld?')
+    REQ = struct.Struct('=HHLd')
+    RESP_PREFIX = struct.Struct('=HH')
+    RESP_SUFFIX = struct.Struct('=Ld?')
 
     def __init__(self, loop, handler):
         self.loop = loop
         self.prepare_handler(handler)
         self.handler = handler
         self.done_waiters = []
-        self.prefix = self.REQ_PREFIX.pack('HH',
-            os.getpid() % 65536, random.randrange(65536))
+        self.prefix = self.RESP_PREFIX.pack(os.getpid() % 0x10000,
+                                            random.randrange(0x10000))
 
     def prepare_handler(self, handler):
         # TODO: check handler and subhandlers for correctness
@@ -242,8 +254,8 @@ class _ServerProtocol(ZmqProtocol):
             waiter.set_result(None)
 
     def msg_received(self, data):
-        header, packed_name, packed_args, packed_kwargs = data
-        pid, rnd, timestamp, req_id = self.REQ.unpack(header)
+        peer_addr, header, packed_name, packed_args, packed_kwargs = data
+        pid, rnd, req_id, timestamp = self.REQ.unpack(header)
 
         # TODO: send exception back to transport if lookup is failed
         coro = self.dispatch(packed_name.decode('utf-8'))
@@ -251,33 +263,34 @@ class _ServerProtocol(ZmqProtocol):
         args = msgpack.unpackb(packed_args, encoding='utf-8', use_list=True)
         kwargs = msgpack.unpackb(packed_kwargs, encoding='utf-8', use_list=True)
         fut = asyncio.async(coro(*args, **kwargs), loop=self.loop)
-        fut.add_done_callback(process_result)
 
         def process_result(res_fut):
             try:
                 ret = res_fut.result()
                 prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
                                                              time.time(), False)
-                self.wransport.write([prefix, msgpack.packb(ret)])
+                self.transport.write([peer_addr, prefix, msgpack.packb(ret)])
             except Exception as exc:
                 prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
                                                              time.time(), True)
                 exc_type = exc.__class__
                 exc_info = (exc_type.__module__ + '.' + exc_type.__name__,
                             exc.args)
-                self.transport.write([prefix, msgpack.packb(exc_info)])
+                self.transport.write([peer_addr, prefix,
+                                      msgpack.packb(exc_info)])
+        fut.add_done_callback(process_result)
 
     def dispatch(self, name):
         namespaces, sep, method = name.rpartition('.')
         handler = self.handler
         for namespace in namespaces:
             try:
-                handler = handler.subhandlers[namespace]
+                handler = handler._rpc_subhandlers[namespace]
             except KeyError:
                 raise UnknownNamespace(name)
 
         try:
-            func = handler.rpc_methods[method]
+            func = handler._rpc_methods[method]
         except KeyError:
             raise UnknownMethod(name)
         else:

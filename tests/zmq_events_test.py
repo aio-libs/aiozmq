@@ -3,6 +3,7 @@ import asyncio
 import aiozmq
 import time
 import zmq
+from unittest import mock
 
 from test import support  # import from standard python test suite
 
@@ -165,3 +166,53 @@ class ZmqEventLoopTests(unittest.TestCase):
             return tr, pr
 
         self.loop.run_until_complete(coro())
+
+    def test_dealer_router(self):
+        port = support.find_unused_port()
+
+        @asyncio.coroutine
+        def connect_req():
+            tr1, pr1 = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:{}'.format(port))
+            self.assertEqual('CONNECTED', pr1.state)
+            yield from pr1.connected
+            return tr1, pr1
+
+        tr1, pr1 = self.loop.run_until_complete(connect_req())
+
+        @asyncio.coroutine
+        def connect_rep():
+            tr2, pr2 = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.ROUTER,
+                connect='tcp://127.0.0.1:{}'.format(port))
+            self.assertEqual('CONNECTED', pr2.state)
+            yield from pr2.connected
+            return tr2, pr2
+
+        tr2, pr2 = self.loop.run_until_complete(connect_rep())
+
+        @asyncio.coroutine
+        def communicate():
+            tr1.write([b'request'])
+            request = yield from pr2.received.get()
+            self.assertEqual((mock.ANY, b'request',), request)
+            tr2.write([request[0], b'answer'])
+            answer = yield from pr1.received.get()
+            self.assertEqual((b'answer',), answer)
+
+        self.loop.run_until_complete(communicate())
+
+        @asyncio.coroutine
+        def closing():
+            tr1.close()
+            tr2.close()
+
+            yield from pr1.closed
+            self.assertEqual('CLOSED', pr1.state)
+            yield from pr2.closed
+            self.assertEqual('CLOSED', pr2.state)
+
+        self.loop.run_until_complete(closing())
