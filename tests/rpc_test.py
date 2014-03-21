@@ -3,6 +3,7 @@ import asyncio
 import aiozmq, aiozmq.rpc
 import time
 import zmq
+import datetime
 
 from test import support  # import from standard python test suite
 
@@ -28,6 +29,10 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     def exc_coro(self, arg):
         raise RuntimeError("bad arg 2", arg)
         yield
+
+    @aiozmq.rpc.method
+    def add(self, a1, a2):
+        raise a1 + a2
 
 
 class RpcTests(unittest.TestCase):
@@ -117,5 +122,16 @@ class RpcTests(unittest.TestCase):
             with self.assertRaises(RuntimeError) as exc:
                 yield from client.rpc.exc_coro(1)
             self.assertEqual(('bad arg 2', 1), exc.exception.args)
+
+        self.loop.run_until_complete(communicate())
+
+    def test_datetime_translators(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            ret = yield from client.rpc.add(datetime.date(2014, 3, 21),
+                                            datetime.timedelta(days=2))
+            self.assertEqual(datetime.date(2014, 3, 23), ret)
 
         self.loop.run_until_complete(communicate())

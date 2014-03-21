@@ -220,8 +220,8 @@ class _ClientProtocol(_BaseProtocol):
 
     def call(self, name, args, kwargs):
         bname = name.encode('utf-8')
-        bargs = msgpack.dumps(args)
-        bkwargs = msgpack.dumps(kwargs)
+        bargs = self.packer.pack(args)
+        bkwargs = self.packer.pack(kwargs)
         header, req_id = self._new_id()
         assert req_id not in self.calls, (req_id, self.calls)
         fut = asyncio.Future(loop=self.loop)

@@ -38,7 +38,7 @@ class _Packer(Packer, _Base):
     def pack_hook(self, obj):
         for num, (cls, packer, unpacker) in enumerate(self.translators):
             if isinstance(obj, cls):
-                return ExtType(num, packer)
+                return ExtType(num, packer(obj))
         else:
             return obj
 
