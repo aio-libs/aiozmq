@@ -315,9 +315,9 @@ class _ServerProtocol(_BaseProtocol):
         namespaces, sep, method = name.rpartition('.')
         handler = self.handler
         if namespaces:
-            for namespace in namespaces.split('.'):
+            for part in namespaces.split('.'):
                 try:
-                    handler = self.handler[part]
+                    handler = handler[part]
                 except KeyError:
                     raise NotFoundError(name)
                 else:
