@@ -59,17 +59,12 @@ class AbstractHandler(metaclass=abc.ABCMeta):
     def __getitem__(self, key):
         raise KeyError
 
+
 AbstractHandler.register(dict)
 
 
 class AttrHandler(AbstractHandler):
-    """Base class for RPC handlers via attribute lookup.
-
-    Do not use metaclass to allowing easy multiple inheritance
-    (can be used as mixin).
-    Thereof checking for correctnes of RPC nested namespaces and
-    methods is done at start_server call.
-    """
+    """Base class for RPC handlers via attribute lookup."""
 
     def __getitem__(self, key):
         try:
@@ -316,10 +311,12 @@ class _ServerProtocol(_BaseProtocol):
             raise NotFoundError(name)
         else:
             if isinstance(func, MethodType):
-                check = func.__func__
+                holder = func.__func__
             else:
-                check = func
-            if not hasattr(check, '__rpc__'):
+                holder = func
+            try:
+                data = getattr(holder, '__rpc__')
+                # TODO: validate trafaret
+                return func
+            except AttributeError:
                 raise NotFoundError(name)
-            else:
-                return func  # TODO: validate trafaret
