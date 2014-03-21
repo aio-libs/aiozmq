@@ -81,8 +81,11 @@ def method(func):
     # TODO: fun with flag;
     #       parse annotations and create(?) checker;
     #       (also validate annotations);
-    if not asyncio.iscoroutinefunction(func):
-        raise TypeError('rpc decorator can work only with coroutines')
+    ## if not asyncio.iscoroutinefunction(func):
+    ##     raise TypeError('rpc decorator can work only with coroutines')
+    if not callable(func):
+        raise TypeError("decorator can work only with callables "
+                        "(functions, methods and coroutines)")
     func.__rpc__ = {}  # TODO: assign to trafaret?
     return func
 
@@ -267,13 +270,29 @@ class _ServerProtocol(_BaseProtocol):
         pid, rnd, req_id, timestamp = self.REQ.unpack(header)
 
         # TODO: send exception back to transport if lookup is failed
-        coro = self.dispatch(bname.decode('utf-8'))
+        try:
+            func = self.dispatch(bname.decode('utf-8'))
+        except NotFoundError as exc:
+            fut = asyncio.Future(loop=self.loop)
+            fut.add_done_callback(partial(self.process_call_result,
+                                          req_id=req_id, peer=peer))
+            fut.set_exception(exc)
+        else:
+            args = msgpack.unpackb(bargs, encoding='utf-8', use_list=True)
+            kwargs = msgpack.unpackb(bkwargs, encoding='utf-8', use_list=True)
 
-        args = msgpack.unpackb(bargs, encoding='utf-8', use_list=True)
-        kwargs = msgpack.unpackb(bkwargs, encoding='utf-8', use_list=True)
-        fut = asyncio.async(coro(*args, **kwargs), loop=self.loop)
-        fut.add_done_callback(partial(self.process_call_result,
-                                      req_id=req_id, peer=peer))
+            if asyncio.iscoroutinefunction(func):
+                fut = asyncio.async(func(*args, **kwargs), loop=self.loop)
+                fut.add_done_callback(partial(self.process_call_result,
+                                              req_id=req_id, peer=peer))
+            else:
+                fut = asyncio.Future(loop=self.loop)
+                fut.add_done_callback(partial(self.process_call_result,
+                                              req_id=req_id, peer=peer))
+                try:
+                    fut.set_result(func(*args, **kwargs))
+                except Exception as exc:
+                    fut.set_exception(exc)
 
     def process_call_result(self, fut, *, req_id, peer):
         try:
