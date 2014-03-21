@@ -1,5 +1,6 @@
 """ZeroMQ RPC"""
 
+import abc
 import asyncio
 import builtins
 import os
@@ -12,6 +13,9 @@ import sys
 import msgpack
 import zmq
 
+from functools import partial
+from types import MethodType
+
 from . import events
 from . import interface
 from .log import logger
@@ -21,20 +25,19 @@ __all__ = [
     'method',
     'open_client',
     'start_server',
-    'RPCError',
-    'GenericRPCError',
-    'RPCLookupError'
-    'UnknownNamespace',
-    'UnknownMethod',
-    'Handler'
+    'Error',
+    'GenericError',
+    'NotFoundError'
+    'AbstractHandler'
+    'AttrHandler'
     ]
 
 
-class RPCError(Exception):
+class Error(Exception):
     """Base RPC exception"""
 
 
-class GenericRPCError(RPCError):
+class GenericError(Error):
     """Error used for all untranslated exceptions from rpc method calls."""
 
     def __init__(self, exc_type, args):
@@ -43,20 +46,24 @@ class GenericRPCError(RPCError):
         self.arguments = args
 
 
-class RPCLookupError(RPCError):
-    """Error raised by server when RPC namespace/method lookup failed."""
+class NotFoundError(Error):
+    """Error raised by server if RPC namespace/method lookup failed."""
 
 
-class UnknownNamespace(RPCLookupError):
-    """RPC namespace not found."""
+class AbstractHandler(metaclass=abc.ABCMeta):
+    """Abstract class for server-side RPC handlers."""
+
+    __slots__ = ()
+
+    @abc.abstractmethod
+    def __getitem__(self, key):
+        raise KeyError
+
+AbstractHandler.register(dict)
 
 
-class UnknownMethod(RPCLookupError):
-    """RPC method not found."""
-
-
-class Handler:
-    """Base class for server-side RPC handlers.
+class AttrHandler(AbstractHandler):
+    """Base class for RPC handlers via attribute lookup.
 
     Do not use metaclass to allowing easy multiple inheritance
     (can be used as mixin).
@@ -64,17 +71,11 @@ class Handler:
     methods is done at start_server call.
     """
 
-    def __init__(self, subhandlers=None):
-        if subhandlers is None:
-            subhandlers = {}
-        self._rpc_subhandlers = subhandlers
-        self._rpc_methods = {}
-        for name in dir(self):
-            val = getattr(self, name)
-            rpc_info = getattr(val, '__rpc__', None)
-            if rpc_info is None:
-                continue
-            self._rpc_methods[name] = val
+    def __getitem__(self, key):
+        try:
+            return getattr(self, key)
+        except AttributeError:
+            raise KeyError
 
 
 def method(func):
@@ -177,6 +178,8 @@ class _ClientProtocol(_BaseProtocol):
             val = getattr(builtins, name)
             if isinstance(val, type) and issubclass(val, Exception):
                 error_table['builtins.'+name] = val
+        error_table[__name__ + '.GenericError'] = GenericError
+        error_table[__name__ + '.NotFoundError'] = NotFoundError
         return error_table
 
     def msg_received(self, data):
@@ -265,7 +268,7 @@ class _ServerProtocol(_BaseProtocol):
         pass
 
     def msg_received(self, data):
-        peer_addr, header, bname, bargs, bkwargs = data
+        peer, header, bname, bargs, bkwargs = data
         pid, rnd, req_id, timestamp = self.REQ.unpack(header)
 
         # TODO: send exception back to transport if lookup is failed
@@ -274,37 +277,49 @@ class _ServerProtocol(_BaseProtocol):
         args = msgpack.unpackb(bargs, encoding='utf-8', use_list=True)
         kwargs = msgpack.unpackb(bkwargs, encoding='utf-8', use_list=True)
         fut = asyncio.async(coro(*args, **kwargs), loop=self.loop)
+        fut.add_done_callback(partial(self.process_call_result,
+                                      req_id=req_id, peer=peer))
 
-        def process_result(res_fut):
-            try:
-                ret = res_fut.result()
-                prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
-                                                             time.time(), False)
-                self.transport.write([peer_addr, prefix, msgpack.packb(ret)])
-            except Exception as exc:
-                prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
-                                                             time.time(), True)
-                exc_type = exc.__class__
-                exc_info = (exc_type.__module__ + '.' + exc_type.__name__,
-                            exc.args)
-                self.transport.write([peer_addr, prefix,
-                                      msgpack.packb(exc_info)])
-
-        fut.add_done_callback(process_result)
+    def process_call_result(self, fut, *, req_id, peer):
+        try:
+            ret = fut.result()
+            prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
+                                                         time.time(), False)
+            self.transport.write([peer, prefix, msgpack.packb(ret)])
+        except Exception as exc:
+            prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
+                                                         time.time(), True)
+            exc_type = exc.__class__
+            exc_info = (exc_type.__module__ + '.' + exc_type.__name__,
+                        exc.args)
+            self.transport.write([peer, prefix,
+                                  msgpack.packb(exc_info)])
 
     def dispatch(self, name):
+        if not name:
+            raise NotFoundError(name)
         namespaces, sep, method = name.rpartition('.')
         handler = self.handler
-        for namespace in namespaces:
-            try:
-                handler = handler._rpc_subhandlers[namespace]
-            except KeyError:
-                raise UnknownNamespace(name)
+        if namespaces:
+            for namespace in namespaces.split('.'):
+                try:
+                    handler = self.handler[part]
+                except KeyError:
+                    raise NotFoundError(name)
+                else:
+                    if not isinstance(handler, AbstractHandler):
+                        raise NotFoundError(name)
 
         try:
-            func = handler._rpc_methods[method]
+            func = handler[method]
         except KeyError:
-            raise UnknownMethod(name)
+            raise NotFoundError(name)
         else:
-            # TODO: validate trafaret
-            return func
+            if isinstance(func, MethodType):
+                check = func.__func__
+            else:
+                check = func
+            if not hasattr(check, '__rpc__'):
+                raise NotFoundError(name)
+            else:
+                return func  # TODO: validate trafaret

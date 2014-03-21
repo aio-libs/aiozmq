@@ -7,7 +7,7 @@ import zmq
 from test import support  # import from standard python test suite
 
 
-class MyHandler(aiozmq.rpc.Handler):
+class MyHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
     @asyncio.coroutine
