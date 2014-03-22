@@ -6,3 +6,7 @@ CHANGES
 
 Implement ZmqEventLoop with method create_zmq_connection which operates
 on zmq transport and protocol.
+
+Introduce ZmqTransport and ZmqProtocol.
+
+Implement zmq.rpc
