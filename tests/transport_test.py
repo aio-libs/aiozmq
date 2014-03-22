@@ -18,7 +18,7 @@ class TransportTests(unittest.TestCase):
         self.loop = test_utils.TestLoop()
         self.sock = mock.Mock()
         self.proto = test_utils.make_test_protocol(aiozmq.ZmqProtocol)
-        self.tr = _ZmqTransportImpl(self.loop, self.sock, self.proto, None)
+        self.tr = _ZmqTransportImpl(self.loop, self.sock, self.proto)
         self.fatal_error = self.tr._fatal_error = mock.Mock()
 
     def test_empty_write(self):
@@ -159,3 +159,7 @@ class TransportTests(unittest.TestCase):
 
     def test_write_eof(self):
         self.assertFalse(self.tr.can_write_eof())
+
+    def test_dns_address(self):
+        with self.assertRaises(ValueError):
+            self.tr.connect('tcp://example.com:8080')

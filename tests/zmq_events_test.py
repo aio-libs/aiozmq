@@ -216,3 +216,52 @@ class ZmqEventLoopTests(unittest.TestCase):
             self.assertEqual('CLOSED', pr2.state)
 
         self.loop.run_until_complete(closing())
+
+    def test_binds(self):
+        port1 = support.find_unused_port()
+        port2 = support.find_unused_port()
+        addr1 = 'tcp://127.0.0.1:{}'.format(port1)
+        addr2 = 'tcp://127.0.0.1:{}'.format(port2)
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.REQ,
+                bind=[addr1, addr2])
+            yield from pr.connected
+            return tr, pr
+
+        tr, pr = self.loop.run_until_complete(connect())
+        self.assertEqual({addr1, addr2}, tr.listeners())
+
+        addr3 = tr.bind('tcp://*:*')
+        self.assertEqual({addr1, addr2, addr3}, tr.listeners())
+        tr.unbind(addr2)
+        self.assertEqual({addr1, addr3}, tr.listeners())
+        tr.close()
+
+    def test_connects(self):
+        port1 = support.find_unused_port()
+        port2 = support.find_unused_port()
+        port3 = support.find_unused_port()
+        addr1 = 'tcp://127.0.0.1:{}'.format(port1)
+        addr2 = 'tcp://127.0.0.1:{}'.format(port2)
+        addr3 = 'tcp://127.0.0.1:{}'.format(port3)
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.REQ,
+                connect=[addr1, addr2])
+            yield from pr.connected
+            return tr, pr
+
+        tr, pr = self.loop.run_until_complete(connect())
+        self.assertEqual({addr1, addr2}, tr.connections())
+        tr.connect(addr3)
+        self.assertEqual({addr1, addr3, addr2}, tr.connections())
+        tr.disconnect(addr1)
+        self.assertEqual({addr2, addr3}, tr.connections())
+        tr.close()
