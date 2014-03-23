@@ -162,3 +162,16 @@ class RpcTests(unittest.TestCase):
                              exc.exception.args)
 
         self.loop.run_until_complete(communicate())
+
+
+class AbstractHandlerTests(unittest.TestCase):
+
+    def test___getitem__(self):
+
+        class MyHandler(aiozmq.rpc.AbstractHandler):
+
+            def __getitem__(self, key):
+                return super().__getitem__(key)
+
+        with self.assertRaises(KeyError):
+            MyHandler()[1]
