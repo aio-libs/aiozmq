@@ -392,7 +392,7 @@ class ZmqEventLoopPolicy(asyncio.AbstractEventLoopPolicy):
         You must call set_event_loop() to make this the current event
         loop.
         """
-        return ZmqEventLoop(self._io_threads)
+        return ZmqEventLoop(io_threads=self._io_threads)
 
     def _init_watcher(self):
         with asyncio.events._lock:
