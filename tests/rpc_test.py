@@ -7,6 +7,10 @@ import zmq
 from test import support  # import from standard python test suite
 
 
+class MyException(Exception):
+    pass
+
+
 class MyHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
@@ -28,6 +32,10 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     def exc_coro(self, arg):
         raise RuntimeError("bad arg 2", arg)
         yield
+
+    @aiozmq.rpc.method
+    def generic_exception(self):
+        raise MyException('additional', 'data')
 
 
 class RpcTests(unittest.TestCase):
@@ -139,5 +147,18 @@ class RpcTests(unittest.TestCase):
             with self.assertRaises(aiozmq.rpc.NotFoundError) as exc:
                 yield from client._proto.call('', (), {})
             self.assertEqual(('',), exc.exception.args)
+
+        self.loop.run_until_complete(communicate())
+
+    def test_generic_exception(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            with self.assertRaises(aiozmq.rpc.GenericError) as exc:
+                yield from client.rpc.generic_exception()
+            self.assertEqual(('rpc_test.MyException',
+                             ('additional', 'data')),
+                             exc.exception.args)
 
         self.loop.run_until_complete(communicate())

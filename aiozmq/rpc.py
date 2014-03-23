@@ -206,7 +206,7 @@ class _ClientProtocol(_BaseProtocol):
     def _translate_error(self, exc_type, exc_args):
         found = self.error_table.get(exc_type)
         if found is None:
-            return GenericRPCError(exc_type, exc_args)
+            return GenericError(exc_type, tuple(exc_args))
         else:
             return found(*exc_args)
 
@@ -241,6 +241,8 @@ class RPCClient(_RPCServer):
 
 
 class _MethodCall:
+
+    __slots__ = ('_proto', '_names')
 
     def __init__(self, proto, names=()):
         self._proto = proto
