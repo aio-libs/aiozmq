@@ -268,6 +268,7 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
     def _force_close(self, exc):
         if self._buffer:
             self._buffer.clear()
+            self._buffer_size = 0
             self._loop.remove_writer(self._zmq_sock)
         if not self._closing:
             self._closing = True
