@@ -238,3 +238,23 @@ class TransportTests(unittest.TestCase):
         self.assertIsNone(self.tr._loop)
         self.assertTrue(self.proto.connection_lost.called)
         self.assertTrue(self.sock.close.called)
+
+    def test__read_ready_got_EAGAIN(self):
+        self.sock.recv_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
+        self.tr._fatal_error = mock.Mock()
+
+        self.tr._read_ready()
+
+        self.assertFalse(self.tr._fatal_error.called)
+        self.assertFalse(self.proto.msg_received.called)
+
+    def test__read_ready_got_fatal_error(self):
+        self.sock.recv_multipart.side_effect = zmq.ZMQError(errno.EINVAL)
+        self.tr._fatal_error = mock.Mock()
+
+        self.tr._read_ready()
+
+        self.assertFalse(self.proto.msg_received.called)
+        exc = self.tr._fatal_error.call_args[0][0]
+        self.assertIsInstance(exc, OSError)
+        self.assertEqual(exc.errno, errno.EINVAL)

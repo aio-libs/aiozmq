@@ -172,12 +172,13 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
 
     def _read_ready(self):
         try:
-            data = self._zmq_sock.recv_multipart(zmq.NOBLOCK)
-        except zmq.ZMQError as exc:
-            if exc.errno in (errno.EAGAIN, errno.EINTR):
-                pass
-            else:
-                raise OSError(exc.errno, exc.strerror) from exc
+            try:
+                data = self._zmq_sock.recv_multipart(zmq.NOBLOCK)
+            except zmq.ZMQError as exc:
+                if exc.errno in (errno.EAGAIN, errno.EINTR):
+                    return
+                else:
+                    raise OSError(exc.errno, exc.strerror) from exc
         except Exception as exc:
             self._fatal_error(exc, 'Fatal read error on zmq socket transport')
         else:
