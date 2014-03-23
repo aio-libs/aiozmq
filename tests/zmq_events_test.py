@@ -424,3 +424,42 @@ class ZmqEventLoopTests(unittest.TestCase):
 
         with self.assertRaises(ValueError) as ctx:
             self.loop.run_until_complete(connect())
+
+    def test_getsockopt_badopt(self):
+        port = support.find_unused_port()
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                connect='tcp://127.0.0.1:{}'.format(port))
+            yield from pr.connected
+            return tr, pr
+
+        tr, pr = self.loop.run_until_complete(connect())
+        self.addCleanup(tr.close)
+
+        with self.assertRaises(OSError) as ctx:
+            tr.getsockopt(1111)  # invalid option
+        self.assertEqual(errno.EINVAL, ctx.exception.errno)
+
+    def test_setsockopt_badopt(self):
+        port = support.find_unused_port()
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                connect='tcp://127.0.0.1:{}'.format(port))
+            yield from pr.connected
+            return tr, pr
+
+        tr, pr = self.loop.run_until_complete(connect())
+        self.addCleanup(tr.close)
+
+        with self.assertRaises(OSError) as ctx:
+            tr.setsockopt(1111, 1)  # invalid option
+        self.assertEqual(errno.EINVAL, ctx.exception.errno)
+
