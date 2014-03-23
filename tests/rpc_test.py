@@ -1,6 +1,7 @@
 import unittest
 import asyncio
 import aiozmq, aiozmq.rpc
+import collections
 import time
 import zmq
 
@@ -175,3 +176,9 @@ class AbstractHandlerTests(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             MyHandler()[1]
+
+    def test_subclass(self):
+        self.assertTrue(issubclass(dict, aiozmq.rpc.AbstractHandler))
+        self.assertIsInstance({}, aiozmq.rpc.AbstractHandler)
+        self.assertFalse(issubclass(object, aiozmq.rpc.AbstractHandler))
+        self.assertNotIsInstance(object(), aiozmq.rpc.AbstractHandler)

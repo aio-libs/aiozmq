@@ -62,8 +62,12 @@ class AbstractHandler(metaclass=abc.ABCMeta):
     def __getitem__(self, key):
         raise KeyError
 
-
-AbstractHandler.register(dict)
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is AbstractHandler:
+            if any("__getitem__" in B.__dict__ for B in C.__mro__):
+                return True
+        return NotImplemented
 
 
 class AttrHandler(AbstractHandler):
