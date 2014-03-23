@@ -1,6 +1,7 @@
 import unittest
 import asyncio
 import aiozmq
+import errno
 import time
 import zmq
 from unittest import mock
@@ -239,6 +240,9 @@ class ZmqEventLoopTests(unittest.TestCase):
         self.assertEqual({addr1, addr2, addr3}, tr.listeners())
         tr.unbind(addr2)
         self.assertEqual({addr1, addr3}, tr.listeners())
+        self.assertIn(addr1, tr.listeners())
+        self.assertRegex(repr(tr.listeners()),
+                         r'{tcp://0.0.0.0:.\d+, tcp://127.0.0.1:\d+}')
         tr.close()
 
     def test_connects(self):
@@ -265,3 +269,158 @@ class ZmqEventLoopTests(unittest.TestCase):
         tr.disconnect(addr1)
         self.assertEqual({addr2, addr3}, tr.connections())
         tr.close()
+
+    def test_zmq_socket(self):
+        zmq_sock = self.loop._zmq_context.socket(zmq.PUB)
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.PUB,
+                zmq_sock=zmq_sock)
+            yield from pr.connected
+            return tr, pr
+
+        tr, pr = self.loop.run_until_complete(connect())
+        self.assertIs(zmq_sock, tr._zmq_sock)
+        self.assertFalse(zmq_sock.closed)
+        tr.close()
+
+    def test_zmq_socket_invalid_type(self):
+        zmq_sock = self.loop._zmq_context.socket(zmq.PUB)
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                zmq_sock=zmq_sock)
+            yield from pr.connected
+            return tr, pr
+
+        with self.assertRaises(ValueError):
+            self.loop.run_until_complete(connect())
+        self.assertFalse(zmq_sock.closed)
+
+    def test_create_zmq_connection_ZMQError(self):
+        zmq_sock = self.loop._zmq_context.socket(zmq.PUB)
+        zmq_sock.close()
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                zmq_sock=zmq_sock)
+            yield from pr.connected
+            return tr, pr
+
+        with self.assertRaises(OSError) as ctx:
+            self.loop.run_until_complete(connect())
+        self.assertEqual(errno.ENOTSUP, ctx.exception.errno)
+
+    def test_create_zmq_connection_ambiguous_args1(self):
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                zmq_sock=1,
+                connect=2)
+
+        with self.assertRaises(ValueError) as ctx:
+            self.loop.run_until_complete(connect())
+
+    def test_create_zmq_connection_ambiguous_args2(self):
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                zmq_sock=1,
+                bind=2)
+
+        with self.assertRaises(ValueError) as ctx:
+            self.loop.run_until_complete(connect())
+
+    def test_create_zmq_connection_ambiguous_args3(self):
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                bind=1,
+                connect=2)
+
+        with self.assertRaises(ValueError) as ctx:
+            self.loop.run_until_complete(connect())
+
+    def test_create_zmq_connection_invalid_bind(self):
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                bind=2)
+
+        with self.assertRaises(ValueError) as ctx:
+            self.loop.run_until_complete(connect())
+
+    def test_create_zmq_connection_invalid_connect(self):
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                connect=2)
+
+        with self.assertRaises(ValueError) as ctx:
+            self.loop.run_until_complete(connect())
+
+    def test_create_zmq_connection_closes_socket_on_bad_bind(self):
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                bind='badaddr')
+            yield from pr.connected
+            return tr, pr
+
+        with self.assertRaises(OSError) as ctx:
+            self.loop.run_until_complete(connect())
+
+    def test_create_zmq_connection_closes_socket_on_bad_connect(self):
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                connect='badaddr')
+            yield from pr.connected
+            return tr, pr
+
+        with self.assertRaises(OSError) as ctx:
+            self.loop.run_until_complete(connect())
+
+    def test_create_zmq_connection_dns_in_connect(self):
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                connect='tcp://example.com:5555')
+            yield from pr.connected
+            return tr, pr
+
+        with self.assertRaises(ValueError) as ctx:
+            self.loop.run_until_complete(connect())

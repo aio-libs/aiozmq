@@ -89,17 +89,16 @@ class ZmqEventLoop(SelectorEventLoop):
 
         try:
             if zmq_sock is None:
-                own_zmq_sock = True
                 zmq_sock = self._zmq_context.socket(zmq_type)
-            else:
-                own_zmq_sock = False
-                if zmq_sock.getsockopt(zmq.TYPE) != zmq_type:
-                    raise ValueError('Invalid zmq_sock type')
+            elif zmq_sock.getsockopt(zmq.TYPE) != zmq_type:
+                raise ValueError('Invalid zmq_sock type')
         except zmq.ZMQError as exc:
             raise OSError(exc.errno, exc.strerror) from exc
 
         protocol = protocol_factory()
-        transport = _ZmqTransportImpl(self, zmq_sock, protocol)
+        waiter = asyncio.Future(loop=self)
+        transport = _ZmqTransportImpl(self, zmq_sock, protocol, waiter)
+        yield from waiter
 
         try:
             if bind is not None:
@@ -120,14 +119,11 @@ class ZmqEventLoop(SelectorEventLoop):
                 for endpoint in connect:
                     transport.connect(endpoint)
 
-            waiter = asyncio.Future(loop=self)
-            transport._init_done(waiter)
-            yield from waiter
             return transport, protocol
         except OSError:
-            if own_zmq_sock:
-                # don't care if zmq_sock.close can raise exception
-                zmq_sock.close()
+            # don't care if zmq_sock.close can raise exception
+            # that should never happen
+            zmq_sock.close()
             raise
 
 
@@ -148,7 +144,7 @@ class _EndpointsSet(Set):
         return iter(self._collection)
 
     def __repr__(self):
-        return '{' + ', '.join(self._collection) + '}'
+        return '{' + ', '.join(sorted(self._collection)) + '}'
 
     __str__ = __repr__
 
@@ -157,7 +153,7 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
 
     _TCP_RE = re.compile('^tcp://(.+):(\d+)|\*$')
 
-    def __init__(self, loop, zmq_sock, protocol):
+    def __init__(self, loop, zmq_sock, protocol, waiter=None):
         super().__init__(None)
         self._extra['zmq_socket'] = zmq_sock
         self._loop = loop
@@ -169,7 +165,6 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         self._listeners = set()
         self._connections = set()
 
-    def _init_done(self, waiter):
         self._loop.add_reader(self._zmq_sock, self._read_ready)
         self._loop.call_soon(self._protocol.connection_made, self)
         if waiter is not None:
