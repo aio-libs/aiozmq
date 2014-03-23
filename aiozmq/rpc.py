@@ -95,24 +95,26 @@ def method(func):
 
 @asyncio.coroutine
 def open_client(*, connect=None, bind=None, loop=None):
-    """A coroutine that creates and connects/binds RPC client
+    """A coroutine that creates and connects/binds RPC client.
 
     Return value is a client instance.
     """
     # TODO: describe params
     # TODO: add a way to pass exception translator
+    # TODO: add a way to pass value translator
     if loop is None:
         loop = asyncio.get_event_loop()
 
     transp, proto = yield from loop.create_zmq_connection(
         lambda: _ClientProtocol(loop), zmq.DEALER, connect=connect, bind=bind)
-    return _RPCClient(loop, proto)
+    return RPCClient(loop, proto)
 
 
 @asyncio.coroutine
 def start_server(handler, *, connect=None, bind=None, loop=None):
     """A coroutine that creates and connects/binds RPC server instance."""
     # TODO: describe params
+    # TODO: add a way to pass value translator
 
     transp, proto = yield from loop.create_zmq_connection(
         lambda: _ServerProtocol(loop, handler),
@@ -230,11 +232,15 @@ class _ClientProtocol(_BaseProtocol):
         return fut
 
 
-class _RPCClient(_RPCServer):
+class RPCClient(_RPCServer):
 
     def __init__(self, loop, proto):
         super().__init__(loop, proto)
-        self.rpc = _MethodCall(self._proto)
+
+    @property
+    def rpc(self):
+        """XXX"""
+        return  _MethodCall(self._proto)
 
 
 class _MethodCall:

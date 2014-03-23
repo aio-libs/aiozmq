@@ -1,9 +1,10 @@
-import asyncio
+import asyncio, asyncio.events
 import errno
 import re
+import threading
 import zmq
 
-from asyncio.unix_events import SelectorEventLoop, DefaultEventLoopPolicy
+from asyncio.unix_events import SelectorEventLoop, SafeChildWatcher
 from asyncio.transports import _FlowControlMixin
 from collections import deque, Iterable, Set
 from ipaddress import ip_address
@@ -348,6 +349,95 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         return _EndpointsSet(self._connections)
 
 
-class ZmqEventLoopPolicy(DefaultEventLoopPolicy):
+class ZmqEventLoopPolicy(asyncio.AbstractEventLoopPolicy):
+    """ZeroMQ policy implementation for accessing the event loop.
 
-    _loop_factory = ZmqEventLoop()
+    In this policy, each thread has its own event loop.  However, we
+    only automatically create an event loop by default for the main
+    thread; other threads by default have no event loop.
+    """
+
+    class _Local(threading.local):
+        _loop = None
+        _set_called = False
+
+    def __init__(self, *, io_threads=1):
+        self._local = self._Local()
+        self._watcher = None
+        self._io_threads = io_threads
+
+    def get_event_loop(self):
+        """Get the event loop.
+
+        If current thread is the main thread and there are no
+        registered event loop for current thread then the call creates
+        new event loop and registers it.
+
+        Return an instance of ZmqEventLoop.
+        Raise RuntimeError if there is no registered event loop
+        for current thread.
+        """
+        if (self._local._loop is None and
+            not self._local._set_called and
+            isinstance(threading.current_thread(), threading._MainThread)):
+            self.set_event_loop(self.new_event_loop())
+        if self._local._loop is None:
+            raise RuntimeError('There is no current event loop in thread %r.' %
+                               threading.current_thread().name)
+        return self._local._loop
+
+    def new_event_loop(self):
+        """Create a new event loop.
+
+        You must call set_event_loop() to make this the current event
+        loop.
+        """
+        return ZmqEventLoop(self._io_threads)
+
+    def _init_watcher(self):
+        with asyncio.events._lock:
+            if self._watcher is None:  # pragma: no branch
+                self._watcher = SafeChildWatcher()
+                if isinstance(threading.current_thread(),
+                              threading._MainThread):
+                    self._watcher.attach_loop(self._local._loop)
+
+    def set_event_loop(self, loop):
+        """Set the event loop.
+
+        As a side effect, if a child watcher was set before, then calling
+        .set_event_loop() from the main thread will call .attach_loop(loop) on
+        the child watcher.
+        """
+
+        self._local._set_called = True
+        if loop is not None and not isinstance(loop, asyncio.AbstractEventLoop):
+            raise TypeError("loop should be None or AbstractEventLoop instance")
+        self._local._loop = loop
+
+        if self._watcher is not None and \
+            isinstance(threading.current_thread(), threading._MainThread):
+            self._watcher.attach_loop(loop)
+
+    def get_child_watcher(self):
+        """Get the child watcher.
+
+        If not yet set, a SafeChildWatcher object is automatically created.
+        """
+        if self._watcher is None:
+            self._init_watcher()
+
+        return self._watcher
+
+    def set_child_watcher(self, watcher):
+        """Set the child watcher."""
+
+        if watcher is not None and not isinstance(watcher,
+                                                  asyncio.AbstractChildWatcher):
+            raise TypeError("watcher should be None or AbstractChildWatcher "
+                            "instance")
+
+        if self._watcher is not None:
+            self._watcher.close()
+
+        self._watcher = watcher
