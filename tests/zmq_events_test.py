@@ -463,3 +463,46 @@ class ZmqEventLoopTests(unittest.TestCase):
             tr.setsockopt(1111, 1)  # invalid option
         self.assertEqual(errno.EINVAL, ctx.exception.errno)
 
+    def test_unbind_from_nonbinded_addr(self):
+        port = support.find_unused_port()
+        addr = 'tcp://127.0.0.1:{}'.format(port)
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                bind=addr)
+            yield from pr.connected
+            return tr, pr
+
+        tr, pr = self.loop.run_until_complete(connect())
+        self.addCleanup(tr.close)
+
+        self.assertEqual({addr}, tr.listeners())
+        with self.assertRaises(OSError) as ctx:
+            tr.unbind('ipc:///some-addr')  # non-bound addr
+        self.assertEqual(errno.ENOENT, ctx.exception.errno)
+        self.assertEqual({addr}, tr.listeners())
+
+    def test_disconnect_from_nonbinded_addr(self):
+        port = support.find_unused_port()
+        addr = 'tcp://127.0.0.1:{}'.format(port)
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                connect=addr)
+            yield from pr.connected
+            return tr, pr
+
+        tr, pr = self.loop.run_until_complete(connect())
+        self.addCleanup(tr.close)
+
+        self.assertEqual({addr}, tr.connections())
+        with self.assertRaises(OSError) as ctx:
+            tr.disconnect('ipc:///some-addr')  # non-bound addr
+        self.assertEqual(errno.ENOENT, ctx.exception.errno)
+        self.assertEqual({addr}, tr.connections())
