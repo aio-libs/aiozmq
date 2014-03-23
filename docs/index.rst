@@ -33,8 +33,8 @@ The project is hosted on `GitHub`_
 Dependencies
 ------------
 
-- Python 3.3 and asyncio or Python 3.4+
-- pyzmq
+- Python 3.3 and :term:`asyncio` or Python 3.4+
+- :term:`pyzmq`
 - aiozmq.rpc requires :term:`msgpack` and :term:`trafaret`
 
 Authors and License

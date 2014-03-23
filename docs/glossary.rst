@@ -9,6 +9,12 @@ Glossary
 
 .. glossary::
 
+   asyncio
+
+      Reference implementation of :pep:`3156`
+
+      See https://pypi.python.org/pypi/asyncio/
+
    endpoint
 
       A string consisting of two parts as follows:
@@ -50,12 +56,18 @@ Glossary
       See http://msgpack.org/ for standard description.
       https://pypi.python.org/pypi/msgpack-python/ is Python implementation.
 
+   pyzmq
+
+      PyZMQ is the Python bindings for :term:`ZeroMQ`.
+
+      See https://github.com/zeromq/pyzmq
+
    trafaret
 
       Trafaret is a validation library with support for data structure
       convertors.
 
-      See https://github.com/Deepwalker/trafaret.
+      See https://github.com/Deepwalker/trafaret
 
    ZeroMQ
 
@@ -65,3 +77,5 @@ Glossary
       queue, but unlike message-oriented middleware, a ØMQ system can
       run without a dedicated message broker. The library is designed
       to have a familiar socket-style API.
+
+      See http://zeromq.org/
