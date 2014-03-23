@@ -84,11 +84,6 @@ def method(func):
     # TODO: fun with flag;
     #       parse annotations and create(?) checker;
     #       (also validate annotations);
-    ## if not asyncio.iscoroutinefunction(func):
-    ##     raise TypeError('rpc decorator can work only with coroutines')
-    if not callable(func):
-        raise TypeError("decorator can work only with callables "
-                        "(functions, methods and coroutines)")
     func.__rpc__ = {}  # TODO: assign to trafaret?
     return func
 
