@@ -1619,4 +1619,4 @@ class SubprocessTestsMixin:
 class ZmqSelectorEventLoopTests(EventLoopTestsMixin, unittest.TestCase):
 
     def create_event_loop(self):
-        return aiozmq.new_event_loop()
+        return aiozmq.ZmqEventLoop()

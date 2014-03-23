@@ -119,3 +119,25 @@ class RpcTests(unittest.TestCase):
             self.assertEqual(('bad arg 2', 1), exc.exception.args)
 
         self.loop.run_until_complete(communicate())
+
+    def test_not_found_empty_name(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            with self.assertRaises(ValueError) as exc:
+                yield from client.rpc(1, 2, 3)
+            self.assertEqual(('RPC method name is empty',), exc.exception.args)
+
+        self.loop.run_until_complete(communicate())
+
+    def test_not_found_empty_name_on_server(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            with self.assertRaises(aiozmq.rpc.NotFoundError) as exc:
+                yield from client._proto.call('', (), {})
+            self.assertEqual(('',), exc.exception.args)
+
+        self.loop.run_until_complete(communicate())

@@ -10,7 +10,7 @@ import aiozmq.core
 class CoreTests(unittest.TestCase):
 
     def setUp(self):
-        self.loop = aiozmq.new_event_loop()
+        self.loop = aiozmq.ZmqEventLoop()
         self.ctx = aiozmq.Context(loop=self.loop)
         asyncio.set_event_loop(None)
 
@@ -61,7 +61,7 @@ class CoreTests(unittest.TestCase):
 class CoreIntegrationalTests(unittest.TestCase):
 
     def setUp(self):
-        self.loop = aiozmq.new_event_loop()
+        self.loop = aiozmq.ZmqEventLoop()
         self.srv_ctx = aiozmq.Context(loop=self.loop)
         self.c_ctx = aiozmq.Context(loop=self.loop)
         asyncio.set_event_loop(None)

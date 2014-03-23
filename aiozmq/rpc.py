@@ -115,6 +115,8 @@ def start_server(handler, *, connect=None, bind=None, loop=None):
     """A coroutine that creates and connects/binds RPC server instance."""
     # TODO: describe params
     # TODO: add a way to pass value translator
+    if loop is None:
+        loop = asyncio.get_event_loop()
 
     transp, proto = yield from loop.create_zmq_connection(
         lambda: _ServerProtocol(loop, handler),
