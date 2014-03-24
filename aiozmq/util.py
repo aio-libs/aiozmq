@@ -5,8 +5,7 @@ from datetime import datetime, date, time, timedelta, tzinfo
 from functools import partial
 from pickle import dumps, loads, HIGHEST_PROTOCOL
 
-from msgpack import ExtType
-from msgpack.fallback import Packer, Unpacker
+from msgpack import ExtType, packb, unpackb
 
 
 _default = {
@@ -18,7 +17,7 @@ _default = {
 }
 
 
-class _Base:
+class _Packer:
 
     def __init__(self, *, translators=None):
         if translators is None:
@@ -27,14 +26,13 @@ class _Base:
             translators = ChainMap(translators, _default)
         self.translators = translators
 
+    def packb(self, data):
+        return packb(data, encoding='utf-8', use_bin_type=True,
+                     default=self.ext_type_pack_hook)
 
-class _Packer(Packer, _Base):
-
-    def __init__(self, *, translators=None):
-        _Base.__init__(self, translators=translators)
-        Packer.__init__(self,
-                        default=self.ext_type_pack_hook,
-                        encoding='utf-8', use_bin_type=True)
+    def unpackb(self, packed):
+        return unpackb(packed, use_list=True, encoding='utf-8',
+                       ext_hook=self.ext_type_unpack_hook)
 
     def ext_type_pack_hook(self, obj):
         for code, (cls, packer, unpacker) in self.translators.items():
@@ -42,16 +40,6 @@ class _Packer(Packer, _Base):
                 return ExtType(code, packer(obj))
         else:
             raise TypeError("Unknown type: {!r}".format(obj))
-
-
-class _Unpacker(Unpacker, _Base):
-
-    def __init__(self, file_like=None, read_size=0, *, translators=None):
-        _Base.__init__(self, translators=translators)
-        Unpacker.__init__(self,
-                          file_like, read_size, use_list=True,
-                          encoding='utf-8',
-                          ext_hook=self.ext_type_unpack_hook)
 
     def ext_type_unpack_hook(self, code, data):
         try:

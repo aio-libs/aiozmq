@@ -17,7 +17,7 @@ from types import MethodType
 
 from . import interface
 from .log import logger
-from .util import _Packer, _Unpacker
+from .util import _Packer
 
 
 __all__ = [
@@ -127,7 +127,6 @@ class _BaseProtocol(interface.ZmqProtocol):
         self.transport = None
         self.done_waiters = []
         self.packer = _Packer()
-        self.unpacker = _Unpacker()
 
     def connection_made(self, transport):
         self.transport = transport
@@ -188,8 +187,7 @@ class _ClientProtocol(_BaseProtocol):
         try:
             header, banswer = data
             pid, rnd, req_id, timestamp, is_error = self.RESP.unpack(header)
-            self.unpacker.feed(banswer)
-            answer = self.unpacker.unpack()
+            answer = self.packer.unpackb(banswer)
         except Exception:
             logger.critical("Cannot unpack %r", data, exc_info=sys.exc_info())
             return
@@ -219,8 +217,8 @@ class _ClientProtocol(_BaseProtocol):
 
     def call(self, name, args, kwargs):
         bname = name.encode('utf-8')
-        bargs = self.packer.pack(args)
-        bkwargs = self.packer.pack(kwargs)
+        bargs = self.packer.packb(args)
+        bkwargs = self.packer.packb(kwargs)
         header, req_id = self._new_id()
         assert req_id not in self.calls, (req_id, self.calls)
         fut = asyncio.Future(loop=self.loop)
@@ -292,10 +290,8 @@ class _ServerProtocol(_BaseProtocol):
                                           req_id=req_id, peer=peer))
             fut.set_exception(exc)
         else:
-            self.unpacker.feed(bargs)
-            args = self.unpacker.unpack()
-            self.unpacker.feed(bkwargs)
-            kwargs = self.unpacker.unpack()
+            args = self.packer.unpackb(bargs)
+            kwargs = self.packer.unpackb(bkwargs)
 
             if asyncio.iscoroutinefunction(func):
                 fut = asyncio.async(func(*args, **kwargs), loop=self.loop)
@@ -315,14 +311,14 @@ class _ServerProtocol(_BaseProtocol):
             ret = fut.result()
             prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
                                                          time.time(), False)
-            self.transport.write([peer, prefix, self.packer.pack(ret)])
+            self.transport.write([peer, prefix, self.packer.packb(ret)])
         except Exception as exc:
             prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
                                                          time.time(), True)
             exc_type = exc.__class__
             exc_info = (exc_type.__module__ + '.' + exc_type.__name__,
                         exc.args)
-            self.transport.write([peer, prefix, self.packer.pack(exc_info)])
+            self.transport.write([peer, prefix, self.packer.packb(exc_info)])
 
     def dispatch(self, name):
         if not name:
