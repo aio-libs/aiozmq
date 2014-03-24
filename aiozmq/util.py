@@ -25,6 +25,7 @@ class _Packer:
         else:
             translators = ChainMap(translators, _default)
         self.translators = translators
+        self._pack_cache = {}
 
     def packb(self, data):
         return packb(data, encoding='utf-8', use_bin_type=True,
@@ -34,12 +35,25 @@ class _Packer:
         return unpackb(packed, use_list=True, encoding='utf-8',
                        ext_hook=self.ext_type_unpack_hook)
 
-    def ext_type_pack_hook(self, obj):
-        for code, (cls, packer, unpacker) in self.translators.items():
-            if isinstance(obj, cls):
-                return ExtType(code, packer(obj))
-        else:
+    def ext_type_pack_hook(self, obj, _sentinel=object()):
+        obj_class = obj.__class__
+        hit = self._pack_cache.get(obj_class, _sentinel)
+        if hit is None:
+            # packer has been not found by previous long-lookup
             raise TypeError("Unknown type: {!r}".format(obj))
+        elif hit is _sentinel:
+            # do long-lookup
+            for code in sorted(self.translators):
+                cls, packer, unpacker = self.translators[code]
+                if isinstance(obj, cls):
+                    self._pack_cache[obj_class] = (code, packer)
+                    return ExtType(code, packer(obj))
+            else:
+                raise TypeError("Unknown type: {!r}".format(obj))
+        else:
+            # do shortcut
+            code, packer = hit
+            return ExtType(code, packer(obj))
 
     def ext_type_unpack_hook(self, code, data):
         try:

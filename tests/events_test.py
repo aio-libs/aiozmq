@@ -20,7 +20,11 @@ import threading
 import time
 import errno
 import unittest
-from test import support  # find_unused_port, IPV6_ENABLED, TEST_HOME_DIR
+
+from aiozmq._test_utils import (find_unused_port,
+                                IPV6_ENABLED,
+                                requires_mac_ver,
+                                requires_freebsd_version)
 
 
 import asyncio
@@ -32,10 +36,6 @@ import aiozmq
 
 
 def data_file(filename):
-    if hasattr(support, 'TEST_HOME_DIR'):
-        fullname = os.path.join(support.TEST_HOME_DIR, filename)
-        if os.path.isfile(fullname):
-            return fullname
     fullname = os.path.join(os.path.dirname(__file__), filename)
     if os.path.isfile(fullname):
         return fullname
@@ -613,7 +613,7 @@ class EventLoopTestsMixin:
 
     def test_create_connection_local_addr(self):
         with test_utils.run_test_server() as httpd:
-            port = support.find_unused_port()
+            port = find_unused_port()
             f = self.loop.create_connection(
                 lambda: MyProto(loop=self.loop),
                 *httpd.address, local_addr=(httpd.address[0], port))
@@ -961,7 +961,7 @@ class EventLoopTestsMixin:
 
         server.close()
 
-    @unittest.skipUnless(support.IPV6_ENABLED, 'IPv6 not supported or enabled')
+    @unittest.skipUnless(IPV6_ENABLED, 'IPv6 not supported or enabled')
     def test_create_server_dual_stack(self):
         f_proto = asyncio.Future(loop=self.loop)
 
@@ -973,7 +973,7 @@ class EventLoopTestsMixin:
         try_count = 0
         while True:
             try:
-                port = support.find_unused_port()
+                port = find_unused_port()
                 f = self.loop.create_server(TestMyProto, host=None, port=port)
                 server = self.loop.run_until_complete(f)
             except OSError as ex:
@@ -1107,9 +1107,9 @@ class EventLoopTestsMixin:
                          "Don't support pipes for Windows")
     # select, poll and kqueue don't support character devices (PTY) on Mac OS X
     # older than 10.6 (Snow Leopard)
-    @support.requires_mac_ver(10, 6)
+    @requires_mac_ver(10, 6)
     # Issue #20495: The test hangs on FreeBSD 7.2 but pass on FreeBSD 9
-    @support.requires_freebsd_version(8)
+    @requires_freebsd_version(8)
     def test_read_pty_output(self):
         proto = MyReadPipeProto(loop=self.loop)
 
@@ -1208,7 +1208,7 @@ class EventLoopTestsMixin:
                          "Don't support pipes for Windows")
     # select, poll and kqueue don't support character devices (PTY) on Mac OS X
     # older than 10.6 (Snow Leopard)
-    @support.requires_mac_ver(10, 6)
+    @requires_mac_ver(10, 6)
     def test_write_pty(self):
         master, slave = os.openpty()
         slave_write_obj = io.open(slave, 'wb', 0)
@@ -1313,7 +1313,7 @@ class EventLoopTestsMixin:
 
     def test_sock_connect_address(self):
         addresses = [(socket.AF_INET, ('www.python.org', 80))]
-        if support.IPV6_ENABLED:
+        if IPV6_ENABLED:
             addresses.extend((
                 (socket.AF_INET6, ('www.python.org', 80)),
                 (socket.AF_INET6, ('www.python.org', 80, 0, 0)),

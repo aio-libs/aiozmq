@@ -3,7 +3,7 @@ import asyncio
 import aiozmq, aiozmq.rpc
 import datetime
 
-from test import support  # import from standard python test suite
+from aiozmq._test_utils import find_unused_port
 
 
 class MyException(Exception):
@@ -60,7 +60,7 @@ class RpcTests(unittest.TestCase):
         self.loop.run_until_complete(server.wait_closed())
 
     def make_rpc_pair(self):
-        port = support.find_unused_port()
+        port = find_unused_port()
 
         @asyncio.coroutine
         def create():

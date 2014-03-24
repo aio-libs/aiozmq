@@ -6,7 +6,7 @@ import time
 import zmq
 from unittest import mock
 
-from test import support  # import from standard python test suite
+from aiozmq._test_utils import find_unused_port
 
 
 class Protocol(aiozmq.ZmqProtocol):
@@ -52,7 +52,7 @@ class ZmqEventLoopTests(unittest.TestCase):
         self.loop.close()
 
     def test_req_rep(self):
-        port = support.find_unused_port()
+        port = find_unused_port()
 
         @asyncio.coroutine
         def connect_req():
@@ -102,7 +102,7 @@ class ZmqEventLoopTests(unittest.TestCase):
         self.loop.run_until_complete(closing())
 
     def test_pub_sub(self):
-        port = support.find_unused_port()
+        port = find_unused_port()
 
         @asyncio.coroutine
         def connect_pub():
@@ -154,7 +154,7 @@ class ZmqEventLoopTests(unittest.TestCase):
         self.loop.run_until_complete(closing())
 
     def test_getsockopt(self):
-        port = support.find_unused_port()
+        port = find_unused_port()
 
         @asyncio.coroutine
         def coro():
@@ -169,7 +169,7 @@ class ZmqEventLoopTests(unittest.TestCase):
         self.loop.run_until_complete(coro())
 
     def test_dealer_router(self):
-        port = support.find_unused_port()
+        port = find_unused_port()
 
         @asyncio.coroutine
         def connect_req():
@@ -219,8 +219,8 @@ class ZmqEventLoopTests(unittest.TestCase):
         self.loop.run_until_complete(closing())
 
     def test_binds(self):
-        port1 = support.find_unused_port()
-        port2 = support.find_unused_port()
+        port1 = find_unused_port()
+        port2 = find_unused_port()
         addr1 = 'tcp://127.0.0.1:{}'.format(port1)
         addr2 = 'tcp://127.0.0.1:{}'.format(port2)
 
@@ -246,9 +246,9 @@ class ZmqEventLoopTests(unittest.TestCase):
         tr.close()
 
     def test_connects(self):
-        port1 = support.find_unused_port()
-        port2 = support.find_unused_port()
-        port3 = support.find_unused_port()
+        port1 = find_unused_port()
+        port2 = find_unused_port()
+        port3 = find_unused_port()
         addr1 = 'tcp://127.0.0.1:{}'.format(port1)
         addr2 = 'tcp://127.0.0.1:{}'.format(port2)
         addr3 = 'tcp://127.0.0.1:{}'.format(port3)
@@ -426,7 +426,7 @@ class ZmqEventLoopTests(unittest.TestCase):
             self.loop.run_until_complete(connect())
 
     def test_getsockopt_badopt(self):
-        port = support.find_unused_port()
+        port = find_unused_port()
 
         @asyncio.coroutine
         def connect():
@@ -445,7 +445,7 @@ class ZmqEventLoopTests(unittest.TestCase):
         self.assertEqual(errno.EINVAL, ctx.exception.errno)
 
     def test_setsockopt_badopt(self):
-        port = support.find_unused_port()
+        port = find_unused_port()
 
         @asyncio.coroutine
         def connect():
@@ -464,7 +464,7 @@ class ZmqEventLoopTests(unittest.TestCase):
         self.assertEqual(errno.EINVAL, ctx.exception.errno)
 
     def test_unbind_from_nonbinded_addr(self):
-        port = support.find_unused_port()
+        port = find_unused_port()
         addr = 'tcp://127.0.0.1:{}'.format(port)
 
         @asyncio.coroutine
@@ -486,7 +486,7 @@ class ZmqEventLoopTests(unittest.TestCase):
         self.assertEqual({addr}, tr.listeners())
 
     def test_disconnect_from_nonbinded_addr(self):
-        port = support.find_unused_port()
+        port = find_unused_port()
         addr = 'tcp://127.0.0.1:{}'.format(port)
 
         @asyncio.coroutine

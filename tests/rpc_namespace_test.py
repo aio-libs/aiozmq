@@ -2,7 +2,7 @@ import unittest
 import asyncio
 import aiozmq, aiozmq.rpc
 
-from test import support
+from aiozmq._test_utils import find_unused_port
 
 
 class MyHandler(aiozmq.rpc.AttrHandler):
@@ -37,7 +37,7 @@ class RpcNamespaceTests(unittest.TestCase):
         self.loop.run_until_complete(service.wait_closed())
 
     def make_rpc_pair(self):
-        port = support.find_unused_port()
+        port = find_unused_port()
 
         @asyncio.coroutine
         def create():
