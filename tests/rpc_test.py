@@ -34,7 +34,8 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
     def add(self, a1, a2):
-        raise a1 + a2
+        return a1 + a2
+
     @aiozmq.rpc.method
     def generic_exception(self):
         raise MyException('additional', 'data')
@@ -130,7 +131,7 @@ class RpcTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
 
-    def xtest_datetime_translators(self):
+    def test_datetime_translators(self):
         client, server = self.make_rpc_pair()
 
         @asyncio.coroutine

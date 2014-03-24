@@ -1,18 +1,21 @@
 """Private utility functions."""
 
+from collections import ChainMap
+from datetime import datetime, date, time, timedelta, tzinfo
 from functools import partial
-from datetime import datetime, date, time, timedelta
 from pickle import dumps, loads, HIGHEST_PROTOCOL
 
-from msgpack import Packer, Unpacker, ExtType
+from msgpack import ExtType
+from msgpack.fallback import Packer, Unpacker
 
 
-_default = [
-    (datetime, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
-    (date, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
-    (time, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
-    (timedelta, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
-    ]
+_default = {
+    127: (datetime, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
+    126: (date, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
+    125: (time, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
+    124: (timedelta, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
+    123: (tzinfo, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
+}
 
 
 class _Base:
@@ -21,8 +24,7 @@ class _Base:
         if translators is None:
             translators = _default
         else:
-            translators = translators + _default
-            assert len(translators) < 128, len(translators)
+            translators = ChainMap(translators, _default)
         self.translators = translators
 
 
@@ -31,15 +33,15 @@ class _Packer(Packer, _Base):
     def __init__(self, *, translators=None):
         _Base.__init__(self, translators=translators)
         Packer.__init__(self,
-                        default=self.pack_hook,
+                        default=self.ext_type_pack_hook,
                         encoding='utf-8', use_bin_type=True)
 
-    def pack_hook(self, obj):
-        for num, (cls, packer, unpacker) in enumerate(self.translators):
+    def ext_type_pack_hook(self, obj):
+        for code, (cls, packer, unpacker) in self.translators.items():
             if isinstance(obj, cls):
-                return ExtType(num, packer(obj))
+                return ExtType(code, packer(obj))
         else:
-            return obj
+            raise TypeError("Unknown type: {!r}".format(obj))
 
 
 class _Unpacker(Unpacker, _Base):
@@ -49,8 +51,11 @@ class _Unpacker(Unpacker, _Base):
         Unpacker.__init__(self,
                           file_like, read_size, use_list=True,
                           encoding='utf-8',
-                          ext_hook=self.unpack_hook)
+                          ext_hook=self.ext_type_unpack_hook)
 
-    def unpack_hook(self, code, data):
-        cls, packer, unpacker = self.translators[code]
-        return unpacker(data)
+    def ext_type_unpack_hook(self, code, data):
+        try:
+            cls, packer, unpacker = self.translators[code]
+            return unpacker(data)
+        except KeyError:
+            return ExtType(code, data)
