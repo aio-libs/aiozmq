@@ -20,7 +20,6 @@ import threading
 import time
 import errno
 import unittest
-from unittest import mock
 from test import support  # find_unused_port, IPV6_ENABLED, TEST_HOME_DIR
 
 

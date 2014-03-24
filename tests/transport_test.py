@@ -1,7 +1,6 @@
 import unittest
 
 import zmq
-import asyncio
 import aiozmq
 import errno
 

@@ -330,7 +330,7 @@ class ZmqEventLoopTests(unittest.TestCase):
                 zmq_sock=1,
                 connect=2)
 
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(ValueError):
             self.loop.run_until_complete(connect())
 
     def test_create_zmq_connection_ambiguous_args2(self):
@@ -343,7 +343,7 @@ class ZmqEventLoopTests(unittest.TestCase):
                 zmq_sock=1,
                 bind=2)
 
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(ValueError):
             self.loop.run_until_complete(connect())
 
     def test_create_zmq_connection_ambiguous_args3(self):
@@ -356,7 +356,7 @@ class ZmqEventLoopTests(unittest.TestCase):
                 bind=1,
                 connect=2)
 
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(ValueError):
             self.loop.run_until_complete(connect())
 
     def test_create_zmq_connection_invalid_bind(self):
@@ -368,7 +368,7 @@ class ZmqEventLoopTests(unittest.TestCase):
                 zmq.SUB,
                 bind=2)
 
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(ValueError):
             self.loop.run_until_complete(connect())
 
     def test_create_zmq_connection_invalid_connect(self):
@@ -380,7 +380,7 @@ class ZmqEventLoopTests(unittest.TestCase):
                 zmq.SUB,
                 connect=2)
 
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(ValueError):
             self.loop.run_until_complete(connect())
 
     def test_create_zmq_connection_closes_socket_on_bad_bind(self):
@@ -394,7 +394,7 @@ class ZmqEventLoopTests(unittest.TestCase):
             yield from pr.connected
             return tr, pr
 
-        with self.assertRaises(OSError) as ctx:
+        with self.assertRaises(OSError):
             self.loop.run_until_complete(connect())
 
     def test_create_zmq_connection_closes_socket_on_bad_connect(self):
@@ -408,7 +408,7 @@ class ZmqEventLoopTests(unittest.TestCase):
             yield from pr.connected
             return tr, pr
 
-        with self.assertRaises(OSError) as ctx:
+        with self.assertRaises(OSError):
             self.loop.run_until_complete(connect())
 
     def test_create_zmq_connection_dns_in_connect(self):
@@ -422,7 +422,7 @@ class ZmqEventLoopTests(unittest.TestCase):
             yield from pr.connected
             return tr, pr
 
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(ValueError):
             self.loop.run_until_complete(connect())
 
     def test_getsockopt_badopt(self):

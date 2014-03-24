@@ -3,11 +3,9 @@
 import abc
 import asyncio
 import builtins
-import datetime
 import os
-import struct
-import sys
 import random
+import struct
 import time
 import sys
 
@@ -17,21 +15,19 @@ import zmq
 from functools import partial
 from types import MethodType
 
-from . import events
 from . import interface
 from .log import logger
 from .util import _Packer, _Unpacker
 
 
 __all__ = [
-    'Handler',
     'method',
     'open_client',
     'start_server',
     'Error',
     'GenericError',
-    'NotFoundError'
-    'AbstractHandler'
+    'NotFoundError',
+    'AbstractHandler',
     'AttrHandler'
     ]
 
@@ -194,7 +190,7 @@ class _ClientProtocol(_BaseProtocol):
             pid, rnd, req_id, timestamp, is_error = self.RESP.unpack(header)
             self.unpacker.feed(banswer)
             answer = self.unpacker.unpack()
-        except Exception as exc:
+        except Exception:
             logger.critical("Cannot unpack %r", data, exc_info=sys.exc_info())
             return
         call = self.calls.pop(req_id, None)

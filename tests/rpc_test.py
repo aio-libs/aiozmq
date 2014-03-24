@@ -1,9 +1,6 @@
 import unittest
 import asyncio
 import aiozmq, aiozmq.rpc
-import collections
-import time
-import zmq
 
 from test import support  # import from standard python test suite
 
