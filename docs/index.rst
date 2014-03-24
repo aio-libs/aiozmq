@@ -31,6 +31,14 @@ Source code
 
 The project is hosted on `GitHub`_
 
+aiozmq uses `Travis <https://travis-ci.org/aio-libs/aiozmq>`_ for
+Continious Integration.
+
+Current status of master branch is
+
+.. image:: https://travis-ci.org/aio-libs/aiozmq.svg?branch=master   :target: https://travis-ci.org/aio-libs/aiozmq
+
+
 Dependencies
 ------------
 
