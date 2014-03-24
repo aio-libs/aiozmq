@@ -10,9 +10,9 @@ before_install:
   - sudo apt-get install python3-dev
   - sudo apt-get install python3-setuptools
   - sudo apt-get install python3-pip
+  - pip install --user msgpack-python
 
 install:
-  - pip install msgpack-python
   - python setup.py install
 
 script:
