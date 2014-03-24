@@ -22,7 +22,6 @@ Simple client-server RPC example::
     loop = asyncio.get_event_loop()
 
     class ServerHandler(aiozmq.AttrHandler):
-
         @aiozmq.method
         def remote_func(self, a, b):
             retuirn a + b
