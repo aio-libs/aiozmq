@@ -18,36 +18,26 @@ Simple client-server RPC example::
     import aiozmq, aiozmq.rpc
     import asyncio
 
-    asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
-
-    loop = asyncio.get_event_loop()
-
     class ServerHandler(aiozmq.AttrHandler):
         @aiozmq.method
-        def remote_func(self, a, b):
+        def remote_func(self, a:int, b:int) -> int:
             retuirn a + b
 
-    server = loop.run_until_complete(
-        aiozmq.rpc.start_server(ServerHandler(), bind='tpc://127.0.0.1:5555'))
-
-    client = loop.run_until_complete(
-        aiozmq.rpc.open_client(connect='tpc://127.0.0.1:5555'))
-
     @asyncio.coroutine
-    def communicate(client):
+    def go(client):
+        server = yield from aiozmq.rpc.start_server(
+            ServerHandler(), bind='tpc://127.0.0.1:5555'))
+        client = yield from aiozmq.rpc.open_client(
+            connect='tpc://127.0.0.1:5555'))
+
         ret = yield from client.rpc.remote_func(1, 3)
         assert 3 == ret
 
-        try:
-            yield from client.rpc.unknown_func()
-        except aiozmq.rpc.NotFoundError:
-            pass
+        server.close()
+        client.close()
 
-    loop.run_until_complete(communicate(client))
-
-    server.close()
-    client.close()
-    loop.close()
+    asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
+    asyncio.get_event_loop().run_until_complete(go())
 
 Requirements
 ------------

@@ -33,6 +33,8 @@ This module uses :term:`ZeroMQ` *DEALER*/*ROUTER* sockets and custom
 communication protocol (which use :term:`msgpack`).
 
 
+.. _aiozmq-rpc-client:
+
 RPC Client
 ----------
 
@@ -87,6 +89,8 @@ The basic usage is::
       Readonly property that returns ephemeral object used to making
       RPC call (see example above).
 
+
+.. _aiozmq-rpc-server:
 
 RPC Server
 ----------

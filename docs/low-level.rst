@@ -9,6 +9,41 @@
 .. currentmodule:: aiozmq
 
 
+.. _install-aiozmq-policy:
+
+Installing ZeroMQ event loop
+----------------------------
+
+To use ZeroMQ layer you **should** install proper event loop first.
+
+The recommended way is to setup global event loop *policy*::
+
+    import asyncio
+    import aiozmq
+
+    asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
+
+That installs :class:`ZmqEventLoopPolicy` globally. After installing
+you can get event loop instance from main thread by
+:func:`asyncio.get_event_loop` call::
+
+    loop = asyncio.get_event_loop()
+
+If you need to execute event loop in own (non-main) thread you have to
+setup it first::
+
+     import threading
+
+     def thread_func():
+         loop = asyncio.new_event_loop()
+         asyncio.set_event_loop()
+
+         loop.run_forever()
+
+     thread = threading.Thread(target=thread_func)
+     thread.start()
+
+
 ZmqEventLoop
 ---------------------
 
