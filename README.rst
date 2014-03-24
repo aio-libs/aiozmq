@@ -12,6 +12,8 @@ See http://aiozmq.readthedocs.org
 RPC Example
 -----------
 
+Simple client-server RPC example::
+
     import aiozmq, aiozmq.rpc
     import asyncio
 
