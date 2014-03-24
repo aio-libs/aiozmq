@@ -438,7 +438,6 @@ class ZmqEventLoopTests(unittest.TestCase):
             return tr, pr
 
         tr, pr = self.loop.run_until_complete(connect())
-        self.addCleanup(tr.close)
 
         with self.assertRaises(OSError) as ctx:
             tr.getsockopt(1111)  # invalid option
@@ -457,7 +456,6 @@ class ZmqEventLoopTests(unittest.TestCase):
             return tr, pr
 
         tr, pr = self.loop.run_until_complete(connect())
-        self.addCleanup(tr.close)
 
         with self.assertRaises(OSError) as ctx:
             tr.setsockopt(1111, 1)  # invalid option
@@ -477,7 +475,6 @@ class ZmqEventLoopTests(unittest.TestCase):
             return tr, pr
 
         tr, pr = self.loop.run_until_complete(connect())
-        self.addCleanup(tr.close)
 
         self.assertEqual({addr}, tr.listeners())
         with self.assertRaises(OSError) as ctx:
@@ -499,7 +496,6 @@ class ZmqEventLoopTests(unittest.TestCase):
             return tr, pr
 
         tr, pr = self.loop.run_until_complete(connect())
-        self.addCleanup(tr.close)
 
         self.assertEqual({addr}, tr.connections())
         with self.assertRaises(OSError) as ctx:
