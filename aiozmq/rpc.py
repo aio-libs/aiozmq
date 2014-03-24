@@ -45,7 +45,7 @@ class GenericError(Error):
         self.arguments = args
 
 
-class NotFoundError(Error):
+class NotFoundError(Error, LookupError):
     """Error raised by server if RPC namespace/method lookup failed."""
 
 
