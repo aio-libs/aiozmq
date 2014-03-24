@@ -3,8 +3,10 @@
 
 __all__ = ['ZmqSelector']
 
-
-from asyncio.selectors import BaseSelector, SelectorKey, EVENT_READ, EVENT_WRITE
+try:
+    from asyncio.selectors import BaseSelector, SelectorKey, EVENT_READ, EVENT_WRITE
+except ImportError:
+    from selectors import BaseSelector, SelectorKey, EVENT_READ, EVENT_WRITE
 from collections import Mapping
 from errno import EINTR
 from zmq import (ZMQError, POLLIN, POLLOUT, POLLERR,
