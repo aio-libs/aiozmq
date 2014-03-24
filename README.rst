@@ -53,9 +53,11 @@ Requirements
 
 - Python 3.3+
 
-- pyzmq 13.1
+- pyzmq 13.1+
 
 - asyncio http://code.google.com/p/tulip/ or Python 3.4+
+
+- aiozmq.rpc requires msgpack-python
 
 
 
