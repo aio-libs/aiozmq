@@ -8,6 +8,7 @@ import random
 import struct
 import time
 import sys
+import inspect
 
 import msgpack
 import zmq
@@ -49,6 +50,11 @@ class NotFoundError(Error):
     """Error raised by server if RPC namespace/method lookup failed."""
 
 
+class ParametersError(Error):
+    """Error raised by server when RPC method's parameters could not
+    be validated against their annotations."""
+
+
 class AbstractHandler(metaclass=abc.ABCMeta):
     """Abstract class for server-side RPC handlers."""
 
@@ -81,10 +87,13 @@ def method(func):
 
     Also validates function params using annotations.
     """
-    # TODO: fun with flag;
-    #       parse annotations and create(?) checker;
-    #       (also validate annotations);
-    func.__rpc__ = {}  # TODO: assign to trafaret?
+    func.__rpc__ = {}
+    func.__signature__ = sig = inspect.signature(func)
+    for name, param in sig.parameters.items():
+        ann = param.annotation
+        if ann is not param.empty and not callable(ann):
+            raise ValueError("Expected {!r} annotation to be callable"
+                             .format(name))
     return func
 
 
@@ -181,6 +190,7 @@ class _ClientProtocol(_BaseProtocol):
                 error_table['builtins.'+name] = val
         error_table[__name__ + '.GenericError'] = GenericError
         error_table[__name__ + '.NotFoundError'] = NotFoundError
+        error_table[__name__ + '.ParametersError'] = ParametersError
         return error_table
 
     def msg_received(self, data):
@@ -282,17 +292,17 @@ class _ServerProtocol(_BaseProtocol):
         pid, rnd, req_id, timestamp = self.REQ.unpack(header)
 
         # TODO: send exception back to transport if lookup is failed
+        args = self.packer.unpackb(bargs)
+        kwargs = self.packer.unpackb(bkwargs)
         try:
             func = self.dispatch(bname.decode('utf-8'))
-        except NotFoundError as exc:
+            args, kwargs = self._validate_parameters(func, args, kwargs)
+        except (NotFoundError, ParametersError) as exc:
             fut = asyncio.Future(loop=self.loop)
             fut.add_done_callback(partial(self.process_call_result,
                                           req_id=req_id, peer=peer))
             fut.set_exception(exc)
         else:
-            args = self.packer.unpackb(bargs)
-            kwargs = self.packer.unpackb(bkwargs)
-
             if asyncio.iscoroutinefunction(func):
                 fut = asyncio.async(func(*args, **kwargs), loop=self.loop)
                 fut.add_done_callback(partial(self.process_call_result,
@@ -350,3 +360,27 @@ class _ServerProtocol(_BaseProtocol):
                 return func
             except AttributeError:
                 raise NotFoundError(name)
+
+    def _validate_parameters(self, func, args, kwargs):
+        if isinstance(func, MethodType):
+            sig = inspect.signature(func.__func__)
+            bargs = sig.bind(func.__self__, *args, **kwargs)
+        else:
+            sig = inspect.signature(func)
+            bargs = sig.bind(*args, **kwargs)
+        arguments = bargs.arguments
+        for name, param in sig.parameters.items():
+            if param.annotation is param.empty:
+                continue
+            val = arguments.get(name, param.default)
+            if val is param.empty:
+                raise ParametersError('Missing required argument {!r}'
+                                      .format(name))
+            try:
+                arguments[name] = param.annotation(val)
+            except (TypeError, ValueError) as exc:
+                raise ParametersError('Bad value {!r} for argument {!s}: {!r}'
+                                      .format(val, param, exc)) from exc
+        if isinstance(func, MethodType):
+           return bargs.args[1:], bargs.kwargs
+        return bargs.args, bargs.kwargs
