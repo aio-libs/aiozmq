@@ -3,48 +3,49 @@ asyncio integration with ZeroMQ
 
 Experimental asyncio (PEP 3156) compatibility with ZeroMQ.
 
-Event loop
-----------
 
-To use asyncio with zmq event loop you have to install new event loop::
+Documentation
+-------------
 
-   import asyncio
-   import aiozmq
+See http://aiozmq.readthedocs.org
 
-   loop = aiozmq.new_event_loop()
-   asyncio.set_event_loop(loop)
+RPC Example
+-----------
 
+    import aiozmq, aiozmq.rpc
+    import asyncio
 
-Usage
------
+    asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
 
-Instead of using `zmq.Context` directly, use `aiozmq.Context`.
-All `recvXXX` methods of Socket object are coroutines::
+    loop = asyncio.get_event_loop()
 
-  # simple client
+    class ServerHandler(aiozmq.AttrHandler):
 
-  import asyncio
-  import zmq
-  import aiozmq
+        @aiozmq.method
+        def remote_func(self, a, b):
+            retuirn a + b
 
-  @asyncio.coroutine
-  def read_socket(sock):
-      while True:
-          msg = yield from sock.recv()
+    server = loop.run_until_complete(
+        aiozmq.rpc.start_server(ServerHandler(), bind='tpc://127.0.0.1:5555'))
 
-          # do_some_work(msg)
+    client = loop.run_until_complete(
+        aiozmq.rpc.open_client(connect='tpc://127.0.0.1:5555'))
 
-  if __name__ == '__main__':
-      loop = aiozmq.new_event_loop()
-      asyncio.set_event_loop(loop)
+    @asyncio.coroutine
+    def communicate(client):
+        ret = yield from client.rpc.remote_func(1, 3)
+        assert 3 == ret
 
-      ctx = aiozmq.Context(loop=loop) # create a new context
-      sock = ctx.socket(zmq.PULL)
-      sock.connect('ipc:///tmp/zmqtest')
+        try:
+            yield from client.rpc.unknown_func()
+        except aiozmq.rpc.NotFoundError:
+            pass
 
-      t = asyncio.Task(read_socket(sock))
-      loop.run_forever()
+    loop.run_until_complete(communicate(client))
 
+    server.close()
+    client.close()
+    loop.close()
 
 Requirements
 ------------
