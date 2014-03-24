@@ -236,8 +236,12 @@ class RPCClient(_RPCServer):
 
     @property
     def rpc(self):
-        """XXX"""
-        return  _MethodCall(self._proto)
+        """Return object for dynamic RPC calls.
+
+        The usage is:
+        ret = yield from client.rpc.ns.func(1, 2)
+        """
+        return _MethodCall(self._proto)
 
 
 class _MethodCall:

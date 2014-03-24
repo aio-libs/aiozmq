@@ -15,7 +15,6 @@ _default = [
     ]
 
 
-
 class _Base:
 
     def __init__(self, *, translators=None):
@@ -48,7 +47,8 @@ class _Unpacker(Unpacker, _Base):
     def __init__(self, file_like=None, read_size=0, *, translators=None):
         _Base.__init__(self, translators=translators)
         Unpacker.__init__(self,
-                          file_like, read_size, use_list=True, encoding='utf-8',
+                          file_like, read_size, use_list=True,
+                          encoding='utf-8',
                           ext_hook=self.unpack_hook)
 
     def unpack_hook(self, code, data):
