@@ -3,11 +3,9 @@
 import abc
 import asyncio
 import builtins
-import datetime
 import os
-import struct
-import sys
 import random
+import struct
 import time
 import sys
 
@@ -17,21 +15,19 @@ import zmq
 from functools import partial
 from types import MethodType
 
-from . import events
 from . import interface
 from .log import logger
 from .util import _Packer, _Unpacker
 
 
 __all__ = [
-    'Handler',
     'method',
     'open_client',
     'start_server',
     'Error',
     'GenericError',
-    'NotFoundError'
-    'AbstractHandler'
+    'NotFoundError',
+    'AbstractHandler',
     'AttrHandler'
     ]
 
@@ -62,8 +58,12 @@ class AbstractHandler(metaclass=abc.ABCMeta):
     def __getitem__(self, key):
         raise KeyError
 
-
-AbstractHandler.register(dict)
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is AbstractHandler:
+            if any("__getitem__" in B.__dict__ for B in C.__mro__):
+                return True
+        return NotImplemented
 
 
 class AttrHandler(AbstractHandler):
@@ -84,35 +84,34 @@ def method(func):
     # TODO: fun with flag;
     #       parse annotations and create(?) checker;
     #       (also validate annotations);
-    ## if not asyncio.iscoroutinefunction(func):
-    ##     raise TypeError('rpc decorator can work only with coroutines')
-    if not callable(func):
-        raise TypeError("decorator can work only with callables "
-                        "(functions, methods and coroutines)")
     func.__rpc__ = {}  # TODO: assign to trafaret?
     return func
 
 
 @asyncio.coroutine
 def open_client(*, connect=None, bind=None, loop=None):
-    """A coroutine that creates and connects/binds RPC client
+    """A coroutine that creates and connects/binds RPC client.
 
     Return value is a client instance.
     """
     # TODO: describe params
     # TODO: add a way to pass exception translator
+    # TODO: add a way to pass value translator
     if loop is None:
         loop = asyncio.get_event_loop()
 
     transp, proto = yield from loop.create_zmq_connection(
         lambda: _ClientProtocol(loop), zmq.DEALER, connect=connect, bind=bind)
-    return _RPCClient(loop, proto)
+    return RPCClient(loop, proto)
 
 
 @asyncio.coroutine
 def start_server(handler, *, connect=None, bind=None, loop=None):
     """A coroutine that creates and connects/binds RPC server instance."""
     # TODO: describe params
+    # TODO: add a way to pass value translator
+    if loop is None:
+        loop = asyncio.get_event_loop()
 
     transp, proto = yield from loop.create_zmq_connection(
         lambda: _ServerProtocol(loop, handler),
@@ -191,7 +190,7 @@ class _ClientProtocol(_BaseProtocol):
             pid, rnd, req_id, timestamp, is_error = self.RESP.unpack(header)
             self.unpacker.feed(banswer)
             answer = self.unpacker.unpack()
-        except Exception as exc:
+        except Exception:
             logger.critical("Cannot unpack %r", data, exc_info=sys.exc_info())
             return
         call = self.calls.pop(req_id, None)
@@ -207,7 +206,7 @@ class _ClientProtocol(_BaseProtocol):
     def _translate_error(self, exc_type, exc_args):
         found = self.error_table.get(exc_type)
         if found is None:
-            return GenericRPCError(exc_type, exc_args)
+            return GenericError(exc_type, tuple(exc_args))
         else:
             return found(*exc_args)
 
@@ -230,14 +229,24 @@ class _ClientProtocol(_BaseProtocol):
         return fut
 
 
-class _RPCClient(_RPCServer):
+class RPCClient(_RPCServer):
 
     def __init__(self, loop, proto):
         super().__init__(loop, proto)
-        self.rpc = _MethodCall(self._proto)
+
+    @property
+    def rpc(self):
+        """Return object for dynamic RPC calls.
+
+        The usage is:
+        ret = yield from client.rpc.ns.func(1, 2)
+        """
+        return _MethodCall(self._proto)
 
 
 class _MethodCall:
+
+    __slots__ = ('_proto', '_names')
 
     def __init__(self, proto, names=()):
         self._proto = proto

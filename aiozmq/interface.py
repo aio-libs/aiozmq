@@ -71,6 +71,60 @@ class ZmqTransport(BaseTransport):
         """Return the current size of the write buffer."""
         raise NotImplementedError
 
+    def bind(self, endpoint):
+        """Bind transpot to endpoint.
+
+        endpoint is a string in format transport://address as ZeroMQ requires.
+
+        Return bound endpoint, unwinding wildcards if needed.
+        """
+        raise NotImplementedError
+
+    def unbind(self, endpoint):
+        """Unbind transpot from endpoint.
+        """
+        raise NotImplementedError
+
+    def listeners(self):
+        """Return set of endpoints bound to transport.
+
+        N.B. returned endpoints includes only ones that has been bound
+        via transport.bind or event_loop.create_zmq_connection calls
+        and does not includes binds done to zmq_sock
+        before create_zmq_connection has been called.
+        """
+        raise NotImplementedError
+
+    def connect(self, endpoint):
+        """Connect transpot to endpoint.
+
+        endpoint is a string in format transport://address as ZeroMQ requires.
+
+        For tcp connections endpoint should specify IPv4 or IPv6 address,
+        not DNS name.
+        Use yield from get_event_loop().getaddrinfo(host, port)
+        for translating DNS into address.
+
+        Raise ValueError if endpoint is tcp DNS address.
+        Return bound connection, unwinding wildcards if needed.
+        """
+        raise NotImplementedError
+
+    def disconnect(self, endpoint):
+        """Disconnect transpot from endpoint.
+        """
+        raise NotImplementedError
+
+    def connections(self):
+        """Return set of endpoints connected to transport.
+
+        N.B. returned endpoints includes only ones that has been connected
+        via transport.connect or event_loop.create_zmq_connection calls
+        and does not includes connects done to zmq_sock
+        before create_zmq_connection has been called.
+        """
+        raise NotImplementedError
+
 
 class ZmqProtocol(BaseProtocol):
     """Interface for ZeroMQ protocol."""

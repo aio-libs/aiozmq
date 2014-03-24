@@ -4,7 +4,7 @@ import sys
 from setuptools import setup, find_packages
 
 
-install_requires = ['pyzmq']
+install_requires = ['pyzmq>=13.1']
 
 PY_VER = sys.version_info
 
@@ -16,6 +16,8 @@ else:
     raise RuntimeError("aiozmq doesn't suppport Python earllier than 3.3")
 
 tests_require = install_requires + ['nose']
+
+extras_require = {'rpc': ['trafaret>=0.5.0', 'msgpack-python>=0.4.1']}
 
 
 def read(f):

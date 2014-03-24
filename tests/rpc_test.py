@@ -1,11 +1,13 @@
 import unittest
 import asyncio
 import aiozmq, aiozmq.rpc
-import time
-import zmq
 import datetime
 
 from test import support  # import from standard python test suite
+
+
+class MyException(Exception):
+    pass
 
 
 class MyHandler(aiozmq.rpc.AttrHandler):
@@ -33,6 +35,9 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     @aiozmq.rpc.method
     def add(self, a1, a2):
         raise a1 + a2
+    @aiozmq.rpc.method
+    def generic_exception(self):
+        raise MyException('additional', 'data')
 
 
 class RpcTests(unittest.TestCase):
@@ -125,7 +130,7 @@ class RpcTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
 
-    def test_datetime_translators(self):
+    def xtest_datetime_translators(self):
         client, server = self.make_rpc_pair()
 
         @asyncio.coroutine
@@ -135,3 +140,57 @@ class RpcTests(unittest.TestCase):
             self.assertEqual(datetime.date(2014, 3, 23), ret)
 
         self.loop.run_until_complete(communicate())
+
+    def test_not_found_empty_name(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            with self.assertRaises(ValueError) as exc:
+                yield from client.rpc(1, 2, 3)
+            self.assertEqual(('RPC method name is empty',), exc.exception.args)
+
+        self.loop.run_until_complete(communicate())
+
+    def test_not_found_empty_name_on_server(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            with self.assertRaises(aiozmq.rpc.NotFoundError) as exc:
+                yield from client._proto.call('', (), {})
+            self.assertEqual(('',), exc.exception.args)
+
+        self.loop.run_until_complete(communicate())
+
+    def test_generic_exception(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            with self.assertRaises(aiozmq.rpc.GenericError) as exc:
+                yield from client.rpc.generic_exception()
+            self.assertEqual(('rpc_test.MyException',
+                             ('additional', 'data')),
+                             exc.exception.args)
+
+        self.loop.run_until_complete(communicate())
+
+
+class AbstractHandlerTests(unittest.TestCase):
+
+    def test___getitem__(self):
+
+        class MyHandler(aiozmq.rpc.AbstractHandler):
+
+            def __getitem__(self, key):
+                return super().__getitem__(key)
+
+        with self.assertRaises(KeyError):
+            MyHandler()[1]
+
+    def test_subclass(self):
+        self.assertTrue(issubclass(dict, aiozmq.rpc.AbstractHandler))
+        self.assertIsInstance({}, aiozmq.rpc.AbstractHandler)
+        self.assertFalse(issubclass(object, aiozmq.rpc.AbstractHandler))
+        self.assertNotIsInstance(object(), aiozmq.rpc.AbstractHandler)

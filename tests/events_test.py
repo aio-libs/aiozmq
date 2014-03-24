@@ -20,7 +20,6 @@ import threading
 import time
 import errno
 import unittest
-from unittest import mock
 from test import support  # find_unused_port, IPV6_ENABLED, TEST_HOME_DIR
 
 
@@ -1619,4 +1618,4 @@ class SubprocessTestsMixin:
 class ZmqSelectorEventLoopTests(EventLoopTestsMixin, unittest.TestCase):
 
     def create_event_loop(self):
-        return aiozmq.new_event_loop()
+        return aiozmq.ZmqEventLoop()

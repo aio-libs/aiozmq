@@ -1,10 +1,15 @@
 import asyncio
+import asyncio.events
 import errno
+import re
+import threading
 import zmq
 
-from asyncio.unix_events import SelectorEventLoop, DefaultEventLoopPolicy
+from asyncio.unix_events import SelectorEventLoop, SafeChildWatcher
 from asyncio.transports import _FlowControlMixin
-from collections import deque, Iterable
+from collections import deque, Iterable, Set
+from ipaddress import ip_address
+
 from .selector import ZmqSelector
 from .interface import ZmqTransport
 
@@ -29,7 +34,7 @@ class ZmqEventLoop(SelectorEventLoop):
 
     @asyncio.coroutine
     def create_zmq_connection(self, protocol_factory, zmq_type, *,
-                               bind=None, connect=None, zmq_sock=None):
+                              bind=None, connect=None, zmq_sock=None):
         """A coroutine which creates a ZeroMQ connection endpoint.
 
         The return value is a pair of (transport, protocol),
@@ -53,7 +58,7 @@ class ZmqEventLoop(SelectorEventLoop):
 
         endpoint is a string consisting of two parts as follows:
         transport://address.
-        connect to this transport.
+
         The transport part specifies the underlying transport protocol to use.
         The meaning of the address part is specific to the underlying
         transport protocol selected.
@@ -82,42 +87,74 @@ class ZmqEventLoop(SelectorEventLoop):
             raise ValueError(
                 "the only bind, connect or zmq_sock should be specified "
                 "at the same time", bind, connect, zmq_sock)
+
         try:
             if zmq_sock is None:
                 zmq_sock = self._zmq_context.socket(zmq_type)
-                if bind is not None:
-                    if isinstance(bind, str):
-                        bind = [bind]
-                    else:
-                        if not isinstance(bind, Iterable):
-                            raise ValueError('bind should be str or iterable')
-                    for endpoint in bind:
-                        zmq_sock.bind(endpoint)
-                elif connect is not None:
-                    if isinstance(connect, str):
-                        connect = [connect]
-                    else:
-                        if not isinstance(connect, Iterable):
-                            raise ValueError('connect should be '
-                                             'str or iterable')
-                    for endpoint in connect:
-                        zmq_sock.connect(endpoint)
-            else:
-                if zmq_sock.getsockopt(zmq.TYPE) != zmq_type:
-                    raise ValueError('Invalid zmq_sock type')
+            elif zmq_sock.getsockopt(zmq.TYPE) != zmq_type:
+                raise ValueError('Invalid zmq_sock type')
         except zmq.ZMQError as exc:
-            raise OSError(exc.errno, exc.msg) from exc
+            raise OSError(exc.errno, exc.strerror) from exc
 
         protocol = protocol_factory()
         waiter = asyncio.Future(loop=self)
         transport = _ZmqTransportImpl(self, zmq_sock, protocol, waiter)
         yield from waiter
-        return transport, protocol
+
+        try:
+            if bind is not None:
+                if isinstance(bind, str):
+                    bind = [bind]
+                else:
+                    if not isinstance(bind, Iterable):
+                        raise ValueError('bind should be str or iterable')
+                for endpoint in bind:
+                    transport.bind(endpoint)
+            elif connect is not None:
+                if isinstance(connect, str):
+                    connect = [connect]
+                else:
+                    if not isinstance(connect, Iterable):
+                        raise ValueError('connect should be '
+                                         'str or iterable')
+                for endpoint in connect:
+                    transport.connect(endpoint)
+
+            return transport, protocol
+        except OSError:
+            # don't care if zmq_sock.close can raise exception
+            # that should never happen
+            zmq_sock.close()
+            raise
+
+
+class _EndpointsSet(Set):
+
+    __slots__ = ('_collection',)
+
+    def __init__(self, collection):
+        self._collection = collection
+
+    def __len__(self):
+        return len(self._collection)
+
+    def __contains__(self, endpoint):
+        return endpoint in self._collection
+
+    def __iter__(self):
+        return iter(self._collection)
+
+    def __repr__(self):
+        return '{' + ', '.join(sorted(self._collection)) + '}'
+
+    __str__ = __repr__
 
 
 class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
 
-    def __init__(self, loop, zmq_sock, protocol, waiter):
+    _TCP_RE = re.compile('^tcp://(.+):(\d+)|\*$')
+
+    def __init__(self, loop, zmq_sock, protocol, waiter=None):
         super().__init__(None)
         self._extra['zmq_socket'] = zmq_sock
         self._loop = loop
@@ -126,6 +163,9 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         self._closing = False
         self._buffer = deque()
         self._buffer_size = 0
+        self._listeners = set()
+        self._connections = set()
+
         self._loop.add_reader(self._zmq_sock, self._read_ready)
         self._loop.call_soon(self._protocol.connection_made, self)
         if waiter is not None:
@@ -133,12 +173,13 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
 
     def _read_ready(self):
         try:
-            data = self._zmq_sock.recv_multipart(zmq.NOBLOCK)
-        except zmq.ZMQError as exc:
-            if exc.errno in (errno.EAGAIN, errno.EINTR):
-                pass
-            else:
-                raise OSError(exc.errno, exc.msg) from exc
+            try:
+                data = self._zmq_sock.recv_multipart(zmq.NOBLOCK)
+            except zmq.ZMQError as exc:
+                if exc.errno in (errno.EAGAIN, errno.EINTR):
+                    return
+                else:
+                    raise OSError(exc.errno, exc.strerror) from exc
         except Exception as exc:
             self._fatal_error(exc, 'Fatal read error on zmq socket transport')
         else:
@@ -162,9 +203,10 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
                     return
                 except zmq.ZMQError as exc:
                     if exc.errno in (errno.EAGAIN, errno.EINTR):
-                        self._loop.add_writer(self._zmq_sock, self._write_ready)
+                        self._loop.add_writer(self._zmq_sock,
+                                              self._write_ready)
                     else:
-                        raise OSError(exc.errno, exc.msg) from exc
+                        raise OSError(exc.errno, exc.strerror) from exc
             except Exception as exc:
                 self._fatal_error(exc,
                                   'Fatal write error on zmq socket transport')
@@ -184,7 +226,7 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
                 if exc.errno in (errno.EAGAIN, errno.EINTR):
                     pass
                 else:
-                    raise OSError(exc.errno, exc.msg) from exc
+                    raise OSError(exc.errno, exc.strerror) from exc
         except Exception as exc:
             self._loop.remove_writer(self._zmq_sock)
             self._buffer.clear()
@@ -229,6 +271,7 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
     def _force_close(self, exc):
         if self._buffer:
             self._buffer.clear()
+            self._buffer_size = 0
             self._loop.remove_writer(self._zmq_sock)
         if not self._closing:
             self._closing = True
@@ -248,18 +291,154 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         try:
             return self._zmq_sock.getsockopt(option)
         except zmq.ZMQError as exc:
-            raise OSError(exc.errno, exc.msg) from exc
+            raise OSError(exc.errno, exc.strerror) from exc
 
     def setsockopt(self, option, value):
         try:
             self._zmq_sock.setsockopt(option, value)
         except zmq.ZMQError as exc:
-            raise OSError(exc.errno, exc.msg) from exc
+            raise OSError(exc.errno, exc.strerror) from exc
 
     def get_write_buffer_size(self):
         return self._buffer_size
 
+    def bind(self, endpoint):
+        try:
+            self._zmq_sock.bind(endpoint)
+            breal_endpoint = self._zmq_sock.getsockopt(zmq.LAST_ENDPOINT)
+        except zmq.ZMQError as exc:
+            raise OSError(exc.errno, exc.strerror) from exc
+        else:
+            real_endpoint = breal_endpoint.decode('utf-8').rstrip('\x00')
+            self._listeners.add(real_endpoint)
+            return real_endpoint
 
-class ZmqEventLoopPolicy(DefaultEventLoopPolicy):
+    def unbind(self, endpoint):
+        try:
+            self._zmq_sock.unbind(endpoint)
+        except zmq.ZMQError as exc:
+            raise OSError(exc.errno, exc.strerror) from exc
+        else:
+            self._listeners.discard(endpoint)
 
-    _loop_factory = ZmqEventLoop()
+    def listeners(self):
+        return _EndpointsSet(self._listeners)
+
+    def connect(self, endpoint):
+        match = self._TCP_RE.match(endpoint)
+        if match:
+            ip_address(match.group(1))  # check for correct IPv4 or IPv6
+        try:
+            self._zmq_sock.connect(endpoint)
+        except zmq.ZMQError as exc:
+            raise OSError(exc.errno, exc.strerror) from exc
+        else:
+            self._connections.add(endpoint)
+            return endpoint
+
+    def disconnect(self, endpoint):
+        try:
+            self._zmq_sock.disconnect(endpoint)
+        except zmq.ZMQError as exc:
+            raise OSError(exc.errno, exc.strerror) from exc
+        else:
+            self._connections.discard(endpoint)
+
+    def connections(self):
+        return _EndpointsSet(self._connections)
+
+
+class ZmqEventLoopPolicy(asyncio.AbstractEventLoopPolicy):
+    """ZeroMQ policy implementation for accessing the event loop.
+
+    In this policy, each thread has its own event loop.  However, we
+    only automatically create an event loop by default for the main
+    thread; other threads by default have no event loop.
+    """
+
+    class _Local(threading.local):
+        _loop = None
+        _set_called = False
+
+    def __init__(self, *, io_threads=1):
+        self._local = self._Local()
+        self._watcher = None
+        self._io_threads = io_threads
+
+    def get_event_loop(self):
+        """Get the event loop.
+
+        If current thread is the main thread and there are no
+        registered event loop for current thread then the call creates
+        new event loop and registers it.
+
+        Return an instance of ZmqEventLoop.
+        Raise RuntimeError if there is no registered event loop
+        for current thread.
+        """
+        if (self._local._loop is None and
+                not self._local._set_called and
+                isinstance(threading.current_thread(), threading._MainThread)):
+            self.set_event_loop(self.new_event_loop())
+        if self._local._loop is None:
+            raise RuntimeError('There is no current event loop in thread %r.' %
+                               threading.current_thread().name)
+        return self._local._loop
+
+    def new_event_loop(self):
+        """Create a new event loop.
+
+        You must call set_event_loop() to make this the current event
+        loop.
+        """
+        return ZmqEventLoop(io_threads=self._io_threads)
+
+    def _init_watcher(self):
+        with asyncio.events._lock:
+            if self._watcher is None:  # pragma: no branch
+                self._watcher = SafeChildWatcher()
+                if isinstance(threading.current_thread(),
+                              threading._MainThread):
+                    self._watcher.attach_loop(self._local._loop)
+
+    def set_event_loop(self, loop):
+        """Set the event loop.
+
+        As a side effect, if a child watcher was set before, then calling
+        .set_event_loop() from the main thread will call .attach_loop(loop) on
+        the child watcher.
+        """
+
+        self._local._set_called = True
+        if loop is not None and not isinstance(loop,
+                                               asyncio.AbstractEventLoop):
+            raise TypeError("loop should be None "
+                            "or AbstractEventLoop instance")
+        self._local._loop = loop
+
+        if (self._watcher is not None and
+                isinstance(threading.current_thread(), threading._MainThread)):
+            self._watcher.attach_loop(loop)
+
+    def get_child_watcher(self):
+        """Get the child watcher.
+
+        If not yet set, a SafeChildWatcher object is automatically created.
+        """
+        if self._watcher is None:
+            self._init_watcher()
+
+        return self._watcher
+
+    def set_child_watcher(self, watcher):
+        """Set the child watcher."""
+
+        if (watcher is not None and
+                not isinstance(watcher, asyncio.AbstractChildWatcher)):
+            raise TypeError("watcher should be None or AbstractChildWatcher "
+                            "instance")
+
+        if self._watcher is not None:
+            self._watcher.close()
+
+        self._watcher = watcher
