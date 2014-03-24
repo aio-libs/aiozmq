@@ -8,7 +8,7 @@ aiozmq
 
 ZeroMQ integration with asyncio (:pep:`3156`).
 
-.. _GitHub: https://github.com/fafhrd91/aiozmq
+.. _GitHub: https://github.com/aio-libs/aiozmq
 
 
 Features
@@ -17,6 +17,7 @@ Features
 - Implements asyncio (PEP3156) event loop
 - Provides ZmqTransport and ZmqProtocol
 - Provides RPC client and server based on ZeroMQ DEALER/ROUTER sockets
+
 
 Library Installation
 --------------------
