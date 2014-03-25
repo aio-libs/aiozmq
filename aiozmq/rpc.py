@@ -85,7 +85,9 @@ class AttrHandler(AbstractHandler):
 def method(func):
     """Marks method as RPC endpoint handler.
 
-    Also validates function params using annotations.
+    This decorator also check function parameters' annotations
+    to be callable objects as they being used later to validate
+    function arguments
     """
     func.__rpc__ = {}
     func.__signature__ = sig = inspect.signature(func)
@@ -296,7 +298,7 @@ class _ServerProtocol(_BaseProtocol):
         kwargs = self.packer.unpackb(bkwargs)
         try:
             func = self.dispatch(bname.decode('utf-8'))
-            args, kwargs = self._validate_parameters(func, args, kwargs)
+            args, kwargs = _check_func_arguments(func, args, kwargs)
         except (NotFoundError, ParametersError) as exc:
             fut = asyncio.Future(loop=self.loop)
             fut.add_done_callback(partial(self.process_call_result,
@@ -354,33 +356,32 @@ class _ServerProtocol(_BaseProtocol):
                 holder = func.__func__
             else:
                 holder = func
-            try:
-                data = getattr(holder, '__rpc__')
-                # TODO: validate trafaret
-                return func
-            except AttributeError:
+            if not hasattr(holder, '__rpc__'):
                 raise NotFoundError(name)
+            return func
 
-    def _validate_parameters(self, func, args, kwargs):
-        if isinstance(func, MethodType):
-            sig = inspect.signature(func.__func__)
-            bargs = sig.bind(func.__self__, *args, **kwargs)
-        else:
-            sig = inspect.signature(func)
-            bargs = sig.bind(*args, **kwargs)
+
+def _check_func_arguments(func, args, kwargs):
+    """Utility function for validating function arguments
+
+    Returns validated (args, kwargs) tuple
+    """
+    try:
+        sig = inspect.signature(func)
+        bargs = sig.bind(*args, **kwargs)
+    except TypeError as exc:
+        raise ParametersError(repr(exc)) from exc
+    else:
         arguments = bargs.arguments
         for name, param in sig.parameters.items():
             if param.annotation is param.empty:
                 continue
             val = arguments.get(name, param.default)
-            if val is param.empty:
-                raise ParametersError('Missing required argument {!r}'
-                                      .format(name))
+            # NOTE: default value always being passed through annotation
+            #       is it realy neccessary?
             try:
                 arguments[name] = param.annotation(val)
             except (TypeError, ValueError) as exc:
-                raise ParametersError('Bad value {!r} for argument {!s}: {!r}'
-                                      .format(val, param, exc)) from exc
-        if isinstance(func, MethodType):
-           return bargs.args[1:], bargs.kwargs
+                raise ParametersError('Invalid value for argument {!r}: {!r}'
+                                      .format(name, exc)) from exc
         return bargs.args, bargs.kwargs
