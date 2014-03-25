@@ -7,10 +7,8 @@ import aiozmq, aiozmq.rpc
 
 
 def my_checker(val):
-    if isinstance(val, int):
+    if isinstance(val, int) or val is None:
         return val
-    elif val is None:
-        return None
     else:
         raise ValueError('bad value')
 
@@ -32,6 +30,18 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     @aiozmq.rpc.method
     @asyncio.coroutine
     def custom_annotation(self, arg:my_checker):
+        return arg
+        yield
+
+    @aiozmq.rpc.method
+    @asyncio.coroutine
+    def ret_annotation(self, arg:int=1) -> float:
+        return float(arg)
+        yield
+
+    @aiozmq.rpc.method
+    @asyncio.coroutine
+    def bad_return(self, arg) -> int:
         return arg
         yield
 
@@ -70,6 +80,18 @@ class FuncAnnotationsTests(unittest.TestCase):
         self.client, self.server = self.loop.run_until_complete(create())
 
         return self.client, self.server
+
+    def test_valid_annotations(self):
+
+        msg = "Expected 'bad_arg' annotation to be callable"
+        with self.assertRaisesRegexp(ValueError, msg):
+            @aiozmq.rpc.method
+            def test(good_arg:int, bad_arg:0): pass
+
+        msg = "Expected return annotation to be callable"
+        with self.assertRaisesRegexp(ValueError, msg):
+            @aiozmq.rpc.method
+            def test() -> 'bad annotation': pass
 
     def test_no_params(self):
         client, server = self.make_rpc_pair()
@@ -128,5 +150,36 @@ class FuncAnnotationsTests(unittest.TestCase):
             msg = "Invalid value for argument 'arg': ValueError.*bad value.*"
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
                 yield from client.rpc.custom_annotation(1.0)
+
+        self.loop.run_until_complete(communicate())
+
+    def test_ret_annotation(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            ret = yield from client.rpc.ret_annotation(1)
+            self.assertEqual(ret, 1.0)
+            ret = yield from client.rpc.ret_annotation('2')
+            self.assertEqual(ret, 2.0)
+
+        self.loop.run_until_complete(communicate())
+
+    def test_bad_return(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            ret = yield from client.rpc.bad_return(1)
+            self.assertEqual(ret, 1)
+            ret = yield from client.rpc.bad_return(1.2)
+            self.assertEqual(ret, 1)
+            ret = yield from client.rpc.bad_return('2')
+            self.assertEqual(ret, 2)
+
+            with self.assertRaises(ValueError):
+                yield from client.rpc.bad_return('1.0')
+            with self.assertRaises(TypeError):
+                yield from client.rpc.bad_return(None)
 
         self.loop.run_until_complete(communicate())

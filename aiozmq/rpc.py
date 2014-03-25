@@ -85,9 +85,9 @@ class AttrHandler(AbstractHandler):
 def method(func):
     """Marks method as RPC endpoint handler.
 
-    This decorator also check function parameters' annotations
-    to be callable objects as they being used later to validate
-    function arguments
+    The func object may provide arguments and/or return annotations.
+    If so annotations should be callable objects and
+    they will be used to validate received arguments and/or return value
     """
     func.__rpc__ = {}
     func.__signature__ = sig = inspect.signature(func)
@@ -96,6 +96,9 @@ def method(func):
         if ann is not param.empty and not callable(ann):
             raise ValueError("Expected {!r} annotation to be callable"
                              .format(name))
+    ann = sig.return_annotation
+    if ann is not sig.empty and not callable(ann):
+        raise ValueError("Expected return annotation to be callable")
     return func
 
 
@@ -298,7 +301,7 @@ class _ServerProtocol(_BaseProtocol):
         kwargs = self.packer.unpackb(bkwargs)
         try:
             func = self.dispatch(bname.decode('utf-8'))
-            args, kwargs = _check_func_arguments(func, args, kwargs)
+            args, kwargs, ret_ann = _check_func_arguments(func, args, kwargs)
         except (NotFoundError, ParametersError) as exc:
             fut = asyncio.Future(loop=self.loop)
             fut.add_done_callback(partial(self.process_call_result,
@@ -308,19 +311,25 @@ class _ServerProtocol(_BaseProtocol):
             if asyncio.iscoroutinefunction(func):
                 fut = asyncio.async(func(*args, **kwargs), loop=self.loop)
                 fut.add_done_callback(partial(self.process_call_result,
-                                              req_id=req_id, peer=peer))
+                                              req_id=req_id, peer=peer,
+                                              return_annotation=ret_ann))
             else:
                 fut = asyncio.Future(loop=self.loop)
                 fut.add_done_callback(partial(self.process_call_result,
-                                              req_id=req_id, peer=peer))
+                                              req_id=req_id, peer=peer,
+                                              return_annotation=ret_ann))
                 try:
                     fut.set_result(func(*args, **kwargs))
                 except Exception as exc:
                     fut.set_exception(exc)
 
-    def process_call_result(self, fut, *, req_id, peer):
+    def process_call_result(self, fut, *, req_id, peer,
+                            return_annotation=None):
         try:
             ret = fut.result()
+            # TODO: allow `ret` to be validated against None
+            if return_annotation is not None:
+                ret = return_annotation(ret)
             prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
                                                          time.time(), False)
             self.transport.write([peer, prefix, self.packer.packb(ret)])
@@ -364,7 +373,7 @@ class _ServerProtocol(_BaseProtocol):
 def _check_func_arguments(func, args, kwargs):
     """Utility function for validating function arguments
 
-    Returns validated (args, kwargs) tuple
+    Returns validated (args, kwargs, return annotation) tuple
     """
     try:
         sig = inspect.signature(func)
@@ -384,4 +393,6 @@ def _check_func_arguments(func, args, kwargs):
             except (TypeError, ValueError) as exc:
                 raise ParametersError('Invalid value for argument {!r}: {!r}'
                                       .format(name, exc)) from exc
-        return bargs.args, bargs.kwargs
+        if sig.return_annotation is not sig.empty:
+            return bargs.args, bargs.kwargs, sig.return_annotation
+        return bargs.args, bargs.kwargs, None
