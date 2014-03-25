@@ -161,7 +161,6 @@ ZmqTransport
 
         For list of available options please see:
         http://api.zeromq.org/master:zmq-getsockopt
-        """
 
       :return: option value
 

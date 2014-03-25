@@ -12,25 +12,26 @@ Intro
 -----
 
 While :ref:`low-level API <aiozmq-low-level>` provides core support for
-:term:`ZeroMQ` transports :term:`End User <enduser>` usually need for
+:term:`ZeroMQ` transports an :term:`End User <enduser>` usually needs for
 some high-level API.
 
-Thus we have :mod:`aiozmq.rpc` for Remote Procedure Calls.
+Thus we have the :mod:`aiozmq.rpc` for Remote Procedure Calls.
 
-The main goal of module is to provide *easy-to-use interface* for calling
-some method from remote process, which probably has been started on other
-machine.
+The main goal of the module is to provide *easy-to-use interface* for
+calling some method from remote process, which may be
+started on other host.
 
 :term:`ZeroMQ` itself gives handy sockets but says nothing about RPC.
 
-In other hand this module provides human API but it's compatible with
-our implementaion only.
+In other hand this module provides human API but is not compatible with
+others.
 
-If you need something other please feel free to build your own
-implementation based on :ref:`low level primitives <aiozmq-low-level>`.
+If you need to support some RPC protocol over ZeroMQ layer please feel
+free to build your own implementation on top of :ref:`low level
+primitives <aiozmq-low-level>`.
 
 This module uses :term:`ZeroMQ` *DEALER*/*ROUTER* sockets and custom
-communication protocol (which use :term:`msgpack`).
+communication protocol (which uses :term:`msgpack` by the way).
 
 
 .. _aiozmq-rpc-client:
@@ -64,9 +65,9 @@ The basic usage is::
 
     Either *connect* or *bind* parameter should be not *None*.
 
-    Please take a look on
-    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid values
-    to *connect* and *bind* parameters.
+    .. seealso:: Please take a look on
+       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
+       values to *connect* and *bind* parameters.
 
     :return: :class:`RPCClient` instance.
 
@@ -77,17 +78,37 @@ The basic usage is::
    :class:`asyncio.AbstractServer` interface providing
    :meth:`RPCClient.close` and :meth:`RPCClient.wait_closed` methods.
 
-   For RPC calls has :attr:`RPCClient.rpc` property.
+   For RPC calls use :attr:`~RPCClient.rpc` property.
 
    .. warning::
 
-      You should never create this class instance by hand. Use
+      You should never create this class instance by hand, use
       :func:`open_client` instead.
 
    .. attribute:: rpc
 
-      Readonly property that returns ephemeral object used to making
-      RPC call (see example above).
+      The readonly property that returns ephemeral object used to making
+      RPC call.
+
+      Construction like::
+
+          ret = yield from client.rpc.ns.method(1, 2, 3)
+
+      makes a remote call with arguments(1, 2, 3) and returns answer
+      from this call.
+
+      If the call raises exception that exception propagates to client side.
+
+      Say, if remote raises :class:`ValueError` client catches
+      *ValueError* instance with *args* sent by remote::
+
+          try:
+              yield from client.rpc.raise_value_error()
+          except ValueError as exc:
+              process_error(exc)
+
+      .. seealso::
+         :ref:`aiozmq-rpc-exception-translation`.
 
 
 .. _aiozmq-rpc-server:
@@ -150,9 +171,9 @@ To start RPC server you need to create handler and pass it into start_server::
 
     Either *connect* or *bind* parameter should be not *None*.
 
-    Please take a look on
-    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid values
-    to *connect* and *bind* parameters.
+    .. seealso:: Please take a look on
+       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
+       values to *connect* and *bind* parameters.
 
     :param AbstractHander handler:
 

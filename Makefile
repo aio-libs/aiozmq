@@ -3,21 +3,23 @@
 PYTHON=python3.3
 FLAKE=flake8
 
+FILTER=
+
 
 pep:
 	$(FLAKE) ./
 
 test:
-	$(PYTHON) runtests.py
+	$(PYTHON) runtests.py $(FILTER)
 
 vtest:
-	$(PYTHON) runtests.py -v
+	$(PYTHON) runtests.py -v $(FILTER)
 
 testloop:
-	$(PYTHON) runtests.py --forever
+	$(PYTHON) runtests.py --forever $(FILTER)
 
 cov cover coverage:
-	$(PYTHON) runtests.py --coverage
+	$(PYTHON) runtests.py --coverage $(FILTER)
 
 clean:
 	rm -rf `find . -name __pycache__`

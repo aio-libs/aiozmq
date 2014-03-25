@@ -110,7 +110,7 @@ class ZmqSelector(BaseSelector):
         try:
             self._poller.register(key.fd, z_events)
         except ZMQError as exc:
-            raise OSError(exc.errno, exc.msg) from exc
+            raise OSError(exc.errno, exc.strerror) from exc
 
         return key
 
@@ -122,7 +122,7 @@ class ZmqSelector(BaseSelector):
         try:
             self._poller.unregister(key.fd)
         except ZMQError as exc:
-            raise OSError(exc.errno, exc.msg) from exc
+            raise OSError(exc.errno, exc.strerror) from exc
         return key
 
     def modify(self, fileobj, events, data=None):
@@ -140,7 +140,7 @@ class ZmqSelector(BaseSelector):
             try:
                 self._poller.modify(fd, z_events)
             except ZMQError as exc:
-                raise OSError(exc.errno, exc.msg) from exc
+                raise OSError(exc.errno, exc.strerror) from exc
         if data != key.data or events != key.events:
             # Use a shortcut to update the data.
             key = key._replace(data=data, events=events)
@@ -178,7 +178,7 @@ class ZmqSelector(BaseSelector):
             if exc.errno == EINTR:
                 return ready
             else:
-                raise OSError(exc.errno, exc.msg) from exc
+                raise OSError(exc.errno, exc.strerror) from exc
 
         for fd, evt in z_events:
             events = 0

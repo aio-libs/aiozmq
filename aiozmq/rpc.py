@@ -9,8 +9,14 @@ import struct
 import time
 import sys
 
-import msgpack
 import zmq
+
+
+try:
+    import msgpack
+except ImportError:
+    raise ImportError("aiozmq.rpc requires msgpack-python package.")
+
 
 from functools import partial
 from types import MethodType

@@ -3,6 +3,7 @@
 import functools
 import os
 import platform
+import random
 import socket
 import sys
 import unittest
@@ -170,11 +171,9 @@ def find_unused_port(family=socket.AF_INET, socktype=socket.SOCK_STREAM):
     """
 
     tempsock = socket.socket(family, socktype)
-    try:
-        port = bind_port(tempsock)
-    finally:
-        tempsock.close()
-        del tempsock
+    port = bind_port(tempsock)
+    tempsock.close()
+    del tempsock
     return port
 
 
