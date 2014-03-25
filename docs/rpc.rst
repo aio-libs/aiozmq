@@ -332,3 +332,27 @@ There is examples of trararet annotations::
 Trafaret has advanced types like *List* and *Dict*, so you can put
 structure of your complex JSON-like structure as RPC method
 annotation. Also you can create custom trafaret classes if needed.
+
+.. _aiozmq-rpc-custom-object-hooks:
+
+RPC custom object hooks
+-----------------------
+
+aiozmq.rpc uses :term:`msgpack` for transfering python objects from
+client to server and back.
+
+You can think about :term:`msgpack` as: this is a-like JSON but fast
+and compact.
+
+Every object that can be passed to :func:`json.dump` can be passed to
+:func:`msgpack.dump` also. The same for unpacking.
+
+But sometimes you want to call remote side with *non-plain-json* arguments.
+
+:class:`datetime.datetime` is a good example.
+
+:mod:`aiozmq.rpc` supports all family of dates, times and timezones
+from :mod:`datetime` *in-the-box*.
+
+If you need to transfer a custom object via RPC you should to register
+**translator** at both server and client side.
