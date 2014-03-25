@@ -8,6 +8,7 @@ import random
 import struct
 import time
 import sys
+import inspect
 
 import zmq
 
@@ -55,6 +56,11 @@ class NotFoundError(Error, LookupError):
     """Error raised by server if RPC namespace/method lookup failed."""
 
 
+class ParametersError(Error):
+    """Error raised by server when RPC method's parameters could not
+    be validated against their annotations."""
+
+
 class AbstractHandler(metaclass=abc.ABCMeta):
     """Abstract class for server-side RPC handlers."""
 
@@ -85,12 +91,20 @@ class AttrHandler(AbstractHandler):
 def method(func):
     """Marks method as RPC endpoint handler.
 
-    Also validates function params using annotations.
+    The func object may provide arguments and/or return annotations.
+    If so annotations should be callable objects and
+    they will be used to validate received arguments and/or return value
     """
-    # TODO: fun with flag;
-    #       parse annotations and create(?) checker;
-    #       (also validate annotations);
-    func.__rpc__ = {}  # TODO: assign to trafaret?
+    func.__rpc__ = {}
+    func.__signature__ = sig = inspect.signature(func)
+    for name, param in sig.parameters.items():
+        ann = param.annotation
+        if ann is not param.empty and not callable(ann):
+            raise ValueError("Expected {!r} annotation to be callable"
+                             .format(name))
+    ann = sig.return_annotation
+    if ann is not sig.empty and not callable(ann):
+        raise ValueError("Expected return annotation to be callable")
     return func
 
 
@@ -187,6 +201,7 @@ class _ClientProtocol(_BaseProtocol):
                 error_table['builtins.'+name] = val
         error_table[__name__ + '.GenericError'] = GenericError
         error_table[__name__ + '.NotFoundError'] = NotFoundError
+        error_table[__name__ + '.ParametersError'] = ParametersError
         return error_table
 
     def msg_received(self, data):
@@ -288,33 +303,39 @@ class _ServerProtocol(_BaseProtocol):
         pid, rnd, req_id, timestamp = self.REQ.unpack(header)
 
         # TODO: send exception back to transport if lookup is failed
+        args = self.packer.unpackb(bargs)
+        kwargs = self.packer.unpackb(bkwargs)
         try:
             func = self.dispatch(bname.decode('utf-8'))
-        except NotFoundError as exc:
+            args, kwargs, ret_ann = _check_func_arguments(func, args, kwargs)
+        except (NotFoundError, ParametersError) as exc:
             fut = asyncio.Future(loop=self.loop)
             fut.add_done_callback(partial(self.process_call_result,
                                           req_id=req_id, peer=peer))
             fut.set_exception(exc)
         else:
-            args = self.packer.unpackb(bargs)
-            kwargs = self.packer.unpackb(bkwargs)
-
             if asyncio.iscoroutinefunction(func):
                 fut = asyncio.async(func(*args, **kwargs), loop=self.loop)
                 fut.add_done_callback(partial(self.process_call_result,
-                                              req_id=req_id, peer=peer))
+                                              req_id=req_id, peer=peer,
+                                              return_annotation=ret_ann))
             else:
                 fut = asyncio.Future(loop=self.loop)
                 fut.add_done_callback(partial(self.process_call_result,
-                                              req_id=req_id, peer=peer))
+                                              req_id=req_id, peer=peer,
+                                              return_annotation=ret_ann))
                 try:
                     fut.set_result(func(*args, **kwargs))
                 except Exception as exc:
                     fut.set_exception(exc)
 
-    def process_call_result(self, fut, *, req_id, peer):
+    def process_call_result(self, fut, *, req_id, peer,
+                            return_annotation=None):
         try:
             ret = fut.result()
+            # TODO: allow `ret` to be validated against None
+            if return_annotation is not None:
+                ret = return_annotation(ret)
             prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
                                                          time.time(), False)
             self.transport.write([peer, prefix, self.packer.packb(ret)])
@@ -350,9 +371,34 @@ class _ServerProtocol(_BaseProtocol):
                 holder = func.__func__
             else:
                 holder = func
-            try:
-                data = getattr(holder, '__rpc__')
-                # TODO: validate trafaret
-                return func
-            except AttributeError:
+            if not hasattr(holder, '__rpc__'):
                 raise NotFoundError(name)
+            return func
+
+
+def _check_func_arguments(func, args, kwargs):
+    """Utility function for validating function arguments
+
+    Returns validated (args, kwargs, return annotation) tuple
+    """
+    try:
+        sig = inspect.signature(func)
+        bargs = sig.bind(*args, **kwargs)
+    except TypeError as exc:
+        raise ParametersError(repr(exc)) from exc
+    else:
+        arguments = bargs.arguments
+        for name, param in sig.parameters.items():
+            if param.annotation is param.empty:
+                continue
+            val = arguments.get(name, param.default)
+            # NOTE: default value always being passed through annotation
+            #       is it realy neccessary?
+            try:
+                arguments[name] = param.annotation(val)
+            except (TypeError, ValueError) as exc:
+                raise ParametersError('Invalid value for argument {!r}: {!r}'
+                                      .format(name, exc)) from exc
+        if sig.return_annotation is not sig.empty:
+            return bargs.args, bargs.kwargs, sig.return_annotation
+        return bargs.args, bargs.kwargs, None
