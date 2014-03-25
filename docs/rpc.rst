@@ -24,7 +24,7 @@ started on other host.
 :term:`ZeroMQ` itself gives handy sockets but says nothing about RPC.
 
 In other hand this module provides human API but is not compatible with
-others.
+other implementations.
 
 If you need to support some RPC protocol over ZeroMQ layer please feel
 free to build your own implementation on top of :ref:`low level
