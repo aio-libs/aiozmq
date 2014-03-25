@@ -32,7 +32,7 @@ class _Packer:
                      default=self.ext_type_pack_hook)
 
     def unpackb(self, packed):
-        return unpackb(packed, use_list=True, encoding='utf-8',
+        return unpackb(packed, use_list=False, encoding='utf-8',
                        ext_hook=self.ext_type_unpack_hook)
 
     def ext_type_pack_hook(self, obj, _sentinel=object()):

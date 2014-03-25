@@ -347,6 +347,22 @@ and compact.
 Every object that can be passed to :func:`json.dump` can be passed to
 :func:`msgpack.dump` also. The same for unpacking.
 
+The only difference is: *aiozmq.rpc* converts all :class:`lists
+<list>` to :class:`tuples <tuple>`.
+
+The reasons is are:
+
+  * you never need to modify given list as it is your *incoming*
+    value.  If you still need to use :class:`list` data type you can
+    easy do it by ``list(val)`` call.
+  * tuples a bit faster for unpacking.
+  * tuple can be a *key* in :class:`dict`, so you can pack something
+    like ``{(1,2): 'a'}`` and unpack it on other side without any
+    error. Lists cannot be *keys* in dicts, they are unhashable.
+
+    This is the main reason for choosing tuples. Unfortunatelly
+    msgpack gives no way to mix tuples and lists in the same pack.
+
 But sometimes you want to call remote side with *non-plain-json* arguments.
 
 :class:`datetime.datetime` is a good example.
