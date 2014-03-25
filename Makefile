@@ -5,6 +5,8 @@ FLAKE=flake8
 
 FILTER=
 
+doc:
+	cd docs && make html
 
 pep:
 	$(FLAKE) ./

@@ -46,7 +46,7 @@ The basic usage is::
 
    @asyncio.coroutine
    def func():
-       client = yield from open_client(connect='tcp://127.0.0.1:5555')
+       client = yield from rpc.open_client(connect='tcp://127.0.0.1:5555')
 
        val = yield from client.rpc.func1(arg1, arg2)
 
@@ -55,6 +55,7 @@ The basic usage is::
 
 
     event_loop.run_until_complete(func())
+
 
 .. function:: open_client(*, connect=None, bind=None, loop=None, \
                           error_table=None)
@@ -89,11 +90,6 @@ The basic usage is::
 
    For RPC calls use :attr:`~RPCClient.rpc` property.
 
-   .. warning::
-
-      You should never create this class instance by hand, use
-      :func:`open_client` instead.
-
    .. attribute:: rpc
 
       The readonly property that returns ephemeral object used to making
@@ -106,6 +102,10 @@ The basic usage is::
       makes a remote call with arguments(1, 2, 3) and returns answer
       from this call.
 
+      You can also pass *named parameters*::
+
+          ret = yield from client.rpc.ns.method(1, b=2, c=3)
+
       If the call raises exception that exception propagates to client side.
 
       Say, if remote raises :class:`ValueError` client catches
@@ -117,8 +117,13 @@ The basic usage is::
               process_error(exc)
 
       .. seealso::
-         :ref:`aiozmq-rpc-exception-translation`.
+         :ref:`aiozmq-rpc-exception-translation` and
+         :ref:`aiozmq-rpc-signature-validation`
 
+   .. warning::
+
+      You should never instantiate :class:`RPCClient` by hand, use
+      :func:`open_client` instead.
 
 .. _aiozmq-rpc-server:
 
@@ -159,7 +164,8 @@ To start RPC server you need to create handler and pass it into start_server::
 
    @asyncio.coroutine
    def start():
-       return yield from start_server(Handler(), bind='tcp://127.0.0.1:5555')
+       return yield from rpc.start_server(Handler(),
+                                          bind='tcp://127.0.0.1:5555')
 
    @asyncio.coroutine
    def stop(server):
@@ -209,13 +215,14 @@ RPC exceptions
 
 .. exception:: NotFoundError
 
-   Subclass of :exc:`Error` and :exc:`LookupError`, raised when a
+   Subclass of both :exc:`Error` and :exc:`LookupError`, raised when a
    remote call name is not found at RPC server.
 
 .. exception:: ParameterError
 
-   Subclass of :exc:`Error`, raised by remote call when parameter
-   substitution or remote method signature validation is failed.
+   Subclass of both :exc:`Error` and :exc:`ValueError`, raised by
+   remote call when parameter substitution or :ref:`remote method
+   signature validation <aiozmq-rpc-signature-validation>` is failed.
 
 .. _aiozmq-rpc-exception-translation:
 
@@ -252,4 +259,76 @@ For example if custom RPC server handler can raise ``mod1.Error1`` and
     {'mod1.Error1': Error1,
      'pack.mod2.Error2': Error2}
 
-.. seealso:: :func:`open_client`
+.. seealso:: :func:`open_client` function.
+
+.. _aiozmq-rpc-signature-validation:
+
+RPC signature validation
+------------------------
+
+The library supports **optional** validation of remote call signatures.
+
+If validation fails :exc:`ParameterError` raises on client side.
+
+All validations are done on RPC server side, than errors translated
+back to client.
+
+Let's take a look on example of user-defined RPC handler::
+
+   class Handler(rpc.AttrHandler):
+
+       @rpc.method
+       def func(self, arg1: int, arg2) -> float:
+           return arg1 + arg2
+
+*Parameter* *arg1* and *return value* has :term:`annotaions <annotaion>`,
+*int* and *float* correspondingly.
+
+At call time if *parameter* has an *annotaion* then *actual value* passed to
+RPC method is calculated as ``actual_value = annotation(value)``. If
+there is no annotaion for parameter the value is passed as-is.
+
+Annotaion should be any *callable* that accepts a value as single argument
+and returns *actual value*.
+
+If annotation call raises exception that exception throws to client
+wrapped in :exc:`ParameterError`.
+
+Value, returned by RPC call, can be checked by optional *return annotation*.
+
+Thus :class:`int` can be good annotation: it raises :exc:`TypeError`
+if *arg1* cannot be converted to *int*.
+
+Often you need for more complex check, say parameter can be *int* or *None*.
+
+You always can write custom validators::
+
+   def int_or_none(val):
+      if isinstance(val, int) or val is None:
+          return val
+      else:
+          raise ValueError('bad value')
+
+   class Handler(rpc.AttrHandler):
+
+       @rpc.method
+       def func(self, arg: int_or_none):
+           return arg
+
+Writing a tons of custom validators is inconvinient, so we recommend
+to use :term:`trafaret` library (can be installed via ``pip3 install
+trafaret``).
+
+There is examples of trararet annotations::
+
+   import trafaret as t
+
+   class Handler(rpc.AttrHandler):
+
+       @rpc.method
+       def func(self, arg: t.Int|t.Null):
+           return arg
+
+Trafaret has advanced types like *List* and *Dict*, so you can put
+structure of your complex JSON-like structure as RPC method
+annotation. Also you can create custom trafaret classes if needed.

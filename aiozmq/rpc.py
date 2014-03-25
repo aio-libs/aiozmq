@@ -55,7 +55,7 @@ class NotFoundError(Error, LookupError):
     """Error raised by server if RPC namespace/method lookup failed."""
 
 
-class ParametersError(Error):
+class ParametersError(Error, ValueError):
     """Error raised by server when RPC method's parameters could not
     be validated against their annotations."""
 
