@@ -288,38 +288,52 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
             self._loop = None
 
     def getsockopt(self, option):
-        try:
-            return self._zmq_sock.getsockopt(option)
-        except zmq.ZMQError as exc:
-            raise OSError(exc.errno, exc.strerror) from exc
+        while True:
+            try:
+                return self._zmq_sock.getsockopt(option)
+            except zmq.ZMQError as exc:
+                if exc.errno == errno.EINTR:
+                    continue
+                raise OSError(exc.errno, exc.strerror) from exc
 
     def setsockopt(self, option, value):
-        try:
-            self._zmq_sock.setsockopt(option, value)
-        except zmq.ZMQError as exc:
-            raise OSError(exc.errno, exc.strerror) from exc
+        while True:
+            try:
+                self._zmq_sock.setsockopt(option, value)
+                return
+            except zmq.ZMQError as exc:
+                if exc.errno == errno.EINTR:
+                    continue
+                raise OSError(exc.errno, exc.strerror) from exc
 
     def get_write_buffer_size(self):
         return self._buffer_size
 
     def bind(self, endpoint):
-        try:
-            self._zmq_sock.bind(endpoint)
-            breal_endpoint = self._zmq_sock.getsockopt(zmq.LAST_ENDPOINT)
-        except zmq.ZMQError as exc:
-            raise OSError(exc.errno, exc.strerror) from exc
-        else:
-            real_endpoint = breal_endpoint.decode('utf-8').rstrip('\x00')
-            self._listeners.add(real_endpoint)
-            return real_endpoint
+        while True:
+            try:
+                self._zmq_sock.bind(endpoint)
+                breal_endpoint = self._zmq_sock.getsockopt(zmq.LAST_ENDPOINT)
+            except zmq.ZMQError as exc:
+                if exc.errno == errno.EINTR:
+                    continue
+                raise OSError(exc.errno, exc.strerror) from exc
+            else:
+                real_endpoint = breal_endpoint.decode('utf-8').rstrip('\x00')
+                self._listeners.add(real_endpoint)
+                return real_endpoint
 
     def unbind(self, endpoint):
-        try:
-            self._zmq_sock.unbind(endpoint)
-        except zmq.ZMQError as exc:
-            raise OSError(exc.errno, exc.strerror) from exc
-        else:
-            self._listeners.discard(endpoint)
+        while True:
+            try:
+                self._zmq_sock.unbind(endpoint)
+            except zmq.ZMQError as exc:
+                if exc.errno == errno.EINTR:
+                    continue
+                raise OSError(exc.errno, exc.strerror) from exc
+            else:
+                self._listeners.discard(endpoint)
+                return
 
     def listeners(self):
         return _EndpointsSet(self._listeners)
@@ -328,21 +342,28 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         match = self._TCP_RE.match(endpoint)
         if match:
             ip_address(match.group(1))  # check for correct IPv4 or IPv6
-        try:
-            self._zmq_sock.connect(endpoint)
-        except zmq.ZMQError as exc:
-            raise OSError(exc.errno, exc.strerror) from exc
-        else:
-            self._connections.add(endpoint)
-            return endpoint
+        while True:
+            try:
+                self._zmq_sock.connect(endpoint)
+            except zmq.ZMQError as exc:
+                if exc.errno == errno.EINTR:
+                    continue
+                raise OSError(exc.errno, exc.strerror) from exc
+            else:
+                self._connections.add(endpoint)
+                return endpoint
 
     def disconnect(self, endpoint):
-        try:
-            self._zmq_sock.disconnect(endpoint)
-        except zmq.ZMQError as exc:
-            raise OSError(exc.errno, exc.strerror) from exc
-        else:
-            self._connections.discard(endpoint)
+        while True:
+            try:
+                self._zmq_sock.disconnect(endpoint)
+            except zmq.ZMQError as exc:
+                if exc.errno == errno.EINTR:
+                    continue
+                raise OSError(exc.errno, exc.strerror) from exc
+            else:
+                self._connections.discard(endpoint)
+                return
 
     def connections(self):
         return _EndpointsSet(self._connections)
