@@ -290,7 +290,10 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
     def getsockopt(self, option):
         while True:
             try:
-                return self._zmq_sock.getsockopt(option)
+                ret = self._zmq_sock.getsockopt(option)
+                if option == zmq.LAST_ENDPOINT:
+                    ret = ret.decode('utf-8').rstrip('\x00')
+                return ret
             except zmq.ZMQError as exc:
                 if exc.errno == errno.EINTR:
                     continue
@@ -313,13 +316,12 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         while True:
             try:
                 self._zmq_sock.bind(endpoint)
-                breal_endpoint = self._zmq_sock.getsockopt(zmq.LAST_ENDPOINT)
+                real_endpoint = self.getsockopt(zmq.LAST_ENDPOINT)
             except zmq.ZMQError as exc:
                 if exc.errno == errno.EINTR:
                     continue
                 raise OSError(exc.errno, exc.strerror) from exc
             else:
-                real_endpoint = breal_endpoint.decode('utf-8').rstrip('\x00')
                 self._listeners.add(real_endpoint)
                 return real_endpoint
 

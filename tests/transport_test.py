@@ -257,3 +257,41 @@ class TransportTests(unittest.TestCase):
         exc = self.tr._fatal_error.call_args[0][0]
         self.assertIsInstance(exc, OSError)
         self.assertEqual(exc.errno, errno.EINVAL)
+
+    def test_setsockopt_EINTR(self):
+        self.sock.setsockopt.side_effect = [zmq.ZMQError(errno.EINTR), None]
+        self.assertIsNone(self.tr.setsockopt('opt', 'val'))
+        self.assertEqual([mock.call('opt', 'val'), mock.call('opt', 'val')],
+                         self.sock.setsockopt.call_args_list)
+
+    def test_getsockopt_EINTR(self):
+        self.sock.getsockopt.side_effect = [zmq.ZMQError(errno.EINTR), 'val']
+        self.assertEqual('val', self.tr.getsockopt('opt'))
+        self.assertEqual([mock.call('opt'), mock.call('opt')],
+                         self.sock.getsockopt.call_args_list)
+
+    def test_bind_EINTR(self):
+        self.sock.bind.side_effect = [zmq.ZMQError(errno.EINTR), None]
+        self.sock.getsockopt.return_value = b'realaddr'
+        self.assertEqual('realaddr', self.tr.bind('addr'))
+        self.assertEqual([mock.call('addr'), mock.call('addr')],
+                         self.sock.bind.call_args_list)
+        self.sock.getsockopt.assert_called_once_with(zmq.LAST_ENDPOINT)
+
+    def test_unbind_EINTR(self):
+        self.sock.unbind.side_effect = [zmq.ZMQError(errno.EINTR), None]
+        self.assertIsNone(self.tr.unbind('addr'))
+        self.assertEqual([mock.call('addr'), mock.call('addr')],
+                         self.sock.unbind.call_args_list)
+
+    def test_connect_EINTR(self):
+        self.sock.connect.side_effect = [zmq.ZMQError(errno.EINTR), None]
+        self.assertEqual('addr', self.tr.connect('addr'))
+        self.assertEqual([mock.call('addr'), mock.call('addr')],
+                         self.sock.connect.call_args_list)
+
+    def test_disconnect_EINTR(self):
+        self.sock.disconnect.side_effect = [zmq.ZMQError(errno.EINTR), None]
+        self.assertIsNone(self.tr.disconnect('addr'))
+        self.assertEqual([mock.call('addr'), mock.call('addr')],
+                         self.sock.disconnect.call_args_list)
