@@ -60,7 +60,7 @@ class RpcTests(unittest.TestCase):
         server.close()
         self.loop.run_until_complete(server.wait_closed())
 
-    def make_rpc_pair(self):
+    def make_rpc_pair(self, *, error_table=None):
         port = find_unused_port()
 
         @asyncio.coroutine
@@ -71,7 +71,7 @@ class RpcTests(unittest.TestCase):
                 loop=self.loop)
             client = yield from aiozmq.rpc.open_client(
                 connect='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop)
+                loop=self.loop, error_table=error_table)
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())
@@ -176,6 +176,18 @@ class RpcTests(unittest.TestCase):
             self.assertEqual(('rpc_test.MyException',
                              ('additional', 'data')),
                              exc.exception.args)
+
+        self.loop.run_until_complete(communicate())
+
+    def test_exception_translator(self):
+        client, server = self.make_rpc_pair(
+            error_table={__name__+'.MyException': MyException})
+
+        @asyncio.coroutine
+        def communicate():
+            with self.assertRaises(MyException) as exc:
+                yield from client.rpc.generic_exception()
+            self.assertEqual(('additional', 'data'), exc.exception.args)
 
         self.loop.run_until_complete(communicate())
 

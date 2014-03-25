@@ -13,6 +13,7 @@ import inspect
 import zmq
 
 
+from collections import ChainMap
 from functools import partial
 from types import MethodType
 
@@ -21,7 +22,7 @@ from .log import logger
 
 try:
     from .util import _Packer
-except ImportError:
+except ImportError:  # pragma: no cover
     raise ImportError("aiozmq.rpc requires msgpack-python package.")
 
 
@@ -107,7 +108,7 @@ def method(func):
 
 
 @asyncio.coroutine
-def open_client(*, connect=None, bind=None, loop=None):
+def open_client(*, connect=None, bind=None, loop=None, error_table=None):
     """A coroutine that creates and connects/binds RPC client.
 
     Return value is a client instance.
@@ -119,7 +120,8 @@ def open_client(*, connect=None, bind=None, loop=None):
         loop = asyncio.get_event_loop()
 
     transp, proto = yield from loop.create_zmq_connection(
-        lambda: _ClientProtocol(loop), zmq.DEALER, connect=connect, bind=bind)
+        lambda: _ClientProtocol(loop, error_table=error_table),
+        zmq.DEALER, connect=connect, bind=bind)
     return RPCClient(loop, proto)
 
 
@@ -175,6 +177,21 @@ class _RPCServer(asyncio.AbstractServer):
         yield from waiter
 
 
+def _fill_error_table():
+    # Fill error table with standard exceptions
+    error_table = {}
+    for name in dir(builtins):
+        val = getattr(builtins, name)
+        if isinstance(val, type) and issubclass(val, Exception):
+            error_table['builtins.'+name] = val
+    error_table[__name__ + '.NotFoundError'] = NotFoundError
+    error_table[__name__ + '.ParametersError'] = ParametersError
+    return error_table
+
+
+_default_error_table = _fill_error_table()
+
+
 class _ClientProtocol(_BaseProtocol):
     """Client protocol implementation."""
 
@@ -182,25 +199,16 @@ class _ClientProtocol(_BaseProtocol):
     REQ_SUFFIX = struct.Struct('=Ld')
     RESP = struct.Struct('=HHLd?')
 
-    def __init__(self, loop):
+    def __init__(self, loop, *, error_table=None):
         super().__init__(loop)
         self.calls = {}
         self.prefix = self.REQ_PREFIX.pack(os.getpid() % 0x10000,
                                            random.randrange(0x10000))
         self.counter = 0
-        self.error_table = self._fill_error_table()
-
-    def _fill_error_table(self):
-        # Fill error table with standard exceptions
-        error_table = {}
-        for name in dir(builtins):
-            val = getattr(builtins, name)
-            if isinstance(val, type) and issubclass(val, Exception):
-                error_table['builtins.'+name] = val
-        error_table[__name__ + '.GenericError'] = GenericError
-        error_table[__name__ + '.NotFoundError'] = NotFoundError
-        error_table[__name__ + '.ParametersError'] = ParametersError
-        return error_table
+        if error_table is None:
+            self.error_table = _default_error_table
+        else:
+            self.error_table = ChainMap(error_table, _default_error_table)
 
     def msg_received(self, data):
         try:

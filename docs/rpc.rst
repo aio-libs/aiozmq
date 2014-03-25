@@ -56,7 +56,8 @@ The basic usage is::
 
     event_loop.run_until_complete(func())
 
-.. function:: open_client(*, connect=None, bind=None, loop=None)
+.. function:: open_client(*, connect=None, bind=None, loop=None, \
+                          error_table=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds RPC client.
 
@@ -68,6 +69,14 @@ The basic usage is::
     .. seealso:: Please take a look on
        :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
        values to *connect* and *bind* parameters.
+
+    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
+       :ref:`asyncio-event-loop`.  if *loop* is *None* then default
+       event loop will be given by :func:`asyncio.get_event_loop` call.
+
+    :param dict error_table: an optional table for custom exception translators.
+
+       .. seealso:: :ref:`aiozmq-rpc-exception-translation`
 
     :return: :class:`RPCClient` instance.
 
@@ -183,3 +192,64 @@ To start RPC server you need to create handler and pass it into start_server::
       Usually you like to pass :class:`AttrHandler` instance.
 
     :return: :class:`asyncio.AbstractServer` instance.
+
+RPC exceptions
+--------------
+
+.. exception:: Error
+
+   Base class for :mod:`aiozmq.rpc` exceptions. Derived from :exc:`Exception`.
+
+.. exception:: GenericError
+
+   Subclass of :exc:`Error`, raised when a remote call producess
+   exception which cannot be translated.
+
+   .. seealso:: :ref:`aiozmq-rpc-exception-translation`
+
+.. exception:: NotFoundError
+
+   Subclass of :exc:`Error` and :exc:`LookupError`, raised when a
+   remote call name is not found at RPC server.
+
+.. exception:: ParameterError
+
+   Subclass of :exc:`Error`, raised by remote call when parameter
+   substitution or remote method signature validation is failed.
+
+.. _aiozmq-rpc-exception-translation:
+
+RPC exception translation at client side
+----------------------------------------
+
+If remote server method raises an exception that exception is passed
+back to client and raised on client side, as follows::
+
+    try:
+        yield from client.rpc.func_raises_value_error()
+    except ValueError as exc:
+        log.exception(exc)
+
+The rule for exception translation is:
+
+   * if remote method raises an exception server answers with *full
+     exception class name* (like ``package.subpackage.MyError``) and
+     *exception constructor arguments* (:attr:`~BaseException.args`).
+   * *translator table* is a *mapping* of ``{name: exc_class}`` where
+     keys are *full names* of exception class (str) and values are
+     exception classes.
+   * if translation is found then client code got exception ``raise
+     exc_class(args)``.
+   * user defined translators are searched first.
+   * all :ref:`builtin exceptions <bltin-exceptions>` are translated.
+   * :exc:`NotFoundError` and :exc:`ParameterError` are translated.
+   * if there is no registered traslation then
+     ``GenericError(name, args)`` is raised at client side.
+
+For example if custom RPC server handler can raise ``mod1.Error1`` and
+``pack.mod2.Error2`` then *error_table* should be::
+
+    {'mod1.Error1': Error1,
+     'pack.mod2.Error2': Error2}
+
+.. seealso:: :func:`open_client`
