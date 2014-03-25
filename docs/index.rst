@@ -70,19 +70,19 @@ For details please take a look on :ref:`install-aiozmq-policy`.
 
 After that you probably would like to use RPC::
 
-    class ServerHandler(aiozmq.AttrHandler):
-        @aiozmq.method
+    class ServerHandler(aiozmq.rpc.AttrHandler):
+        @aiozmq.rpc.method
         def remote_func(self, a:int, b:int) -> int:
-            retuirn a + b
+            return a + b
 
     @asyncio.coroutine
-    def go(client):
+    def go():
         server = yield from aiozmq.rpc.start_server(
-            ServerHandler(), bind='tpc://127.0.0.1:5555'))
+            ServerHandler(), bind='tcp://127.0.0.1:5555')
         client = yield from aiozmq.rpc.open_client(
-            connect='tpc://127.0.0.1:5555'))
+            connect='tcp://127.0.0.1:5555')
 
-        ret = yield from client.rpc.remote_func(1, 3)
+        ret = yield from client.rpc.remote_func(1, 2)
         assert 3 == ret
 
         server.close()

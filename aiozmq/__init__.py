@@ -5,9 +5,12 @@ from .core import *
 from .selector import *
 from .events import *
 from .interface import *
+from .rpc import *
+
 
 __all__ = ['new_event_loop'] + (core.__all__ + selector.__all__ +
-                                interface.__all__ + events.__all__)
+                                interface.__all__ + events.__all__ +
+                                rpc.__all__)
 
 
 __version__ = '0.0.2'
