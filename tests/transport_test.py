@@ -10,6 +10,8 @@ from asyncio import test_utils
 from aiozmq.events import _ZmqTransportImpl
 from unittest import mock
 
+from aiozmq._test_utils import check_errno
+
 
 class TransportTests(unittest.TestCase):
 
@@ -27,6 +29,7 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.tr._buffer)
         self.assertEqual(0, self.tr._buffer_size)
         self.assertFalse(self.fatal_error.called)
+        self.assertNotIn(self.sock, self.loop.writers)
 
     def test_write(self):
         self.tr.write((b'a', b'b'))
@@ -35,6 +38,7 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.tr._buffer)
         self.assertEqual(0, self.tr._buffer_size)
         self.assertFalse(self.fatal_error.called)
+        self.assertNotIn(self.sock, self.loop.writers)
 
     def test_partial_write(self):
         self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
@@ -295,3 +299,36 @@ class TransportTests(unittest.TestCase):
         self.assertIsNone(self.tr.disconnect('addr'))
         self.assertEqual([mock.call('addr'), mock.call('addr')],
                          self.sock.disconnect.call_args_list)
+
+    def test_write_EAGAIN(self):
+        self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
+        self.tr.write((b'a', b'b'))
+        self.sock.send_multipart.assert_called_once_with(
+            (b'a', b'b'), zmq.DONTWAIT)
+        self.assertFalse(self.proto.pause_writing.called)
+        self.assertEqual([(b'a', b'b')], list(self.tr._buffer))
+        self.assertEqual(2, self.tr._buffer_size)
+        self.assertFalse(self.fatal_error.called)
+        self.loop.assert_writer(self.sock, self.tr._write_ready)
+
+    def test_write_EINTR(self):
+        self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EINTR)
+        self.tr.write((b'a', b'b'))
+        self.sock.send_multipart.assert_called_once_with(
+            (b'a', b'b'), zmq.DONTWAIT)
+        self.assertFalse(self.proto.pause_writing.called)
+        self.assertEqual([(b'a', b'b')], list(self.tr._buffer))
+        self.assertEqual(2, self.tr._buffer_size)
+        self.assertFalse(self.fatal_error.called)
+        self.loop.assert_writer(self.sock, self.tr._write_ready)
+
+    def test_write_common_error(self):
+        self.sock.send_multipart.side_effect = zmq.ZMQError(errno.ENOTSUP)
+        self.tr.write((b'a', b'b'))
+        self.sock.send_multipart.assert_called_once_with(
+            (b'a', b'b'), zmq.DONTWAIT)
+        self.assertFalse(self.proto.pause_writing.called)
+        self.assertFalse(self.tr._buffer)
+        self.assertEqual(0, self.tr._buffer_size)
+        self.assertNotIn(self.sock, self.loop.writers)
+        check_errno(errno.ENOTSUP, self.fatal_error.call_args[0][0])

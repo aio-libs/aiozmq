@@ -15,7 +15,7 @@ class TestFailed(Error):
     """Test failed."""
 
 
-def _requires_unix_version(sysname, min_version):
+def _requires_unix_version(sysname, min_version):  # pragma: no cover
     """Decorator raising SkipTest if the OS is `sysname` and the
     version is less than `min_version`.
 
@@ -43,7 +43,7 @@ def _requires_unix_version(sysname, min_version):
     return decorator
 
 
-def requires_freebsd_version(*min_version):
+def requires_freebsd_version(*min_version):  # pragma: no cover
     """Decorator raising SkipTest if the OS is FreeBSD and the FreeBSD
     version is less than `min_version`.
 
@@ -53,7 +53,7 @@ def requires_freebsd_version(*min_version):
     return _requires_unix_version('FreeBSD', min_version)
 
 
-def requires_linux_version(*min_version):
+def requires_linux_version(*min_version):  # pragma: no cover
     """Decorator raising SkipTest if the OS is Linux and the Linux version is
     less than `min_version`.
 
@@ -63,7 +63,7 @@ def requires_linux_version(*min_version):
     return _requires_unix_version('Linux', min_version)
 
 
-def requires_mac_ver(*min_version):
+def requires_mac_ver(*min_version):  # pragma: no cover
     """Decorator raising SkipTest if the OS is Mac OS X and the OS X
     version if less than min_version.
 
@@ -97,7 +97,7 @@ HOST = "127.0.0.1"
 HOSTv6 = "::1"
 
 
-def _is_ipv6_enabled():
+def _is_ipv6_enabled():  # pragma: no cover
     """Check whether IPv6 is enabled on this host."""
     if socket.has_ipv6:
         sock = None
@@ -115,7 +115,8 @@ def _is_ipv6_enabled():
 IPV6_ENABLED = _is_ipv6_enabled()
 
 
-def find_unused_port(family=socket.AF_INET, socktype=socket.SOCK_STREAM):
+def find_unused_port(family=socket.AF_INET,
+                     socktype=socket.SOCK_STREAM):  # pragma: no cover
     """Returns an unused port that should be suitable for binding.  This is
     achieved by creating a temporary socket with the same family and type as
     the 'sock' parameter (default is AF_INET, SOCK_STREAM), and binding it to
@@ -178,7 +179,7 @@ def find_unused_port(family=socket.AF_INET, socktype=socket.SOCK_STREAM):
     return port
 
 
-def bind_port(sock, host=HOST):
+def bind_port(sock, host=HOST):  # pragma: no cover
     """Bind the socket to a free port and return the port number.  Relies on
     ephemeral ports in order to ensure we are using an unbound port.  This is
     important as many tests may be running simultaneously, especially in a
@@ -215,3 +216,7 @@ def bind_port(sock, host=HOST):
     sock.bind((host, 0))
     port = sock.getsockname()[1]
     return port
+
+
+def check_errno(errno, exc):
+    assert exc.errno == errno, (exc, errno)
