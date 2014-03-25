@@ -19,6 +19,7 @@ class ZmqTransportTests(unittest.TestCase):
         self.assertRaises(NotImplementedError, tr.disconnect, 'endpoint')
         self.assertRaises(NotImplementedError, tr.connections)
 
+
 class ZmqProtocolTests(unittest.TestCase):
 
     def test_interface(self):

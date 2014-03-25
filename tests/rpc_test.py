@@ -1,6 +1,7 @@
 import unittest
 import asyncio
-import aiozmq, aiozmq.rpc
+import aiozmq
+import aiozmq.rpc
 import datetime
 
 from aiozmq._test_utils import find_unused_port
@@ -64,7 +65,8 @@ class RpcTests(unittest.TestCase):
 
         @asyncio.coroutine
         def create():
-            server = yield from aiozmq.rpc.start_server(MyHandler(),
+            server = yield from aiozmq.rpc.start_server(
+                MyHandler(),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
             client = yield from aiozmq.rpc.open_client(

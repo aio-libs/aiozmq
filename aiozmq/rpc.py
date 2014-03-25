@@ -13,18 +13,16 @@ import inspect
 import zmq
 
 
-try:
-    import msgpack
-except ImportError:
-    raise ImportError("aiozmq.rpc requires msgpack-python package.")
-
-
 from functools import partial
 from types import MethodType
 
 from . import interface
 from .log import logger
-from .util import _Packer
+
+try:
+    from .util import _Packer
+except ImportError:
+    raise ImportError("aiozmq.rpc requires msgpack-python package.")
 
 
 __all__ = [

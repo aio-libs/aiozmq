@@ -3,7 +3,8 @@ import asyncio
 
 from test import support  # import from standard python test suite
 
-import aiozmq, aiozmq.rpc
+import aiozmq
+import aiozmq.rpc
 
 
 def my_checker(val):
@@ -23,19 +24,19 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
     @asyncio.coroutine
-    def single_param(self, arg:int):
+    def single_param(self, arg: int):
         return arg + 1
         yield
 
     @aiozmq.rpc.method
     @asyncio.coroutine
-    def custom_annotation(self, arg:my_checker):
+    def custom_annotation(self, arg: my_checker):
         return arg
         yield
 
     @aiozmq.rpc.method
     @asyncio.coroutine
-    def ret_annotation(self, arg:int=1) -> float:
+    def ret_annotation(self, arg: int=1) -> float:
         return float(arg)
         yield
 
@@ -69,7 +70,8 @@ class FuncAnnotationsTests(unittest.TestCase):
 
         @asyncio.coroutine
         def create():
-            server = yield from aiozmq.rpc.start_server(MyHandler(),
+            server = yield from aiozmq.rpc.start_server(
+                MyHandler(),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
             client = yield from aiozmq.rpc.open_client(
@@ -86,12 +88,14 @@ class FuncAnnotationsTests(unittest.TestCase):
         msg = "Expected 'bad_arg' annotation to be callable"
         with self.assertRaisesRegexp(ValueError, msg):
             @aiozmq.rpc.method
-            def test(good_arg:int, bad_arg:0): pass
+            def test(good_arg: int, bad_arg: 0):
+                pass
 
         msg = "Expected return annotation to be callable"
         with self.assertRaisesRegexp(ValueError, msg):
             @aiozmq.rpc.method
-            def test() -> 'bad annotation': pass
+            def test2() -> 'bad annotation':
+                pass
 
     def test_no_params(self):
         client, server = self.make_rpc_pair()
