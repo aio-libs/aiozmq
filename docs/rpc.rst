@@ -211,6 +211,18 @@ RPC exceptions
    Subclass of :exc:`Error`, raised when a remote call producess
    exception which cannot be translated.
 
+   .. attribute:: exc_type
+
+      A string contains *full name* of unknown
+      exception(``"package.module.MyError"``).
+
+   .. attribute:: arguments
+
+      A tuple of arguments passed to *unknown exception* constructor
+
+      .. seealso:: :attr:`parameters for exception constructor
+                   <BaseException.args>`
+
    .. seealso:: :ref:`aiozmq-rpc-exception-translation`
 
 .. exception:: NotFoundError
@@ -229,7 +241,7 @@ RPC exceptions
 RPC exception translation at client side
 ----------------------------------------
 
-If remote server method raises an exception that exception is passed
+If remote server method raises an exception that error is passed
 back to client and raised on client side, as follows::
 
     try:
@@ -238,28 +250,40 @@ back to client and raised on client side, as follows::
         log.exception(exc)
 
 The rule for exception translation is:
-
-   * if remote method raises an exception server answers with *full
-     exception class name* (like ``package.subpackage.MyError``) and
-     *exception constructor arguments* (:attr:`~BaseException.args`).
-   * *translator table* is a *mapping* of ``{name: exc_class}`` where
-     keys are *full names* of exception class (str) and values are
-     exception classes.
-   * if translation is found then client code got exception ``raise
+   * if remote method raises an exception --- server answers with
+     *full exception class name* (like ``package.subpackage.MyError``)
+     and *exception constructor arguments*
+     (:attr:`~BaseException.args`).
+   * *translator table* is a *mapping* of ``{excpetion_name:
+     exc_class}`` where keys are *full names* of exception class (str)
+     and values are exception classes.
+   * if translation is found then client code gives exception ``raise
      exc_class(args)``.
    * user defined translators are searched first.
    * all :ref:`builtin exceptions <bltin-exceptions>` are translated.
    * :exc:`NotFoundError` and :exc:`ParameterError` are translated.
    * if there is no registered traslation then
-     ``GenericError(name, args)`` is raised at client side.
+     ``GenericError(excpetion_name, args)`` is raised.
 
 For example if custom RPC server handler can raise ``mod1.Error1`` and
 ``pack.mod2.Error2`` then *error_table* should be::
 
-    {'mod1.Error1': Error1,
-     'pack.mod2.Error2': Error2}
+    from mod1 import Error1
+    from pack.mod2 import Error2
 
-.. seealso:: :func:`open_client` function.
+    error_table = {'mod1.Error1': Error1,
+                   'pack.mod2.Error2': Error2}
+
+    client = loop.run_until_complete(
+        rpc.open_client(connect='tcp://127.0.0.1:5555',
+                        error_table=error_table))
+
+You have to have the way to import exception classes from server-side.
+Or you can build your own translators without server-side code, use
+only string for *full exception class name* and tuple of *args* ---
+that's up to you.
+
+.. seealso:: *error_table* argument in :func:`open_client` function.
 
 .. _aiozmq-rpc-signature-validation:
 
@@ -299,9 +323,10 @@ Value, returned by RPC call, can be checked by optional *return annotation*.
 Thus :class:`int` can be good annotation: it raises :exc:`TypeError`
 if *arg1* cannot be converted to *int*.
 
-Often you need for more complex check, say parameter can be *int* or *None*.
+Usually you need for more complex check, say parameter can be *int* or
+*None*.
 
-You always can write custom validators::
+You always can write custom validator::
 
    def int_or_none(val):
       if isinstance(val, int) or val is None:
@@ -310,7 +335,6 @@ You always can write custom validators::
           raise ValueError('bad value')
 
    class Handler(rpc.AttrHandler):
-
        @rpc.method
        def func(self, arg: int_or_none):
            return arg
@@ -319,19 +343,18 @@ Writing a tons of custom validators is inconvinient, so we recommend
 to use :term:`trafaret` library (can be installed via ``pip3 install
 trafaret``).
 
-There is examples of trararet annotations::
+This is example of trararet annotation::
 
    import trafaret as t
 
    class Handler(rpc.AttrHandler):
-
        @rpc.method
        def func(self, arg: t.Int|t.Null):
            return arg
 
 Trafaret has advanced types like *List* and *Dict*, so you can put
-structure of your complex JSON-like structure as RPC method
-annotation. Also you can create custom trafaret classes if needed.
+your complex JSON-like structure as RPC method annotation. Also you
+can create custom trafarets if needed. It's easy, trust me.
 
 .. _aiozmq-rpc-custom-object-hooks:
 
