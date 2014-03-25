@@ -3,7 +3,8 @@ asyncio integration with ZeroMQ
 
 Experimental asyncio (PEP 3156) compatibility with ZeroMQ.
 
-.. image:: https://travis-ci.org/aio-libs/aiozmq.svg?branch=master   :target: https://travis-ci.org/aio-libs/aiozmq
+.. image:: https://travis-ci.org/aio-libs/aiozmq.svg?branch=master
+   :target: https://travis-ci.org/aio-libs/aiozmq
 
 Documentation
 -------------

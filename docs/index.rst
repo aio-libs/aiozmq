@@ -38,7 +38,8 @@ aiozmq uses `Travis <https://travis-ci.org/aio-libs/aiozmq>`_ for
 Continious Integration.  Current status of `master branch <GitHub>`_
 is:
 
-.. image:: https://travis-ci.org/aio-libs/aiozmq.svg?branch=master   :target: https://travis-ci.org/aio-libs/aiozmq
+.. image:: https://travis-ci.org/aio-libs/aiozmq.svg?branch=master
+   :target: https://travis-ci.org/aio-libs/aiozmq
 
 
 Dependencies
