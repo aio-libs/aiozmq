@@ -28,8 +28,8 @@ except ImportError:  # pragma: no cover
 
 __all__ = [
     'method',
-    'open_client',
-    'start_server',
+    'connect_rpc',
+    'server_rpc',
     'Error',
     'GenericError',
     'NotFoundError',
@@ -108,7 +108,7 @@ def method(func):
 
 
 @asyncio.coroutine
-def open_client(*, connect=None, bind=None, loop=None,
+def connect_rpc(*, connect=None, bind=None, loop=None,
                 error_table=None, translators=None):
     """A coroutine that creates and connects/binds RPC client.
 
@@ -128,7 +128,7 @@ def open_client(*, connect=None, bind=None, loop=None,
 
 
 @asyncio.coroutine
-def start_server(handler, *, connect=None, bind=None, loop=None,
+def serve_rpc(handler, *, connect=None, bind=None, loop=None,
                  translators=None):
     """A coroutine that creates and connects/binds RPC server instance."""
     # TODO: describe params
@@ -140,6 +140,13 @@ def start_server(handler, *, connect=None, bind=None, loop=None,
         lambda: _ServerProtocol(loop, handler, translators),
         zmq.ROUTER, connect=connect, bind=bind)
     return _RPCServer(loop, proto)
+
+
+def connect_pipeline(): pass
+def serve_pipelinet(): pass
+
+def connect_pubsub(): pass
+def serve_pubsub(): pass
 
 
 class _BaseProtocol(interface.ZmqProtocol):
