@@ -191,6 +191,32 @@ class RpcTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
 
+    def test_default_event_loop(self):
+        port = find_unused_port()
+
+        asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
+
+        @asyncio.coroutine
+        def create():
+            server = yield from aiozmq.rpc.start_server(
+                MyHandler(),
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=None)
+            client = yield from aiozmq.rpc.open_client(
+                connect='tcp://127.0.0.1:{}'.format(port),
+                loop=None)
+            return client, server
+
+        self.loop = loop = asyncio.get_event_loop()
+        self.client, self.server = loop.run_until_complete(create())
+
+        @asyncio.coroutine
+        def communicate():
+            ret = yield from self.client.rpc.func(1)
+            self.assertEqual(2, ret)
+
+        loop.run_until_complete(communicate())
+
 
 class AbstractHandlerTests(unittest.TestCase):
 
