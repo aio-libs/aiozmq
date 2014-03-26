@@ -91,6 +91,7 @@ class ZmqEventLoop(SelectorEventLoop):
         try:
             if zmq_sock is None:
                 zmq_sock = self._zmq_context.socket(zmq_type)
+            # TODO: process EINTR
             elif zmq_sock.getsockopt(zmq.TYPE) != zmq_type:
                 raise ValueError('Invalid zmq_sock type')
         except zmq.ZMQError as exc:
@@ -98,7 +99,8 @@ class ZmqEventLoop(SelectorEventLoop):
 
         protocol = protocol_factory()
         waiter = asyncio.Future(loop=self)
-        transport = _ZmqTransportImpl(self, zmq_sock, protocol, waiter)
+        transport = _ZmqTransportImpl(self, zmq_type,
+                                      zmq_sock, protocol, waiter)
         yield from waiter
 
         try:
@@ -154,17 +156,19 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
 
     _TCP_RE = re.compile('^tcp://(.+):(\d+)|\*$')
 
-    def __init__(self, loop, zmq_sock, protocol, waiter=None):
+    def __init__(self, loop, zmq_type, zmq_sock, protocol, waiter=None):
         super().__init__(None)
         self._extra['zmq_socket'] = zmq_sock
         self._loop = loop
         self._zmq_sock = zmq_sock
+        self._zmq_type = zmq_type
         self._protocol = protocol
         self._closing = False
         self._buffer = deque()
         self._buffer_size = 0
         self._bindings = set()
         self._connections = set()
+        self._subscriptions = set()
 
         self._loop.add_reader(self._zmq_sock, self._read_ready)
         self._loop.call_soon(self._protocol.connection_made, self)
@@ -303,6 +307,10 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         while True:
             try:
                 self._zmq_sock.setsockopt(option, value)
+                if option == zmq.SUBSCRIBE:
+                    self._subscriptions.add(value)
+                elif option == zmq.UNSUBSCRIBE:
+                    self._subscriptions.discard(value)
                 return
             except zmq.ZMQError as exc:
                 if exc.errno == errno.EINTR:
@@ -369,6 +377,27 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
 
     def connections(self):
         return _EndpointsSet(self._connections)
+
+    def subscribe(self, value):
+        if self._zmq_type != zmq.SUB:
+            raise NotImplementedError("Not supported ZMQ socket type")
+        if not isinstance(value, bytes):
+            raise TypeError("value argument should be bytes")
+        if value in self._subscriptions:
+            return
+        self.setsockopt(zmq.SUBSCRIBE, value)
+
+    def unsubscribe(self, value):
+        if self._zmq_type != zmq.SUB:
+            raise NotImplementedError("Not supported ZMQ socket type")
+        if not isinstance(value, bytes):
+            raise TypeError("value argument should be bytes")
+        self.setsockopt(zmq.UNSUBSCRIBE, value)
+
+    def subscriptions(self):
+        if self._zmq_type != zmq.SUB:
+            raise NotImplementedError("Not supported ZMQ socket type")
+        return _EndpointsSet(self._subscriptions)
 
 
 class ZmqEventLoopPolicy(asyncio.AbstractEventLoopPolicy):

@@ -18,6 +18,9 @@ class ZmqTransportTests(unittest.TestCase):
         self.assertRaises(NotImplementedError, tr.connect, 'endpoint')
         self.assertRaises(NotImplementedError, tr.disconnect, 'endpoint')
         self.assertRaises(NotImplementedError, tr.connections)
+        self.assertRaises(NotImplementedError, tr.subscribe, b'filter')
+        self.assertRaises(NotImplementedError, tr.unsubscribe, b'filter')
+        self.assertRaises(NotImplementedError, tr.subscriptions)
 
 
 class ZmqProtocolTests(unittest.TestCase):

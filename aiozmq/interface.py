@@ -86,11 +86,11 @@ class ZmqTransport(BaseTransport):
         raise NotImplementedError
 
     def bindings(self):
-        """Return set of endpoints bound to transport.
+        """Return immutable set of endpoints bound to transport.
 
         N.B. returned endpoints includes only ones that has been bound
         via transport.bind or event_loop.create_zmq_connection calls
-        and does not includes binds done to zmq_sock
+        and does not includes bindings that has been done to zmq_sock
         before create_zmq_connection has been called.
         """
         raise NotImplementedError
@@ -116,12 +116,53 @@ class ZmqTransport(BaseTransport):
         raise NotImplementedError
 
     def connections(self):
-        """Return set of endpoints connected to transport.
+        """Return immutable set of endpoints connected to transport.
 
         N.B. returned endpoints includes only ones that has been connected
         via transport.connect or event_loop.create_zmq_connection calls
-        and does not includes connects done to zmq_sock
+        and does not includes connections that has been done to zmq_sock
         before create_zmq_connection has been called.
+        """
+        raise NotImplementedError
+
+    def subscribe(self, value):
+        """Establish a new message filter on SUB transport.
+
+        Newly created SUB transports filters out all incoming
+        messages, therefore you should to call this method to
+        establish an initial message filter.
+
+        Value should be bytes.
+
+        An empty (b'') value subscribes to all incoming messages. A
+        non-empty value subscribes to all messages beginning with the
+        specified prefix. Multiple filters may be attached to a single
+        SUB transport, in which case a message shall be accepted if it
+        matches at least one filter.
+        """
+        raise NotImplementedError
+
+    def unsubscribe(self, value):
+        """Remove an existing message filter on a SUB transport.
+
+        Value should be bytes.
+
+        The filter specified must match an existing filter previously
+        established with the .subscribe(). If the transport has
+        several instances of the same filter attached the
+        .unsubscribe() removes only one instance, leaving
+        the rest in place and functional.
+        """
+        raise NotImplementedError
+
+    def subscriptions(self):
+        """Return immutable set of subscriptions (bytes) subscribed on
+        transport.
+
+        N.B. returned subscriptions includes only ones that has been
+        subscribed via transport.subscribe call and does not includes
+        subscribtions that has been done to zmq_sock before
+        create_zmq_connection has been called.
         """
         raise NotImplementedError
 

@@ -19,7 +19,7 @@ class TransportTests(unittest.TestCase):
         self.loop = test_utils.TestLoop()
         self.sock = mock.Mock()
         self.proto = test_utils.make_test_protocol(aiozmq.ZmqProtocol)
-        self.tr = _ZmqTransportImpl(self.loop, self.sock, self.proto)
+        self.tr = _ZmqTransportImpl(self.loop, zmq.SUB, self.sock, self.proto)
         self.fatal_error = self.tr._fatal_error = mock.Mock()
 
     def test_empty_write(self):
@@ -332,3 +332,29 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(0, self.tr._buffer_size)
         self.assertNotIn(self.sock, self.loop.writers)
         check_errno(errno.ENOTSUP, self.fatal_error.call_args[0][0])
+
+    def test_subscribe_invalid_socket_type(self):
+        self.tr._zmq_type = zmq.PUB
+        self.assertRaises(NotImplementedError, self.tr.subscribe, b'a')
+        self.assertRaises(NotImplementedError, self.tr.unsubscribe, b'a')
+        self.assertRaises(NotImplementedError, self.tr.subscriptions)
+
+    def test_double_subscribe(self):
+        self.tr.subscribe(b'val')
+        self.tr.subscribe(b'val')
+        self.assertEqual({b'val'}, self.tr.subscriptions())
+        self.sock.setsockopt.assert_called_once_with(zmq.SUBSCRIBE, b'val')
+
+    def test_subscribe_bad_value_type(self):
+        self.assertRaises(TypeError, self.tr.subscribe, 'a')
+        self.assertFalse(self.tr.subscriptions())
+        self.assertRaises(TypeError, self.tr.unsubscribe, 'a')
+        self.assertFalse(self.sock.setsockopt.called)
+        self.assertFalse(self.tr.subscriptions())
+
+    def test_unsubscribe(self):
+        self.tr.subscribe(b'val')
+
+        self.tr.unsubscribe(b'val')
+        self.assertFalse(self.tr.subscriptions())
+        self.sock.setsockopt.assert_called_with(zmq.UNSUBSCRIBE, b'val')

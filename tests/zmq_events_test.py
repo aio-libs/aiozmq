@@ -513,3 +513,75 @@ class ZmqEventLoopTests(unittest.TestCase):
                                     "EAGAIN for unknown endpoint")
         self.assertEqual(errno.ENOENT, ctx.exception.errno)
         self.assertEqual({addr}, tr.connections())
+
+    def test_subscriptions_of_invalid_socket(self):
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.PUSH,
+                bind='tcp://*:*')
+            yield from pr.connected
+            return tr, pr
+
+        tr, pr = self.loop.run_until_complete(connect())
+        self.assertRaises(NotImplementedError, tr.subscribe, b'a')
+        self.assertRaises(NotImplementedError, tr.unsubscribe, b'a')
+        self.assertRaises(NotImplementedError, tr.subscriptions)
+
+    def test_double_subscribe(self):
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                bind='tcp://*:*')
+            yield from pr.connected
+            return tr, pr
+
+        tr, pr = self.loop.run_until_complete(connect())
+        tr.subscribe(b'val')
+        self.assertEqual({b'val'}, tr.subscriptions())
+
+        tr.subscribe(b'val')
+        self.assertEqual({b'val'}, tr.subscriptions())
+
+    def test_double_unsubscribe(self):
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                bind='tcp://*:*')
+            yield from pr.connected
+            return tr, pr
+
+        tr, pr = self.loop.run_until_complete(connect())
+        tr.subscribe(b'val')
+        self.assertEqual({b'val'}, tr.subscriptions())
+
+        tr.unsubscribe(b'val')
+        self.assertFalse(tr.subscriptions())
+        tr.unsubscribe(b'val')
+        self.assertFalse(tr.subscriptions())
+
+    def test_unsubscribe_unknown_filter(self):
+
+        @asyncio.coroutine
+        def connect():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                bind='tcp://*:*')
+            yield from pr.connected
+            return tr, pr
+
+        tr, pr = self.loop.run_until_complete(connect())
+
+        tr.unsubscribe(b'val')
+        self.assertFalse(tr.subscriptions())
+        tr.unsubscribe(b'val')
+        self.assertFalse(tr.subscriptions())

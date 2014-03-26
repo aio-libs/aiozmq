@@ -230,9 +230,10 @@ ZmqTransport
       .. note::
 
          Returned endpoints includes only ones that has been bound via
-         transport.bind or event_loop.create_zmq_connection calls and
-         does not includes binds done to zmq_sock before
-         create_zmq_connection has been called.
+         :meth:`ZmqTransport.bind` or
+         :meth:`ZmqEventLoop.create_zmq_connection` calls and does not
+         includes bindingss that has been done on *zmq_sock* before
+         :meth:`ZmqEventLoop.create_zmq_connection` has been called.
 
    .. method:: connect(endpoint)
 
@@ -263,9 +264,70 @@ ZmqTransport
       .. note::
 
          Returned endpoints includes only ones that has been connected
-         via transport.connect or event_loop.create_zmq_connection calls
-         and does not includes connects done to zmq_sock
-         before create_zmq_connection has been called.
+         via :meth:`ZmqTransport.connect` or
+         :meth:`ZmqEventLoop.create_zmq_connection` calls and does not
+         includes connections that has been done to *zmq_sock* before
+         :meth:`ZmqEventLoop.create_zmq_connection` has been called.
+
+   .. method:: subscribe(value)
+
+      Establish a new message filter on *SUB* transport.
+
+      Newly created *SUB* transports filters out all incoming
+      messages, therefore you should to call this method to
+      establish an initial message filter.
+
+      An empty (``b''``) *value* subscribes to all incoming messages. A
+      non-empty value subscribes to all messages beginning with the
+      specified prefix. Multiple filters may be attached to a single
+      *SUB* transport, in which case a message shall be accepted if it
+      matches at least one filter.
+
+      :param bytes value: a filter value to add for *SUB* filters.
+      :raise NotImplementedError: the transport is not *SUB*.
+
+
+      .. _aiozmq-transport-subscribe-warning:
+
+      .. warning::
+
+         Unlike to :term:`ZeroMQ` socket level the call first check
+         for *value* in :meth:`ZmqTransport.subscriptions` and does
+         nothing if the transport already has been subscribed to the
+         *value*.
+
+   .. method:: unsubscribe(value)
+
+      Remove an existing message filter on a *SUB* transport.
+
+      The filter specified must match an existing filter previously
+      established with the :meth:`ZmqTransport.subscribe`.
+
+      If the transport has several instances of the same filter
+      attached the ``.unsubscribe()`` removes only one instance,
+      leaving the rest in place and functional (if you use
+      :meth:`ZmqTransport.subscribe` to adding new filters that never
+      happens, see :ref:`difference between aiozmq and ZeroMQ raw
+      sockets <aiozmq-transport-subscribe-warning>` for details).
+
+      :param bytes value: a filter value to add for *SUB* filters.
+
+      :raise NotImplementedError: the transport is not *SUB*.
+
+   .. method:: subscriptions()
+
+      Return immutable set of subscriptions (set of bytes) subscribed
+      on transport.
+
+      .. note::
+
+         Returned subscriptions includes only ones that has
+         been subscribed via :meth:`ZmqTransport.subscribe` call and does not
+         includes subscribtions that has been done to zmq_sock before
+         create_zmq_connection has been called.
+
+      :raise NotImplementedError: the transport is not *SUB*.
+
 
 
 ZmqProtocol
