@@ -1,24 +1,12 @@
-# This relies on each of the submodules having an __all__ variable.
-import warnings
-
-from .core import *
-from .selector import *
-from .events import *
-from .interface import *
+from .selector import ZmqSelector
+from .events import ZmqEventLoop, ZmqEventLoopPolicy
+from .interface import ZmqTransport, ZmqProtocol
 
 
-__all__ = ['new_event_loop'] + (core.__all__ + selector.__all__ +
-                                interface.__all__ + events.__all__)
-
+__all__ = ('ZmqSelector', 'ZmqEventLoop', 'ZmqEventLoopPolicy',
+           'ZmqTransport', 'ZmqProtocol')
 
 __version__ = '0.0.2'
 
-
-def new_event_loop():
-    """Create new event loop with zmq selector."""
-    warnings.warn(
-        "This function will be removed in future versions.  "
-        "Use 'asyncio.set_event_loop_policy(ZmqEventLoopPolicy()) instead.",
-        DeprecationWarning, stacklevel=2
-        )
-    return ZmqEventLoop()
+# make pyflakes happy
+(ZmqSelector, ZmqEventLoop, ZmqEventLoopPolicy, ZmqTransport, ZmqProtocol)
