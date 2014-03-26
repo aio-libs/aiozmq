@@ -200,7 +200,7 @@ RPC exceptions
 
    .. seealso::
 
-      :attr:`Service.transport`
+      :attr:`Service.transport` method.
 
 
 RPC clases
