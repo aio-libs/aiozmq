@@ -427,7 +427,7 @@ RPC exceptions
 
 .. exception:: GenericError
 
-   Subclass of :exc:`Error`, raised when a remote call producess
+   Subclass of :exc:`Error`, raised when a remote call produces
    exception which cannot be translated.
 
    .. attribute:: exc_type
