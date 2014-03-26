@@ -3,9 +3,23 @@ import datetime
 
 from unittest import mock
 from msgpack import ExtType, packb 
-from pickle import dumps, HIGHEST_PROTOCOL
+from pickle import dumps, loads, HIGHEST_PROTOCOL
+from collections import namedtuple
+from functools import partial
 
 from aiozmq.util import _Packer
+
+
+class Point:
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __eq__(self, other):
+        if isinstance(other, Point):
+            return (self.x, self.y) == (other.x, other.y)
+        return NotImplemented
 
 
 class PackerTests(unittest.TestCase):
@@ -121,9 +135,41 @@ class PackerTests(unittest.TestCase):
             packer.ext_type_pack_hook(packer)
         self.assertIn(_Packer, packer._pack_cache)
         self.assertIsNone(packer._pack_cache[_Packer])
+        # lets try again just for good coverage
+        with self.assertRaisesRegex(TypeError, "Unknown type: "):
+            packer.ext_type_pack_hook(packer)
 
         self.assertEqual(ExtType(1, b''), packer.ext_type_unpack_hook(1, b''))
 
         # TODO: should be more specific errors
         with self.assertRaises(Exception):
             packer.ext_type_unpack_hook(127, b'bad data')
+
+    def test_simple_translators(self):
+        translators = {
+            0: (Point, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
+        }
+        packer = _Packer(translators=translators)
+
+        pt = Point(1, 2)
+        data = dumps(pt, protocol=HIGHEST_PROTOCOL)
+
+        self.assertEqual(pt, packer.unpackb(packer.packb(pt)))
+        self.assertEqual(ExtType(0, data), packer.ext_type_pack_hook(pt))
+
+        self.assertEqual(pt, packer.ext_type_unpack_hook(0, data))
+
+    def test_override_translators(self):
+        translators = {
+            125: (Point, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
+        }
+        packer = _Packer(translators=translators)
+
+        pt = Point(3, 4)
+        data = dumps(pt, protocol=HIGHEST_PROTOCOL)
+
+        dt = datetime.time(15, 2)
+
+        self.assertEqual(ExtType(125, data), packer.ext_type_pack_hook(pt))
+        with self.assertRaisesRegex(TypeError, "Unknown type: "):
+            packer.ext_type_pack_hook(dt)
