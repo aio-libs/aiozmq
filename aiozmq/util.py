@@ -9,8 +9,8 @@ from msgpack import ExtType, packb, unpackb
 
 
 _default = {
-    127: (datetime, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
-    126: (date, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
+    127: (date, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
+    126: (datetime, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
     125: (time, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
     124: (timedelta, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
     123: (tzinfo, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
@@ -49,6 +49,7 @@ class _Packer:
                     self._pack_cache[obj_class] = (code, packer)
                     return ExtType(code, packer(obj))
             else:
+                self._pack_cache[obj_class] = None
                 raise TypeError("Unknown type: {!r}".format(obj))
         else:
             # do shortcut
