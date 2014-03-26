@@ -60,6 +60,10 @@ class ParametersError(Error, ValueError):
     be validated against their annotations."""
 
 
+class ServiceClosedError(Exception):
+    """RPC Service has been closed."""
+
+
 class AbstractHandler(metaclass=abc.ABCMeta):
     """Abstract class for server-side RPC handlers."""
 
@@ -139,7 +143,7 @@ def start_server(handler, *, connect=None, bind=None, loop=None,
     transp, proto = yield from loop.create_zmq_connection(
         lambda: _ServerProtocol(loop, handler, translators),
         zmq.ROUTER, connect=connect, bind=bind)
-    return _RPCServer(loop, proto)
+    return Service(loop, proto)
 
 
 class _BaseProtocol(interface.ZmqProtocol):
@@ -159,11 +163,31 @@ class _BaseProtocol(interface.ZmqProtocol):
             waiter.set_result(None)
 
 
-class _RPCServer(asyncio.AbstractServer):
+class Service(asyncio.AbstractServer):
+    """RPC service.
+
+    Instances of Service (or
+    descendants) are returned by coroutines that creates clients or
+    servers.
+
+    Implementation of AbstractServer.
+    """
 
     def __init__(self, loop, proto):
         self._loop = loop
         self._proto = proto
+
+    @property
+    def transport(self):
+        """Return the transport.
+
+        You can use the transport to dynamically bind/unbind,
+        connect/disconnect etc.
+        """
+        transport = self._proto.transport
+        if transport is None:
+            raise ServiceClosedError()
+        return transport
 
     def close(self):
         if self._proto.transport is None:
@@ -256,7 +280,7 @@ class _ClientProtocol(_BaseProtocol):
         return fut
 
 
-class RPCClient(_RPCServer):
+class RPCClient(Service):
 
     def __init__(self, loop, proto):
         super().__init__(loop, proto)

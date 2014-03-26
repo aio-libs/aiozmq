@@ -217,6 +217,22 @@ class RpcTests(unittest.TestCase):
 
         loop.run_until_complete(communicate())
 
+    def test_service_transport(self):
+        client, server = self.make_rpc_pair()
+
+        self.assertIsInstance(client.transport, aiozmq.ZmqTransport)
+        self.assertIsInstance(server.transport, aiozmq.ZmqTransport)
+
+        client.close()
+        self.loop.run_until_complete(client.wait_closed())
+        with self.assertRaises(aiozmq.rpc.ServiceClosedError):
+            client.transport
+
+        server.close()
+        self.loop.run_until_complete(server.wait_closed())
+        with self.assertRaises(aiozmq.rpc.ServiceClosedError):
+            server.transport
+
 
 class AbstractHandlerTests(unittest.TestCase):
 

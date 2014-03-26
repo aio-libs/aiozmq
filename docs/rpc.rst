@@ -82,48 +82,6 @@ The basic usage is::
     :return: :class:`RPCClient` instance.
 
 
-.. class:: RPCClient
-
-   Class that returned by :func:`open_client` call. Implements
-   :class:`asyncio.AbstractServer` interface providing
-   :meth:`RPCClient.close` and :meth:`RPCClient.wait_closed` methods.
-
-   For RPC calls use :attr:`~RPCClient.rpc` property.
-
-   .. attribute:: rpc
-
-      The readonly property that returns ephemeral object used to making
-      RPC call.
-
-      Construction like::
-
-          ret = yield from client.rpc.ns.method(1, 2, 3)
-
-      makes a remote call with arguments(1, 2, 3) and returns answer
-      from this call.
-
-      You can also pass *named parameters*::
-
-          ret = yield from client.rpc.ns.method(1, b=2, c=3)
-
-      If the call raises exception that exception propagates to client side.
-
-      Say, if remote raises :class:`ValueError` client catches
-      *ValueError* instance with *args* sent by remote::
-
-          try:
-              yield from client.rpc.raise_value_error()
-          except ValueError as exc:
-              process_error(exc)
-
-      .. seealso::
-         :ref:`aiozmq-rpc-exception-translation` and
-         :ref:`aiozmq-rpc-signature-validation`
-
-   .. warning::
-
-      You should never instantiate :class:`RPCClient` by hand, use
-      :func:`open_client` instead.
 
 .. _aiozmq-rpc-server:
 
@@ -236,6 +194,92 @@ RPC exceptions
    remote call when parameter substitution or :ref:`remote method
    signature validation <aiozmq-rpc-signature-validation>` is failed.
 
+.. exception:: ServiceClosedError
+
+   Subclass of :exc:`Error`, raised :class:`Service` has been closed.
+
+   .. seealso::
+
+      :attr:`Service.transport`
+
+
+RPC clases
+----------
+
+.. class:: Service
+
+   RPC service base class.
+
+   Instances of *Service* (or descendants) are returned by
+   coroutines that creates clients or servers (:func:`open_client`,
+   :func:`start_server` and others).
+
+   Implements :class:`asyncio.AbstractServer`.
+
+   .. attribute:: transport
+
+      The readonly property that returns service's :class:`transport
+      <aiozmq.ZmqTransport>`.
+
+      You can use the transport to dynamically bind/unbind,
+      connect/disconnect etc.
+
+      :raise aiozmq.rpc.ServiceClosedError: if the service has been closed.
+
+   .. method:: close()
+
+      Stop serving.
+
+      This leaves existing connections open.
+
+   .. method:: wait_closed()
+
+      :ref:`Coroutine <coroutine>` to wait until service is closed.
+
+   .. warning:: You should never instantiate :class:`Service` by hand.
+
+.. class:: RPCClient
+
+   Class that returned by :func:`open_client` call. Inherited from
+   :class:`Service`.
+
+   For RPC calls use :attr:`~RPCClient.rpc` property.
+
+   .. attribute:: rpc
+
+      The readonly property that returns ephemeral object used to making
+      RPC call.
+
+      Construction like::
+
+          ret = yield from client.rpc.ns.method(1, 2, 3)
+
+      makes a remote call with arguments(1, 2, 3) and returns answer
+      from this call.
+
+      You can also pass *named parameters*::
+
+          ret = yield from client.rpc.ns.method(1, b=2, c=3)
+
+      If the call raises exception that exception propagates to client side.
+
+      Say, if remote raises :class:`ValueError` client catches
+      *ValueError* instance with *args* sent by remote::
+
+          try:
+              yield from client.rpc.raise_value_error()
+          except ValueError as exc:
+              process_error(exc)
+
+      .. seealso::
+         :ref:`aiozmq-rpc-exception-translation` and
+         :ref:`aiozmq-rpc-signature-validation`
+
+   .. warning::
+
+      You should never instantiate :class:`RPCClient` by hand, use
+      :func:`open_client` instead.
+
 .. _aiozmq-rpc-exception-translation:
 
 RPC exception translation at client side
@@ -292,7 +336,7 @@ RPC signature validation
 
 The library supports **optional** validation of remote call signatures.
 
-If validation fails :exc:`ParameterError` raises on client side.
+If validation fails then :exc:`ParameterError` raises on client side.
 
 All validations are done on RPC server side, than errors translated
 back to client.
@@ -356,10 +400,10 @@ Trafaret has advanced types like *List* and *Dict*, so you can put
 your complex JSON-like structure as RPC method annotation. Also you
 can create custom trafarets if needed. It's easy, trust me.
 
-.. _aiozmq-rpc-custom-object-hooks:
+.. _aiozmq-rpc-value-translators:
 
-RPC custom object hooks
------------------------
+RPC value translators
+---------------------
 
 aiozmq.rpc uses :term:`msgpack` for transfering python objects from
 client to server and back.
