@@ -18,6 +18,6 @@ script:
 
 env:
   - USE_MSGPACK=1
-  - USE_MSGPACK=0
+  - USE_MSGPACK=
 
 cache: apt
