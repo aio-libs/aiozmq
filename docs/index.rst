@@ -21,20 +21,39 @@ Features
 - Provides RPC :ref:`client <aiozmq-rpc-client>` and :ref:`server
   <aiozmq-rpc-server>` based on :term:`ZeroMQ` *DEALER/ROUTER* sockets
 
-
 Library Installation
 --------------------
 
-::
+The :ref:`core <aiozmq-low-level>` requires only :term:`pyzmq` and can
+be installed (with pyzmq as dependency) by::
 
-   pip install aiozmq
+   pip3 install aiozmq
+
+Also probably you want to use :mod:`aiozmq.rpc`.
+
+RPC module is **optional** and requires :term:`msgpack`. You can
+install *msgpack* by::
+
+  pip3 install msgpack-python
+
+.. note::
+
+   *aiozmq* can be executed by *Python 3* only. The most Linux
+   distributions uses *pip3* for installing *Python 3 libraries* but
+   maybe your system uses *Python 3* by default. Than try just *pip*
+   instead of *pip3*. The same issue may be for *virtualenv*,
+   *travis continuous integration system* etc.
 
 Source code
 -----------
 
 The project is hosted on `GitHub`_
 
-aiozmq uses `Travis <https://travis-ci.org/aio-libs/aiozmq>`_ for
+Please feel free to file an issue on `bug tracker
+<https://github.com/aio-libs/aiozmq/issues>`_ if you had found a bug
+or have some suggestion for library improvement.
+
+The library uses `Travis <https://travis-ci.org/aio-libs/aiozmq>`_ for
 Continious Integration.  Current status of `master branch <GitHub>`_
 is |travis-st|.
 

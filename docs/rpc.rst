@@ -15,20 +15,20 @@ While :ref:`low-level API <aiozmq-low-level>` provides core support for
 :term:`ZeroMQ` transports an :term:`End User <enduser>` usually needs for
 some high-level API.
 
-Thus we have the :mod:`aiozmq.rpc` for Remote Procedure Calls.
+Thus we have the *aiozmq.rpc* module for Remote Procedure Calls.
 
 The main goal of the module is to provide *easy-to-use interface* for
-calling some method from remote process, which may be
-started on other host.
+calling some method from remote process (that processes may be
+have runned on other host).
 
 :term:`ZeroMQ` itself gives handy sockets but says nothing about RPC.
 
-In other hand this module provides human API but is not compatible with
-other implementations.
+In other hand this module provides *human* API but it is not
+compatible with *other implementations*.
 
-If you need to support some RPC protocol over ZeroMQ layer please feel
-free to build your own implementation on top of :ref:`low level
-primitives <aiozmq-low-level>`.
+If you need to support some RPC protocol over :term:`ZeroMQ` layer
+please feel free to build your own implementation on top of :ref:`low
+level primitives <aiozmq-low-level>`.
 
 This module uses :term:`ZeroMQ` *DEALER*/*ROUTER* sockets and custom
 communication protocol (which uses :term:`msgpack` by the way).
@@ -439,8 +439,8 @@ RPC exceptions
 
       A tuple of arguments passed to *unknown exception* constructor
 
-      .. seealso:: :attr:`parameters for exception constructor
-                   <BaseException.args>`
+      .. seealso:: :attr:`BaseException.args` - parameters for
+                   exception constructor.
 
    .. seealso:: :ref:`aiozmq-rpc-exception-translation`
 
