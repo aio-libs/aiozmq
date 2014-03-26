@@ -1,10 +1,9 @@
 import unittest
 import asyncio
 
-from test import support  # import from standard python test suite
-
 import aiozmq
 import aiozmq.rpc
+from aiozmq._test_utils import find_unused_port
 
 
 def my_checker(val):
@@ -66,7 +65,7 @@ class FuncAnnotationsTests(unittest.TestCase):
         self.loop.run_until_complete(service.wait_closed())
 
     def make_rpc_pair(self):
-        port = support.find_unused_port()
+        port = find_unused_port()
 
         @asyncio.coroutine
         def create():
