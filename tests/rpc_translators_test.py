@@ -20,7 +20,7 @@ class Point:
         return NotImplemented
 
 
-translators = {
+translation_table = {
     0: (Point,
         lambda value: msgpack.packb((value.x, value.y)),
         lambda binary: Point(*msgpack.unpackb(binary))),
@@ -64,11 +64,11 @@ class RpcTranslatorsTests(unittest.TestCase):
                 MyHandler(),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop,
-                translators=translators)
+                translation_table=translation_table)
             client = yield from aiozmq.rpc.open_client(
                 connect='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop, error_table=error_table,
-                translators=translators)
+                translation_table=translation_table)
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())

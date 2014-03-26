@@ -19,12 +19,12 @@ _default = {
 
 class _Packer:
 
-    def __init__(self, *, translators=None):
-        if translators is None:
-            translators = _default
+    def __init__(self, *, translation_table=None):
+        if translation_table is None:
+            translation_table = _default
         else:
-            translators = ChainMap(translators, _default)
-        self.translators = translators
+            translation_table = ChainMap(translation_table, _default)
+        self.translation_table = translation_table
         self._pack_cache = {}
 
     def packb(self, data):
@@ -43,8 +43,8 @@ class _Packer:
             raise TypeError("Unknown type: {!r}".format(obj))
         elif hit is _sentinel:
             # do long-lookup
-            for code in sorted(self.translators):
-                cls, packer, unpacker = self.translators[code]
+            for code in sorted(self.translation_table):
+                cls, packer, unpacker = self.translation_table[code]
                 if isinstance(obj, cls):
                     self._pack_cache[obj_class] = (code, packer)
                     return ExtType(code, packer(obj))
@@ -58,7 +58,7 @@ class _Packer:
 
     def ext_type_unpack_hook(self, code, data):
         try:
-            cls, packer, unpacker = self.translators[code]
+            cls, packer, unpacker = self.translation_table[code]
             return unpacker(data)
         except KeyError:
             return ExtType(code, data)
