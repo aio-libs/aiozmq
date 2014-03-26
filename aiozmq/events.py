@@ -163,7 +163,7 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         self._closing = False
         self._buffer = deque()
         self._buffer_size = 0
-        self._listeners = set()
+        self._bindings = set()
         self._connections = set()
 
         self._loop.add_reader(self._zmq_sock, self._read_ready)
@@ -322,7 +322,7 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
                     continue
                 raise OSError(exc.errno, exc.strerror) from exc
             else:
-                self._listeners.add(real_endpoint)
+                self._bindings.add(real_endpoint)
                 return real_endpoint
 
     def unbind(self, endpoint):
@@ -334,11 +334,11 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
                     continue
                 raise OSError(exc.errno, exc.strerror) from exc
             else:
-                self._listeners.discard(endpoint)
+                self._bindings.discard(endpoint)
                 return
 
-    def listeners(self):
-        return _EndpointsSet(self._listeners)
+    def bindings(self):
+        return _EndpointsSet(self._bindings)
 
     def connect(self, endpoint):
         match = self._TCP_RE.match(endpoint)

@@ -235,14 +235,14 @@ class ZmqEventLoopTests(unittest.TestCase):
             return tr, pr
 
         tr, pr = self.loop.run_until_complete(connect())
-        self.assertEqual({addr1, addr2}, tr.listeners())
+        self.assertEqual({addr1, addr2}, tr.bindings())
 
         addr3 = tr.bind('tcp://*:*')
-        self.assertEqual({addr1, addr2, addr3}, tr.listeners())
+        self.assertEqual({addr1, addr2, addr3}, tr.bindings())
         tr.unbind(addr2)
-        self.assertEqual({addr1, addr3}, tr.listeners())
-        self.assertIn(addr1, tr.listeners())
-        self.assertRegex(repr(tr.listeners()),
+        self.assertEqual({addr1, addr3}, tr.bindings())
+        self.assertIn(addr1, tr.bindings())
+        self.assertRegex(repr(tr.bindings()),
                          r'{tcp://0.0.0.0:.\d+, tcp://127.0.0.1:\d+}')
         tr.close()
 
@@ -477,7 +477,7 @@ class ZmqEventLoopTests(unittest.TestCase):
 
         tr, pr = self.loop.run_until_complete(connect())
 
-        self.assertEqual({addr}, tr.listeners())
+        self.assertEqual({addr}, tr.bindings())
         with self.assertRaises(OSError) as ctx:
             tr.unbind('ipc:///some-addr')  # non-bound addr
 
@@ -486,7 +486,7 @@ class ZmqEventLoopTests(unittest.TestCase):
             raise unittest.SkipTest("Travis has a bug, it returns "
                                     "EAGAIN for unknown endpoint")
         self.assertEqual(errno.ENOENT, ctx.exception.errno)
-        self.assertEqual({addr}, tr.listeners())
+        self.assertEqual({addr}, tr.bindings())
 
     def test_disconnect_from_nonbinded_addr(self):
         port = find_unused_port()

@@ -85,7 +85,7 @@ class ZmqTransport(BaseTransport):
         """
         raise NotImplementedError
 
-    def listeners(self):
+    def bindings(self):
         """Return set of endpoints bound to transport.
 
         N.B. returned endpoints includes only ones that has been bound

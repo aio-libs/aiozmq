@@ -223,7 +223,7 @@ ZmqTransport
 
       Unbind transpot from :term:`endpoint`.
 
-   .. method:: listeners()
+   .. method:: bindings()
 
       Return immutable set of :term:`endpoints <endpoint>` bound to transport.
 
