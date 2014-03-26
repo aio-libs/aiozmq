@@ -229,11 +229,12 @@ Let's take a look on example of user-defined RPC handler::
 *Parameter* *arg1* and *return value* has :term:`annotaions <annotaion>`,
 *int* and *float* correspondingly.
 
-At call time if *parameter* has an *annotaion* then *actual value* passed to
-RPC method is calculated as ``actual_value = annotation(value)``. If
-there is no annotaion for parameter the value is passed as-is.
+At call time if *parameter* has an :term:`annotaion` then *actual
+value* passed to RPC method is calculated as ``actual_value =
+annotation(value)``. If there is no annotaion for parameter the value
+is passed as-is.
 
-Annotaion should be any *callable* that accepts a value as single argument
+Annotaion should be any :term:`callable` that accepts a value as single argument
 and returns *actual value*.
 
 If annotation call raises exception that exception throws to client
@@ -292,9 +293,7 @@ Every object that can be passed to :func:`json.dump` can be passed to
 :func:`msgpack.dump` also. The same for unpacking.
 
 The only difference is: *aiozmq.rpc* converts all :class:`lists
-<list>` to :class:`tuples <tuple>`.
-
-The reasons is are:
+<list>` to :class:`tuples <tuple>`.  The reasons is are:
 
   * you never need to modify given list as it is your *incoming*
     value.  If you still need to use :class:`list` data type you can
@@ -307,15 +306,117 @@ The reasons is are:
     This is the main reason for choosing tuples. Unfortunatelly
     msgpack gives no way to mix tuples and lists in the same pack.
 
-But sometimes you want to call remote side with *non-plain-json* arguments.
-
-:class:`datetime.datetime` is a good example.
-
+But sometimes you want to call remote side with *non-plain-json*
+arguments.  :class:`datetime.datetime` is a good example.
 :mod:`aiozmq.rpc` supports all family of dates, times and timezones
-from :mod:`datetime` *in-the-box*.
+from :mod:`datetime` *from-the-box*
+(:ref:`predefined translators <aiozmq-rpc-predifined-translators>`).
 
 If you need to transfer a custom object via RPC you should to register
-**translator** at both server and client side.
+**translator** at both server and client side.  Say, you need to pass
+instances of your custom class ``Point`` via RPC. There is an
+example::
+
+    import asyncio
+    import aiozmq, aiozmq.rpc
+    import msgpack
+
+    class Point:
+        def __init__(self, x, y):
+            self.x = x
+            self.y = y
+
+        def __eq__(self, other):
+            if isinstance(other, Point):
+                return (self.x, self.y) == (other.x, other.y)
+            return NotImplemented
+
+    translation_table = {
+        0: (Point,
+            lambda value: msgpack.packb((value.x, value.y)),
+            lambda binary: Point(*msgpack.unpackb(binary))),
+    }
+
+    class ServerHandler(aiozmq.rpc.AttrHandler):
+        @aiozmq.rpc.method
+        def remote(self, val):
+            return val
+
+    @asyncio.coroutine
+    def go():
+        server = yield from aiozmq.rpc.start_server(
+            ServerHandler(), bind='tcp://127.0.0.1:5555',
+            translation_table=translation_table)
+        client = yield from aiozmq.rpc.open_client(
+            connect='tcp://127.0.0.1:5555',
+            translation_table=translation_table)
+
+        ret = yield from client.rpc.remote(Point(1, 2))
+        assert ret == Point(1, 2)
+
+You should to create a *translation table* and pass it to both
+:func:`open_client` and :func:`start_server`. That's all, server and
+client now have all information about passing your ``Point`` via the
+wire.
+
+* Translation table is the dict.
+
+* Keys should be an integers in range [0, 127]. We recommend to use
+  keys starting from 0 for custom translators, high numbers are
+  reserved for library itself (it uses the same schema for passing
+  *datetime* objects etc).
+
+* Values are tuples of ``(translated_class, packer, unpacker)``.
+
+  * *translated_class* is a class which you want to pass to peer.
+  * *packer* is a :term:`callable` which receives your class instance
+    and returns :class:`bytes` of *instance data*.
+  * *unpacker* is a :term:`callable` which receives :class:`bytes` of
+    *instance data* and returns your *class instance*.
+
+* When the library tries to pack your class instance it searches the
+  *translation table* in ascending order.
+
+* If your object is an :func:`instance <isinstance>` of
+  *translated_class* then *packer* is called and resulting
+  :class:`bytes` will be sent to peer.
+
+* On unpacking *unpacker* is called with the :class:`bytes` received by peer.
+  The result should to be your class instance.
+
+.. warning::
+
+   Please be careful with *translation table* order. Say, if you have
+   :class:`object` at position 0 then every lookup will stop at
+   this. Even *datetime* objects will be redirected to *packer* and
+   *unpacker* for registered *object* type.
+
+.. warning::
+
+   While the easiest way to write *packer* and *unpacker* is to use
+   :mod:`pickle` we **don't encourage that**. The reason is simple:
+   *pickle* packs an object itself and all instances which are
+   referenced by that object. So you can easy pass via network a half
+   of your program without any warning.
+
+.. _aiozmq-rpc-predifined-translators:
+
+Table of predefined translators:
+
++---------+-------------------------------+
+| Ordinal | Class                         |
++=========+===============================+
++ 123     | :class:`datetime.tzinfo`      |
++---------+-------------------------------+
++ 124     | :class:`datetime.timedelta`   |
++---------+-------------------------------+
++ 125     | :class:`datetime.time`        |
++---------+-------------------------------+
++ 126     | :class:`datetime.date`        |
++---------+-------------------------------+
+| 127     | :class:`datetime.datetime`    |
++---------+-------------------------------+
+
 
 RPC exceptions
 --------------

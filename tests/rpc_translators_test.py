@@ -1,6 +1,7 @@
 import unittest
 import asyncio
 import aiozmq, aiozmq.rpc
+import msgpack
 
 from functools import partial
 from pickle import dumps, loads, HIGHEST_PROTOCOL
@@ -20,7 +21,9 @@ class Point:
 
 
 translators = {
-    0: (Point, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
+    0: (Point,
+        lambda value: msgpack.packb((value.x, value.y)),
+        lambda binary: Point(*msgpack.unpackb(binary))),
 }
 
 
