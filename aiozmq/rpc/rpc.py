@@ -17,11 +17,11 @@ from collections import ChainMap
 from functools import partial
 from types import MethodType
 
-from . import interface
-from .log import logger
+from aiozmq import interface
+from aiozmq.log import logger
 
 try:
-    from .util import _Packer
+    from aiozmq.util import _Packer
 except ImportError:  # pragma: no cover
     raise ImportError("aiozmq.rpc requires msgpack-python package.")
 
@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover
 __all__ = [
     'method',
     'connect_rpc',
-    'server_rpc',
+    'serve_rpc',
     'Error',
     'GenericError',
     'NotFoundError',
