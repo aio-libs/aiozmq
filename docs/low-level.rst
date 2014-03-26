@@ -152,7 +152,7 @@ ZmqTransport
 
       Buffered data will be lost.  No more data will be received.  The
       protocol's :meth:`~ZmqProtocol.connection_lost` method will
-      (eventually) be called with None as its argument.
+      (eventually) be called with *None* as it's argument.
 
    .. method:: getsockopt(option)
 
