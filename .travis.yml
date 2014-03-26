@@ -10,10 +10,13 @@ before_install:
 
 install:
   - python setup.py install
+  - [$USE_MSGPACK] && pip install msgpack-python
 
 script:
   - python runtests.py -v
-  - pip install msgpack-python
-  - python runtests.py -v
+
+env:
+  - USE_MSGPACK=1
+  - USE_MSGPACK=0
 
 cache: apt
