@@ -108,7 +108,8 @@ def method(func):
 
 
 @asyncio.coroutine
-def open_client(*, connect=None, bind=None, loop=None, error_table=None):
+def open_client(*, connect=None, bind=None, loop=None,
+                error_table=None, translators=None):
     """A coroutine that creates and connects/binds RPC client.
 
     Return value is a client instance.
@@ -120,13 +121,15 @@ def open_client(*, connect=None, bind=None, loop=None, error_table=None):
         loop = asyncio.get_event_loop()
 
     transp, proto = yield from loop.create_zmq_connection(
-        lambda: _ClientProtocol(loop, error_table=error_table),
+        lambda: _ClientProtocol(loop, error_table=error_table,
+                                translators=translators),
         zmq.DEALER, connect=connect, bind=bind)
     return RPCClient(loop, proto)
 
 
 @asyncio.coroutine
-def start_server(handler, *, connect=None, bind=None, loop=None):
+def start_server(handler, *, connect=None, bind=None, loop=None,
+                 translators=None):
     """A coroutine that creates and connects/binds RPC server instance."""
     # TODO: describe params
     # TODO: add a way to pass value translator
@@ -134,19 +137,18 @@ def start_server(handler, *, connect=None, bind=None, loop=None):
         loop = asyncio.get_event_loop()
 
     transp, proto = yield from loop.create_zmq_connection(
-        lambda: _ServerProtocol(loop, handler),
+        lambda: _ServerProtocol(loop, handler, translators),
         zmq.ROUTER, connect=connect, bind=bind)
-
     return _RPCServer(loop, proto)
 
 
 class _BaseProtocol(interface.ZmqProtocol):
 
-    def __init__(self, loop):
+    def __init__(self, loop, translators=None):
         self.loop = loop
         self.transport = None
         self.done_waiters = []
-        self.packer = _Packer()
+        self.packer = _Packer(translators=translators)
 
     def connection_made(self, transport):
         self.transport = transport
@@ -199,8 +201,8 @@ class _ClientProtocol(_BaseProtocol):
     REQ_SUFFIX = struct.Struct('=Ld')
     RESP = struct.Struct('=HHLd?')
 
-    def __init__(self, loop, *, error_table=None):
-        super().__init__(loop)
+    def __init__(self, loop, *, error_table=None, translators=None):
+        super().__init__(loop, translators=translators)
         self.calls = {}
         self.prefix = self.REQ_PREFIX.pack(os.getpid() % 0x10000,
                                            random.randrange(0x10000))
@@ -292,8 +294,8 @@ class _ServerProtocol(_BaseProtocol):
     RESP_PREFIX = struct.Struct('=HH')
     RESP_SUFFIX = struct.Struct('=Ld?')
 
-    def __init__(self, loop, handler):
-        super().__init__(loop)
+    def __init__(self, loop, handler, translators=None):
+        super().__init__(loop, translators)
         self.prepare_handler(handler)
         self.handler = handler
         self.prefix = self.RESP_PREFIX.pack(os.getpid() % 0x10000,

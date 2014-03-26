@@ -4,7 +4,6 @@ import datetime
 from unittest import mock
 from msgpack import ExtType, packb 
 from pickle import dumps, loads, HIGHEST_PROTOCOL
-from collections import namedtuple
 from functools import partial
 
 from aiozmq.util import _Packer
