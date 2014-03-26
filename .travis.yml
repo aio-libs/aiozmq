@@ -11,7 +11,7 @@ before_install:
 
 install:
   - python setup.py install
-  - test $USE_MSGPACK == 1 && pip install msgpack-python
+  - test $USE_MSGPACK == 1 && pip install msgpack-python || true
 
 script:
   - python runtests.py -v
