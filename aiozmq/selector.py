@@ -6,7 +6,7 @@ __all__ = ['ZmqSelector']
 try:
     from asyncio.selectors import (BaseSelector, SelectorKey,
                                    EVENT_READ, EVENT_WRITE)
-except ImportError:
+except ImportError:  # pragma: no cover
     from selectors import BaseSelector, SelectorKey, EVENT_READ, EVENT_WRITE
 from collections import Mapping
 from errno import EINTR
