@@ -10,7 +10,7 @@ before_install:
 
 install:
   - python setup.py install
-  - [$USE_MSGPACK] && pip install msgpack-python
+  - "[$USE_MSGPACK] && pip install msgpack-python"
 
 script:
   - python runtests.py -v
