@@ -2,6 +2,7 @@ import asyncio
 import aiozmq, aiozmq.rpc
 import msgpack
 
+
 class Point:
 
     def __init__(self, x, y):
@@ -20,18 +21,22 @@ translation_table = {
         lambda binary: Point(*msgpack.unpackb(binary))),
 }
 
+
 class ServerHandler(aiozmq.rpc.AttrHandler):
     @aiozmq.rpc.method
     def remote(self, val):
         return val
 
+
 @asyncio.coroutine
 def go():
     server = yield from aiozmq.rpc.start_server(
-        ServerHandler(), bind='tcp://127.0.0.1:5555',
+        ServerHandler(), bind='tcp://*:*',
         translation_table=translation_table)
+    server_addr = next(iter(server.transport.bindings()))
+
     client = yield from aiozmq.rpc.open_client(
-        connect='tcp://127.0.0.1:5555',
+        connect=server_addr,
         translation_table=translation_table)
 
     ret = yield from client.rpc.remote(Point(1, 2))
@@ -45,6 +50,7 @@ def main():
     asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
     asyncio.get_event_loop().run_until_complete(go())
     print("DONE")
+
 
 if __name__ == '__main__':
     main()
