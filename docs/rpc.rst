@@ -142,20 +142,19 @@ To start RPC server you need to create handler and pass it into start_server::
     Usually for this function you need to use *bind* parameter, but
     :term:`ZeroMQ` does not forbid to use *connect*.
 
-    Either *connect* or *bind* parameter should be not *None*.
+    :param aiozmq.rpc.AbstractHander handler:
 
-    .. seealso:: Please take a look on
-       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
-       values to *connect* and *bind* parameters.
-
-    :param AbstractHander handler:
-
-       instance of :class:`AbstractHander` which processes incoming
-       RPC calls.
+       an object which processes incoming RPC calls.
 
       Usually you like to pass :class:`AttrHandler` instance.
 
-    :return: :class:`asyncio.AbstractServer` instance.
+    :return: :class:`Service` instance.
+
+    .. seealso::
+
+       Please take a look on
+       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
+       values for *connect* and *bind* parameters.
 
 .. _aiozmq-rpc-exception-translation:
 
@@ -170,7 +169,8 @@ back to client and raised on client side, as follows::
     except ValueError as exc:
         log.exception(exc)
 
-The rule for exception translation is:
+The rules for exception translation are:
+
    * if remote method raises an exception --- server answers with
      *full exception class name* (like ``package.subpackage.MyError``)
      and *exception constructor arguments*
@@ -181,8 +181,10 @@ The rule for exception translation is:
    * if translation is found then client code gives exception ``raise
      exc_class(args)``.
    * user defined translators are searched first.
-   * all :ref:`builtin exceptions <bltin-exceptions>` are translated.
-   * :exc:`NotFoundError` and :exc:`ParameterError` are translated.
+   * all :ref:`builtin exceptions <bltin-exceptions>` are translated
+     by default.
+   * :exc:`NotFoundError` and :exc:`ParameterError` are translated by
+     default also.
    * if there is no registered traslation then
      ``GenericError(excpetion_name, args)`` is raised.
 
@@ -296,8 +298,8 @@ The only difference is: *aiozmq.rpc* converts all :class:`lists
 <list>` to :class:`tuples <tuple>`.  The reasons is are:
 
   * you never need to modify given list as it is your *incoming*
-    value.  If you still need to use :class:`list` data type you can
-    easy do it by ``list(val)`` call.
+    value.  If you still want to use :class:`list` data type you can
+    do it easy by ``list(val)`` call.
   * tuples are a bit faster for unpacking.
   * tuple can be a *key* in :class:`dict`, so you can pack something
     like ``{(1,2): 'a'}`` and unpack it on other side without any
@@ -481,6 +483,40 @@ RPC exceptions
 RPC clases
 ----------
 
+.. class:: AbstractHander
+
+   The base class for all RPC handlers.
+
+   Every handler should to be *AbstractHandler* by direct inheritance
+   or indirect subclassing (method *__getitem__* should be defined.
+
+   Therefore :class:`AttrHandler` and :class:`dict` are both good
+   citizens.
+
+    .. method:: __getitem__(self, key)
+
+        Returns subhandler or terminal function decorated by
+        :func:`method`.
+
+        :raise KeyError: if key is not found.
+
+    .. seealso:: :func:`start_server` coroutine.
+
+.. class:: AttrHandler
+
+   Subclass of :class:`AbstractHandler`. Does lookup for *subhandlers*
+   and *rpc methods* by :func:`getattr`.
+
+   There is an example of trivial *handler*::
+
+       class ServerHandler(aiozmq.rpc.AttrHandler):
+           @aiozmq.rpc.method
+           def remote_func(self, a:int, b:int) -> int:
+               return a + b
+
+
+
+
 .. class:: Service
 
    RPC service base class.
@@ -554,4 +590,3 @@ RPC clases
 
       You should never instantiate :class:`RPCClient` by hand, use
       :func:`open_client` instead.
-
