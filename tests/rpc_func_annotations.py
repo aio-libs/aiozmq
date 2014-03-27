@@ -65,17 +65,17 @@ class FuncAnnotationsTests(unittest.TestCase):
         self.loop.run_until_complete(service.wait_closed())
 
     def make_rpc_pair(self):
-        port = find_unused_port()
 
         @asyncio.coroutine
         def create():
             server = yield from aiozmq.rpc.start_server(
                 MyHandler(),
-                bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
+
+            addr = server.transport.bind('tcp://*:*')
+
             client = yield from aiozmq.rpc.open_client(
-                connect='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop)
+                connect=addr, loop=self.loop)
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())

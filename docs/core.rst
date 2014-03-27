@@ -69,7 +69,9 @@ transports created by event loop shares the same context.
 
         Create a ZeroMQ connection.
 
-        The only one of *bind*, *connect* or *zmq_sock* should be specified.
+        If you don't use *bind* or *connect* params you can do it
+        later by :meth:`ZmqTransport.bind` and `ZmqTransport.connect`
+        calls.
 
         :param callable protocol_factory: a factory that instantiates
           :class:`~ZmqProtocol` object.
