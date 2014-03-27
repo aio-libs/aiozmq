@@ -91,7 +91,6 @@ class ZmqEventLoop(SelectorEventLoop):
         try:
             if zmq_sock is None:
                 zmq_sock = self._zmq_context.socket(zmq_type)
-            # TODO: process EINTR
             elif zmq_sock.getsockopt(zmq.TYPE) != zmq_type:
                 raise ValueError('Invalid zmq_sock type')
         except zmq.ZMQError as exc:
@@ -321,29 +320,22 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         return self._buffer_size
 
     def bind(self, endpoint):
-        while True:
-            try:
-                self._zmq_sock.bind(endpoint)
-                real_endpoint = self.getsockopt(zmq.LAST_ENDPOINT)
-            except zmq.ZMQError as exc:
-                if exc.errno == errno.EINTR:
-                    continue
-                raise OSError(exc.errno, exc.strerror) from exc
-            else:
-                self._bindings.add(real_endpoint)
-                return real_endpoint
+        try:
+            self._zmq_sock.bind(endpoint)
+            real_endpoint = self.getsockopt(zmq.LAST_ENDPOINT)
+        except zmq.ZMQError as exc:
+            raise OSError(exc.errno, exc.strerror) from exc
+        else:
+            self._bindings.add(real_endpoint)
+            return real_endpoint
 
     def unbind(self, endpoint):
-        while True:
-            try:
-                self._zmq_sock.unbind(endpoint)
-            except zmq.ZMQError as exc:
-                if exc.errno == errno.EINTR:
-                    continue
-                raise OSError(exc.errno, exc.strerror) from exc
-            else:
-                self._bindings.discard(endpoint)
-                return
+        try:
+            self._zmq_sock.unbind(endpoint)
+        except zmq.ZMQError as exc:
+            raise OSError(exc.errno, exc.strerror) from exc
+        else:
+            self._bindings.discard(endpoint)
 
     def bindings(self):
         return _EndpointsSet(self._bindings)
@@ -352,28 +344,21 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         match = self._TCP_RE.match(endpoint)
         if match:
             ip_address(match.group(1))  # check for correct IPv4 or IPv6
-        while True:
-            try:
-                self._zmq_sock.connect(endpoint)
-            except zmq.ZMQError as exc:
-                if exc.errno == errno.EINTR:
-                    continue
-                raise OSError(exc.errno, exc.strerror) from exc
-            else:
-                self._connections.add(endpoint)
-                return endpoint
+        try:
+            self._zmq_sock.connect(endpoint)
+        except zmq.ZMQError as exc:
+            raise OSError(exc.errno, exc.strerror) from exc
+        else:
+            self._connections.add(endpoint)
+            return endpoint
 
     def disconnect(self, endpoint):
-        while True:
-            try:
-                self._zmq_sock.disconnect(endpoint)
-            except zmq.ZMQError as exc:
-                if exc.errno == errno.EINTR:
-                    continue
-                raise OSError(exc.errno, exc.strerror) from exc
-            else:
-                self._connections.discard(endpoint)
-                return
+        try:
+            self._zmq_sock.disconnect(endpoint)
+        except zmq.ZMQError as exc:
+            raise OSError(exc.errno, exc.strerror) from exc
+        else:
+            self._connections.discard(endpoint)
 
     def connections(self):
         return _EndpointsSet(self._connections)

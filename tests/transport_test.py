@@ -274,32 +274,6 @@ class TransportTests(unittest.TestCase):
         self.assertEqual([mock.call('opt'), mock.call('opt')],
                          self.sock.getsockopt.call_args_list)
 
-    def test_bind_EINTR(self):
-        self.sock.bind.side_effect = [zmq.ZMQError(errno.EINTR), None]
-        self.sock.getsockopt.return_value = b'realaddr'
-        self.assertEqual('realaddr', self.tr.bind('addr'))
-        self.assertEqual([mock.call('addr'), mock.call('addr')],
-                         self.sock.bind.call_args_list)
-        self.sock.getsockopt.assert_called_once_with(zmq.LAST_ENDPOINT)
-
-    def test_unbind_EINTR(self):
-        self.sock.unbind.side_effect = [zmq.ZMQError(errno.EINTR), None]
-        self.assertIsNone(self.tr.unbind('addr'))
-        self.assertEqual([mock.call('addr'), mock.call('addr')],
-                         self.sock.unbind.call_args_list)
-
-    def test_connect_EINTR(self):
-        self.sock.connect.side_effect = [zmq.ZMQError(errno.EINTR), None]
-        self.assertEqual('addr', self.tr.connect('addr'))
-        self.assertEqual([mock.call('addr'), mock.call('addr')],
-                         self.sock.connect.call_args_list)
-
-    def test_disconnect_EINTR(self):
-        self.sock.disconnect.side_effect = [zmq.ZMQError(errno.EINTR), None]
-        self.assertIsNone(self.tr.disconnect('addr'))
-        self.assertEqual([mock.call('addr'), mock.call('addr')],
-                         self.sock.disconnect.call_args_list)
-
     def test_write_EAGAIN(self):
         self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
         self.tr.write((b'a', b'b'))
