@@ -11,7 +11,7 @@
 Intro
 -----
 
-While :ref:`low-level API <aiozmq-low-level>` provides core support for
+While :ref:`core API <aiozmq-core>` provides core support for
 :term:`ZeroMQ` transports an :term:`End User <enduser>` usually needs for
 some high-level API.
 
@@ -27,8 +27,8 @@ In other hand this module provides *human* API but it is not
 compatible with *other implementations*.
 
 If you need to support some RPC protocol over :term:`ZeroMQ` layer
-please feel free to build your own implementation on top of :ref:`low
-level primitives <aiozmq-low-level>`.
+please feel free to build your own implementation on top of the
+:ref:`core primitives <aiozmq-core>`.
 
 This module uses :term:`ZeroMQ` *DEALER*/*ROUTER* sockets and custom
 communication protocol (which uses :term:`msgpack` by the way).

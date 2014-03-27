@@ -18,7 +18,6 @@ ZeroMQ integration with asyncio (:pep:`3156`).
 
 .. _GitHub: https://github.com/aio-libs/aiozmq
 
-.. image:: http://site.com/img.png
 
 Features
 --------
@@ -33,7 +32,7 @@ Features
 Library Installation
 --------------------
 
-The :ref:`core <aiozmq-low-level>` requires only :term:`pyzmq` and can
+The :ref:`core <aiozmq-core>` requires only :term:`pyzmq` and can
 be installed (with pyzmq as dependency) by::
 
    pip3 install aiozmq
@@ -127,6 +126,6 @@ Indices and tables
 
 .. toctree::
 
-   low-level
+   core
    rpc
    glossary

@@ -1,7 +1,7 @@
-.. _aiozmq-low-level:
+.. _aiozmq-core:
 
-:mod:`aiozmq` --- low level API
-===============================
+:mod:`aiozmq` --- Core API
+==========================
 
 
 .. module:: aiozmq
