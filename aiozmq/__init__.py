@@ -6,7 +6,7 @@ from .interface import ZmqTransport, ZmqProtocol
 __all__ = ('ZmqSelector', 'ZmqEventLoop', 'ZmqEventLoopPolicy',
            'ZmqTransport', 'ZmqProtocol')
 
-__version__ = '0.0.2'
+__version__ = '0.0.2a1'
 
 # make pyflakes happy
 (ZmqSelector, ZmqEventLoop, ZmqEventLoopPolicy, ZmqTransport, ZmqProtocol)
