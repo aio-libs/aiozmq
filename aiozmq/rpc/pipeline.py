@@ -110,8 +110,13 @@ class _ServerProtocol(_BaseProtocol, _MethodDispatcher):
 
     def process_call_result(self, fut, *, name):
         try:
-            ret = fut.result()
-            if ret is not None:
+            if fut.result() is not None:
                 logger.warn("Pipeline handler %r returned not None", name)
         except Exception as exc:
-            logger.exception("Error processing call to %r", name)
+            self.loop.call_exception_handler({
+                'message': 'Call to {!r} caused error: {!r}'.format(name, exc),
+                'exception': exc,
+                'future': fut,
+                'protocol': self,
+                'transport': self.transport,
+                })
