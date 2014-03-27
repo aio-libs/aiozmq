@@ -8,6 +8,14 @@ aiozmq
 
 ZeroMQ integration with asyncio (:pep:`3156`).
 
+.. raw:: html
+
+   <p style="height:22px">
+     <a href="https://travis-ci.org/aio-libs/aiozmq" >
+       <img src="https://travis-ci.org/aio-libs/aiozmq.svg?branch=master"/>
+     </a>
+   </p>
+
 .. _GitHub: https://github.com/aio-libs/aiozmq
 
 
@@ -54,11 +62,7 @@ Please feel free to file an issue on `bug tracker
 or have some suggestion for library improvement.
 
 The library uses `Travis <https://travis-ci.org/aio-libs/aiozmq>`_ for
-Continious Integration.  Current status of `master branch <GitHub>`_
-is |travis-st|.
-
-.. |travis-st| image:: https://travis-ci.org/aio-libs/aiozmq.svg?branch=master
-   :target: https://travis-ci.org/aio-libs/aiozmq
+Continious Integration.
 
 
 Dependencies
