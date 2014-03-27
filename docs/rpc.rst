@@ -26,7 +26,7 @@ have runned on other host).
 In other hand this module provides *human* API but it is not
 compatible with *other implementations*.
 
-If you need to support some RPC protocol over :term:`ZeroMQ` layer
+If you need to support custor protocol over :term:`ZeroMQ` layer
 please feel free to build your own implementation on top of the
 :ref:`core primitives <aiozmq-core>`.
 
