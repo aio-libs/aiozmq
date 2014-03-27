@@ -17,6 +17,7 @@ from .util import (
     _check_func_arguments,
     )
 
+
 @asyncio.coroutine
 def connect_pipeline(*, connect=None, bind=None, loop=None,
                      translation_table=None):
