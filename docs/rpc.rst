@@ -298,12 +298,12 @@ The only difference is: *aiozmq.rpc* converts all :class:`lists
   * you never need to modify given list as it is your *incoming*
     value.  If you still need to use :class:`list` data type you can
     easy do it by ``list(val)`` call.
-  * tuples a bit faster for unpacking.
+  * tuples are a bit faster for unpacking.
   * tuple can be a *key* in :class:`dict`, so you can pack something
     like ``{(1,2): 'a'}`` and unpack it on other side without any
     error. Lists cannot be *keys* in dicts, they are unhashable.
 
-    This is the main reason for choosing tuples. Unfortunatelly
+    This point is the main reason for choosing tuples. Unfortunatelly
     msgpack gives no way to mix tuples and lists in the same pack.
 
 But sometimes you want to call remote side with *non-plain-json*
@@ -417,6 +417,20 @@ Table of predefined translators:
 | 127     | :class:`datetime.datetime`    |
 +---------+-------------------------------+
 
+.. note::
+
+   `pytz <http://pythonhosted.org/pytz/>`_ timezones processed by
+   predefined traslator for *tzinfo* (ordinal number 123) because they
+   are inherited from :class:`datetime.tzinfo`. So you don't need to
+   register a custom translator for ``pytz.datetime`` .
+
+   That's happens because :mod:`aiozmq.rpc` uses :mod:`pickle` for
+   translation :mod:`datetime` classes.
+
+   Pickling in this particular case is **safe** because all datetime
+   classes are terminals and doesn't have a links to foreign class
+   instances.
+
 
 RPC exceptions
 --------------
@@ -461,7 +475,7 @@ RPC exceptions
 
    .. seealso::
 
-      :attr:`Service.transport` method.
+      :attr:`Service.transport` property.
 
 
 RPC clases
@@ -525,7 +539,7 @@ RPC clases
       If the call raises exception that exception propagates to client side.
 
       Say, if remote raises :class:`ValueError` client catches
-      *ValueError* instance with *args* sent by remote::
+      ``ValueError`` instance with *args* sent by remote::
 
           try:
               yield from client.rpc.raise_value_error()

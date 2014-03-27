@@ -1,0 +1,50 @@
+import asyncio
+import aiozmq, aiozmq.rpc
+
+
+class CustomError(Exception):
+
+    def __init__(self, val):
+        self.val = val
+        super().__init__(val)
+
+
+error_table = {
+    CustomError.__module__+'.'+CustomError.__name__:
+        CustomError
+}
+
+
+class ServerHandler(aiozmq.rpc.AttrHandler):
+    @aiozmq.rpc.method
+    def remote(self, val):
+        raise CustomError(val)
+
+
+@asyncio.coroutine
+def go():
+    server = yield from aiozmq.rpc.start_server(
+        ServerHandler(), bind='tcp://*:*')
+    server_addr = next(iter(server.transport.bindings()))
+
+    client = yield from aiozmq.rpc.open_client(
+        connect=server_addr,
+        error_table=error_table)
+
+    try:
+        yield from client.rpc.remote('value')
+    except CustomError as exc:
+        exc.val == 'value'
+
+    server.close()
+    client.close()
+
+
+def main():
+    asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
+    asyncio.get_event_loop().run_until_complete(go())
+    print("DONE")
+
+
+if __name__ == '__main__':
+    main()

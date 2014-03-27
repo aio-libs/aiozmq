@@ -18,6 +18,7 @@ ZeroMQ integration with asyncio (:pep:`3156`).
 
 .. _GitHub: https://github.com/aio-libs/aiozmq
 
+.. image:: http://site.com/img.png
 
 Features
 --------
