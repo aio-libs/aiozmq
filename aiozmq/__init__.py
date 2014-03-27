@@ -1,5 +1,6 @@
 from collections import namedtuple
 import re
+import sys
 
 from .selector import ZmqSelector
 from .events import ZmqEventLoop, ZmqEventLoopPolicy
@@ -8,11 +9,11 @@ from .interface import ZmqTransport, ZmqProtocol
 
 __all__ = ('ZmqSelector', 'ZmqEventLoop', 'ZmqEventLoopPolicy',
            'ZmqTransport', 'ZmqProtocol',
-           '__version__', 'version_info', 'version')
+           'version_info', 'version')
 
 __version__ = '0.1.0a'
 
-version = __version__
+version = __version__ + ' , Python ' + sys.version
 
 
 VersionInfo = namedtuple('VersionInfo', 'major minor micro releaselevel serial')
