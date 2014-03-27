@@ -26,7 +26,7 @@ def connect_pubsub(*, connect=None, bind=None, loop=None,
 
 
 @asyncio.coroutine
-def serve_pubsub(handler, * subscribe=None, connect=None, bind=None,
+def serve_pubsub(handler, *, subscribe=None, connect=None, bind=None,
                  loop=None, translation_table=None):
     if loop is None:
         loop = asyncio.get_event_loop()
