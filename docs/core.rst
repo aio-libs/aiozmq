@@ -55,9 +55,8 @@ Follows :class:`asyncio.AbstractEventLoop` specification and has
 :meth:`~ZmqEventLoop.create_zmq_connection` method for :term:`ZeroMQ`
 sockets layer.
 
-Implementation detail: internally has :class:`ZeroMQ context
-<zmq.Context>`, so all transports created by event loop shares the
-same context.
+Internally the loop contains a :class:`zmq.Context` instance, so all
+transports created by event loop shares the same context.
 
 
 .. class:: ZmqEventLoop(*, io_threads=1)
@@ -218,7 +217,7 @@ ZmqTransport
       Bind transpot to :term:`endpoint`.
       See http://api.zeromq.org/master:zmq-bind for details.
 
-      :param endpoint: a string in format transport://address as
+      :param endpoint: a string in format ``transport://address`` as
          :term:`ZeroMQ` requires.
 
       :return: bound endpoint, unwinding wildcards if needed.
@@ -245,16 +244,16 @@ ZmqTransport
       Connect transpot to :term:`endpoint`.
       See http://api.zeromq.org/master:zmq-connect for details.
 
-      :param str endpoint: a string in format transport://address as
+      :param str endpoint: a string in format ``transport://address`` as
         :term:`ZeroMQ` requires.
 
-        For tcp connections endpoint should specify *IPv4* or *IPv6* address,
-        not *DNS* name.
-        Use ``yield from get_event_loop().getaddrinfo(host, port)``
-        for translating *DNS* into *IP address*.
+        For tcp connections the *endpoint* should specify *IPv4* or
+        *IPv6* address, not *DNS* name.  Use ``yield from
+        get_event_loop().getaddrinfo(host, port)`` for translating
+        *DNS* into *IP address*.
 
-      :raise ValueError: endpoint is tcp DNS address.
-      :return: bound connection, unwinding wildcards if needed.
+      :raise ValueError: if the endpoint is a tcp DNS address.
+      :return: endpoint
       :rtype: str
 
    .. method:: disconnect(endpoint)
