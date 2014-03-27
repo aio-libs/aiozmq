@@ -1,5 +1,5 @@
 asyncio integration with ZeroMQ
-=============================
+===============================
 
 Experimental asyncio (PEP 3156) compatibility with ZeroMQ.
 

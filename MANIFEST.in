@@ -1,0 +1,5 @@
+include LICENSE.txt
+include CHANGES.txt
+include README.rst
+graft aiozmq
+global-exclude *.pyc

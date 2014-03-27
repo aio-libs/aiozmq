@@ -9,3 +9,4 @@ coverage
 build
 htmlcov
 docs/_build
+dist
