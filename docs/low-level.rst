@@ -14,9 +14,10 @@
 Installing ZeroMQ event loop
 ----------------------------
 
-To use ZeroMQ layer you **should** install proper event loop first.
+To use :term:`ZeroMQ` layer you **should** install proper event loop
+first.
 
-The recommended way is to setup global event loop *policy*::
+The recommended way is to setup *global event loop policy*::
 
     import asyncio
     import aiozmq
@@ -50,12 +51,13 @@ ZmqEventLoop
 
 Event loop with :term:`ZeroMQ` support.
 
-Follows :class:`asyncio.AbstractEventLoop` specification, in addition
-implements :meth:`~ZmqEventLoop.create_zmq_connection` method for
-ZeroMQ sockets layer.
+Follows :class:`asyncio.AbstractEventLoop` specification and has
+:meth:`~ZmqEventLoop.create_zmq_connection` method for :term:`ZeroMQ`
+sockets layer.
 
-Contains :class:`zmq.Context` objects, so all transports created by
-event loop shares the same context.
+Implementation detail: internally has :class:`ZeroMQ context
+<zmq.Context>`, so all transports created by event loop shares the
+same context.
 
 
 .. class:: ZmqEventLoop(*, io_threads=1)
@@ -97,10 +99,11 @@ event loop shares the same context.
           connections.
         :type connect: str or iterable of strings
 
-        :param zmq.Socket zmq_sock: a :class:`zmq.Socket` instance to
-          use preexisting object with created transport.
+        :param zmq.Socket zmq_sock: a preexisting zmq socket with that
+                                    will be passed to returned
+                                    transport.
 
-        :return: a pair of (transport, protocol)
+        :return: a pair of ``(transport, protocol)``
           where transport supports :class:`~ZmqTransport` interface.
 
 
@@ -115,13 +118,12 @@ ZmqTransport
    End user should never create :class:`~ZmqTransport` objects,
    he gets it by ``yield from loop.create_zmq_connection()`` call.
 
-   .. method:: get_extra_info(name, default=None)
+   .. method:: get_extra_info(key, default=None)
 
       Return optional transport information if name is present else default.
 
-      :class:`ZmqTransport` supports the only valid name:
-      ``"zmq_socket"``.  Value is :class:`zmq.Socket` instance for this
-      transport.
+      :class:`ZmqTransport` supports the only valid *key*:
+      ``"zmq_socket"``.  The value is :class:`zmq.Socket` instance.
 
       :param str name: name of info record.
       :param default: default value
@@ -150,7 +152,7 @@ ZmqTransport
 
       Buffered data will be lost.  No more data will be received.  The
       protocol's :meth:`~ZmqProtocol.connection_lost` method will
-      (eventually) be called with None as its argument.
+      (eventually) be called with *None* as it's argument.
 
    .. method:: getsockopt(option)
 
@@ -163,6 +165,9 @@ ZmqTransport
         http://api.zeromq.org/master:zmq-getsockopt
 
       :return: option value
+
+      :raise OSError:
+         if call to ZeroMQ is not successful.
 
    .. method:: setsockopt(option, value)
 

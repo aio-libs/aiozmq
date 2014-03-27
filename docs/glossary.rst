@@ -9,11 +9,23 @@ Glossary
 
 .. glossary::
 
+   annotaion
+
+      Additional value that can be bound to any function argument and
+      return value.
+
+      See :pep:`3107`.
+
    asyncio
 
       Reference implementation of :pep:`3156`
 
       See https://pypi.python.org/pypi/asyncio/
+
+   callable
+
+      Any object that can be called. Use :func:`callable` to check
+      that.
 
    endpoint
 

@@ -33,8 +33,11 @@ __all__ = [
     'Error',
     'GenericError',
     'NotFoundError',
+    'ParametersError',
+    'ServiceClosedError',
     'AbstractHandler',
-    'AttrHandler'
+    'AttrHandler',
+    'Service',
     ]
 
 
@@ -58,6 +61,10 @@ class NotFoundError(Error, LookupError):
 class ParametersError(Error, ValueError):
     """Error raised by server when RPC method's parameters could not
     be validated against their annotations."""
+
+
+class ServiceClosedError(Exception):
+    """RPC Service has been closed."""
 
 
 class AbstractHandler(metaclass=abc.ABCMeta):
@@ -109,7 +116,7 @@ def method(func):
 
 @asyncio.coroutine
 def connect_rpc(*, connect=None, bind=None, loop=None,
-                error_table=None, translators=None):
+                error_table=None, translation_table=None):
     """A coroutine that creates and connects/binds RPC client.
 
     Return value is a client instance.
@@ -122,14 +129,14 @@ def connect_rpc(*, connect=None, bind=None, loop=None,
 
     transp, proto = yield from loop.create_zmq_connection(
         lambda: _ClientProtocol(loop, error_table=error_table,
-                                translators=translators),
+                                translation_table=translation_table),
         zmq.DEALER, connect=connect, bind=bind)
     return RPCClient(loop, proto)
 
 
 @asyncio.coroutine
 def serve_rpc(handler, *, connect=None, bind=None, loop=None,
-                 translators=None):
+                 translation_table=None):
     """A coroutine that creates and connects/binds RPC server instance."""
     # TODO: describe params
     # TODO: add a way to pass value translator
@@ -137,18 +144,18 @@ def serve_rpc(handler, *, connect=None, bind=None, loop=None,
         loop = asyncio.get_event_loop()
 
     transp, proto = yield from loop.create_zmq_connection(
-        lambda: _ServerProtocol(loop, handler, translators),
+        lambda: _ServerProtocol(loop, handler, translation_table),
         zmq.ROUTER, connect=connect, bind=bind)
-    return _RPCServer(loop, proto)
+    return Service(loop, proto)
 
 
 class _BaseProtocol(interface.ZmqProtocol):
 
-    def __init__(self, loop, translators=None):
+    def __init__(self, loop, translation_table=None):
         self.loop = loop
         self.transport = None
         self.done_waiters = []
-        self.packer = _Packer(translators=translators)
+        self.packer = _Packer(translation_table=translation_table)
 
     def connection_made(self, transport):
         self.transport = transport
@@ -159,11 +166,31 @@ class _BaseProtocol(interface.ZmqProtocol):
             waiter.set_result(None)
 
 
-class _RPCServer(asyncio.AbstractServer):
+class Service(asyncio.AbstractServer):
+    """RPC service.
+
+    Instances of Service (or
+    descendants) are returned by coroutines that creates clients or
+    servers.
+
+    Implementation of AbstractServer.
+    """
 
     def __init__(self, loop, proto):
         self._loop = loop
         self._proto = proto
+
+    @property
+    def transport(self):
+        """Return the transport.
+
+        You can use the transport to dynamically bind/unbind,
+        connect/disconnect etc.
+        """
+        transport = self._proto.transport
+        if transport is None:
+            raise ServiceClosedError()
+        return transport
 
     def close(self):
         if self._proto.transport is None:
@@ -201,8 +228,8 @@ class _ClientProtocol(_BaseProtocol):
     REQ_SUFFIX = struct.Struct('=Ld')
     RESP = struct.Struct('=HHLd?')
 
-    def __init__(self, loop, *, error_table=None, translators=None):
-        super().__init__(loop, translators=translators)
+    def __init__(self, loop, *, error_table=None, translation_table=None):
+        super().__init__(loop, translation_table=translation_table)
         self.calls = {}
         self.prefix = self.REQ_PREFIX.pack(os.getpid() % 0x10000,
                                            random.randrange(0x10000))
@@ -256,7 +283,7 @@ class _ClientProtocol(_BaseProtocol):
         return fut
 
 
-class RPCClient(_RPCServer):
+class RPCClient(Service):
 
     def __init__(self, loop, proto):
         super().__init__(loop, proto)
@@ -294,8 +321,8 @@ class _ServerProtocol(_BaseProtocol):
     RESP_PREFIX = struct.Struct('=HH')
     RESP_SUFFIX = struct.Struct('=Ld?')
 
-    def __init__(self, loop, handler, translators=None):
-        super().__init__(loop, translators)
+    def __init__(self, loop, handler, translation_table=None):
+        super().__init__(loop, translation_table)
         self.prepare_handler(handler)
         self.handler = handler
         self.prefix = self.RESP_PREFIX.pack(os.getpid() % 0x10000,

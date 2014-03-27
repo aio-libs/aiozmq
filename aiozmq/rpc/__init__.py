@@ -7,7 +7,9 @@ from .rpc import (
     NotFoundError,
     ParametersError,
     AbstractHandler,
+    ServiceClosedError,
     AttrHandler,
+    Service,
     )
 from .pipeline import (
     connect_pipeline,
@@ -32,5 +34,7 @@ __all__ = [
     'NotFoundError',
     'ParametersError',
     'AbstractHandler',
+    'ServiceClosedError',
     'AttrHandler',
+    'Service',
     ]

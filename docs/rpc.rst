@@ -15,20 +15,20 @@ While :ref:`low-level API <aiozmq-low-level>` provides core support for
 :term:`ZeroMQ` transports an :term:`End User <enduser>` usually needs for
 some high-level API.
 
-Thus we have the :mod:`aiozmq.rpc` for Remote Procedure Calls.
+Thus we have the *aiozmq.rpc* module for Remote Procedure Calls.
 
 The main goal of the module is to provide *easy-to-use interface* for
-calling some method from remote process, which may be
-started on other host.
+calling some method from remote process (that processes may be
+have runned on other host).
 
 :term:`ZeroMQ` itself gives handy sockets but says nothing about RPC.
 
-In other hand this module provides human API but is not compatible with
-other implementations.
+In other hand this module provides *human* API but it is not
+compatible with *other implementations*.
 
-If you need to support some RPC protocol over ZeroMQ layer please feel
-free to build your own implementation on top of :ref:`low level
-primitives <aiozmq-low-level>`.
+If you need to support some RPC protocol over :term:`ZeroMQ` layer
+please feel free to build your own implementation on top of :ref:`low
+level primitives <aiozmq-low-level>`.
 
 This module uses :term:`ZeroMQ` *DEALER*/*ROUTER* sockets and custom
 communication protocol (which uses :term:`msgpack` by the way).
@@ -82,48 +82,6 @@ The basic usage is::
     :return: :class:`RPCClient` instance.
 
 
-.. class:: RPCClient
-
-   Class that returned by :func:`open_client` call. Implements
-   :class:`asyncio.AbstractServer` interface providing
-   :meth:`RPCClient.close` and :meth:`RPCClient.wait_closed` methods.
-
-   For RPC calls use :attr:`~RPCClient.rpc` property.
-
-   .. attribute:: rpc
-
-      The readonly property that returns ephemeral object used to making
-      RPC call.
-
-      Construction like::
-
-          ret = yield from client.rpc.ns.method(1, 2, 3)
-
-      makes a remote call with arguments(1, 2, 3) and returns answer
-      from this call.
-
-      You can also pass *named parameters*::
-
-          ret = yield from client.rpc.ns.method(1, b=2, c=3)
-
-      If the call raises exception that exception propagates to client side.
-
-      Say, if remote raises :class:`ValueError` client catches
-      *ValueError* instance with *args* sent by remote::
-
-          try:
-              yield from client.rpc.raise_value_error()
-          except ValueError as exc:
-              process_error(exc)
-
-      .. seealso::
-         :ref:`aiozmq-rpc-exception-translation` and
-         :ref:`aiozmq-rpc-signature-validation`
-
-   .. warning::
-
-      You should never instantiate :class:`RPCClient` by hand, use
-      :func:`open_client` instead.
 
 .. _aiozmq-rpc-server:
 
@@ -199,43 +157,6 @@ To start RPC server you need to create handler and pass it into start_server::
 
     :return: :class:`asyncio.AbstractServer` instance.
 
-RPC exceptions
---------------
-
-.. exception:: Error
-
-   Base class for :mod:`aiozmq.rpc` exceptions. Derived from :exc:`Exception`.
-
-.. exception:: GenericError
-
-   Subclass of :exc:`Error`, raised when a remote call producess
-   exception which cannot be translated.
-
-   .. attribute:: exc_type
-
-      A string contains *full name* of unknown
-      exception(``"package.module.MyError"``).
-
-   .. attribute:: arguments
-
-      A tuple of arguments passed to *unknown exception* constructor
-
-      .. seealso:: :attr:`parameters for exception constructor
-                   <BaseException.args>`
-
-   .. seealso:: :ref:`aiozmq-rpc-exception-translation`
-
-.. exception:: NotFoundError
-
-   Subclass of both :exc:`Error` and :exc:`LookupError`, raised when a
-   remote call name is not found at RPC server.
-
-.. exception:: ParameterError
-
-   Subclass of both :exc:`Error` and :exc:`ValueError`, raised by
-   remote call when parameter substitution or :ref:`remote method
-   signature validation <aiozmq-rpc-signature-validation>` is failed.
-
 .. _aiozmq-rpc-exception-translation:
 
 RPC exception translation at client side
@@ -292,7 +213,7 @@ RPC signature validation
 
 The library supports **optional** validation of remote call signatures.
 
-If validation fails :exc:`ParameterError` raises on client side.
+If validation fails then :exc:`ParameterError` raises on client side.
 
 All validations are done on RPC server side, than errors translated
 back to client.
@@ -308,11 +229,12 @@ Let's take a look on example of user-defined RPC handler::
 *Parameter* *arg1* and *return value* has :term:`annotaions <annotaion>`,
 *int* and *float* correspondingly.
 
-At call time if *parameter* has an *annotaion* then *actual value* passed to
-RPC method is calculated as ``actual_value = annotation(value)``. If
-there is no annotaion for parameter the value is passed as-is.
+At call time if *parameter* has an :term:`annotaion` then *actual
+value* passed to RPC method is calculated as ``actual_value =
+annotation(value)``. If there is no annotaion for parameter the value
+is passed as-is.
 
-Annotaion should be any *callable* that accepts a value as single argument
+Annotaion should be any :term:`callable` that accepts a value as single argument
 and returns *actual value*.
 
 If annotation call raises exception that exception throws to client
@@ -356,10 +278,10 @@ Trafaret has advanced types like *List* and *Dict*, so you can put
 your complex JSON-like structure as RPC method annotation. Also you
 can create custom trafarets if needed. It's easy, trust me.
 
-.. _aiozmq-rpc-custom-object-hooks:
+.. _aiozmq-rpc-value-translators:
 
-RPC custom object hooks
------------------------
+RPC value translators
+---------------------
 
 aiozmq.rpc uses :term:`msgpack` for transfering python objects from
 client to server and back.
@@ -371,9 +293,7 @@ Every object that can be passed to :func:`json.dump` can be passed to
 :func:`msgpack.dump` also. The same for unpacking.
 
 The only difference is: *aiozmq.rpc* converts all :class:`lists
-<list>` to :class:`tuples <tuple>`.
-
-The reasons is are:
+<list>` to :class:`tuples <tuple>`.  The reasons is are:
 
   * you never need to modify given list as it is your *incoming*
     value.  If you still need to use :class:`list` data type you can
@@ -386,12 +306,238 @@ The reasons is are:
     This is the main reason for choosing tuples. Unfortunatelly
     msgpack gives no way to mix tuples and lists in the same pack.
 
-But sometimes you want to call remote side with *non-plain-json* arguments.
-
-:class:`datetime.datetime` is a good example.
-
+But sometimes you want to call remote side with *non-plain-json*
+arguments.  :class:`datetime.datetime` is a good example.
 :mod:`aiozmq.rpc` supports all family of dates, times and timezones
-from :mod:`datetime` *in-the-box*.
+from :mod:`datetime` *from-the-box*
+(:ref:`predefined translators <aiozmq-rpc-predifined-translators>`).
 
 If you need to transfer a custom object via RPC you should to register
-**translator** at both server and client side.
+**translator** at both server and client side.  Say, you need to pass
+instances of your custom class ``Point`` via RPC. There is an
+example::
+
+    import asyncio
+    import aiozmq, aiozmq.rpc
+    import msgpack
+
+    class Point:
+        def __init__(self, x, y):
+            self.x = x
+            self.y = y
+
+        def __eq__(self, other):
+            if isinstance(other, Point):
+                return (self.x, self.y) == (other.x, other.y)
+            return NotImplemented
+
+    translation_table = {
+        0: (Point,
+            lambda value: msgpack.packb((value.x, value.y)),
+            lambda binary: Point(*msgpack.unpackb(binary))),
+    }
+
+    class ServerHandler(aiozmq.rpc.AttrHandler):
+        @aiozmq.rpc.method
+        def remote(self, val):
+            return val
+
+    @asyncio.coroutine
+    def go():
+        server = yield from aiozmq.rpc.start_server(
+            ServerHandler(), bind='tcp://127.0.0.1:5555',
+            translation_table=translation_table)
+        client = yield from aiozmq.rpc.open_client(
+            connect='tcp://127.0.0.1:5555',
+            translation_table=translation_table)
+
+        ret = yield from client.rpc.remote(Point(1, 2))
+        assert ret == Point(1, 2)
+
+You should to create a *translation table* and pass it to both
+:func:`open_client` and :func:`start_server`. That's all, server and
+client now have all information about passing your ``Point`` via the
+wire.
+
+* Translation table is the dict.
+
+* Keys should be an integers in range [0, 127]. We recommend to use
+  keys starting from 0 for custom translators, high numbers are
+  reserved for library itself (it uses the same schema for passing
+  *datetime* objects etc).
+
+* Values are tuples of ``(translated_class, packer, unpacker)``.
+
+  * *translated_class* is a class which you want to pass to peer.
+  * *packer* is a :term:`callable` which receives your class instance
+    and returns :class:`bytes` of *instance data*.
+  * *unpacker* is a :term:`callable` which receives :class:`bytes` of
+    *instance data* and returns your *class instance*.
+
+* When the library tries to pack your class instance it searches the
+  *translation table* in ascending order.
+
+* If your object is an :func:`instance <isinstance>` of
+  *translated_class* then *packer* is called and resulting
+  :class:`bytes` will be sent to peer.
+
+* On unpacking *unpacker* is called with the :class:`bytes` received by peer.
+  The result should to be your class instance.
+
+.. warning::
+
+   Please be careful with *translation table* order. Say, if you have
+   :class:`object` at position 0 then every lookup will stop at
+   this. Even *datetime* objects will be redirected to *packer* and
+   *unpacker* for registered *object* type.
+
+.. warning::
+
+   While the easiest way to write *packer* and *unpacker* is to use
+   :mod:`pickle` we **don't encourage that**. The reason is simple:
+   *pickle* packs an object itself and all instances which are
+   referenced by that object. So you can easy pass via network a half
+   of your program without any warning.
+
+.. _aiozmq-rpc-predifined-translators:
+
+Table of predefined translators:
+
++---------+-------------------------------+
+| Ordinal | Class                         |
++=========+===============================+
++ 123     | :class:`datetime.tzinfo`      |
++---------+-------------------------------+
++ 124     | :class:`datetime.timedelta`   |
++---------+-------------------------------+
++ 125     | :class:`datetime.time`        |
++---------+-------------------------------+
++ 126     | :class:`datetime.date`        |
++---------+-------------------------------+
+| 127     | :class:`datetime.datetime`    |
++---------+-------------------------------+
+
+
+RPC exceptions
+--------------
+
+.. exception:: Error
+
+   Base class for :mod:`aiozmq.rpc` exceptions. Derived from :exc:`Exception`.
+
+.. exception:: GenericError
+
+   Subclass of :exc:`Error`, raised when a remote call produces
+   exception which cannot be translated.
+
+   .. attribute:: exc_type
+
+      A string contains *full name* of unknown
+      exception(``"package.module.MyError"``).
+
+   .. attribute:: arguments
+
+      A tuple of arguments passed to *unknown exception* constructor
+
+      .. seealso:: :attr:`BaseException.args` - parameters for
+                   exception constructor.
+
+   .. seealso:: :ref:`aiozmq-rpc-exception-translation`
+
+.. exception:: NotFoundError
+
+   Subclass of both :exc:`Error` and :exc:`LookupError`, raised when a
+   remote call name is not found at RPC server.
+
+.. exception:: ParameterError
+
+   Subclass of both :exc:`Error` and :exc:`ValueError`, raised by
+   remote call when parameter substitution or :ref:`remote method
+   signature validation <aiozmq-rpc-signature-validation>` is failed.
+
+.. exception:: ServiceClosedError
+
+   Subclass of :exc:`Error`, raised :class:`Service` has been closed.
+
+   .. seealso::
+
+      :attr:`Service.transport` method.
+
+
+RPC clases
+----------
+
+.. class:: Service
+
+   RPC service base class.
+
+   Instances of *Service* (or descendants) are returned by
+   coroutines that creates clients or servers (:func:`open_client`,
+   :func:`start_server` and others).
+
+   Implements :class:`asyncio.AbstractServer`.
+
+   .. attribute:: transport
+
+      The readonly property that returns service's :class:`transport
+      <aiozmq.ZmqTransport>`.
+
+      You can use the transport to dynamically bind/unbind,
+      connect/disconnect etc.
+
+      :raise aiozmq.rpc.ServiceClosedError: if the service has been closed.
+
+   .. method:: close()
+
+      Stop serving.
+
+      This leaves existing connections open.
+
+   .. method:: wait_closed()
+
+      :ref:`Coroutine <coroutine>` to wait until service is closed.
+
+   .. warning:: You should never instantiate :class:`Service` by hand.
+
+.. class:: RPCClient
+
+   Class that returned by :func:`open_client` call. Inherited from
+   :class:`Service`.
+
+   For RPC calls use :attr:`~RPCClient.rpc` property.
+
+   .. attribute:: rpc
+
+      The readonly property that returns ephemeral object used to making
+      RPC call.
+
+      Construction like::
+
+          ret = yield from client.rpc.ns.method(1, 2, 3)
+
+      makes a remote call with arguments(1, 2, 3) and returns answer
+      from this call.
+
+      You can also pass *named parameters*::
+
+          ret = yield from client.rpc.ns.method(1, b=2, c=3)
+
+      If the call raises exception that exception propagates to client side.
+
+      Say, if remote raises :class:`ValueError` client catches
+      *ValueError* instance with *args* sent by remote::
+
+          try:
+              yield from client.rpc.raise_value_error()
+          except ValueError as exc:
+              process_error(exc)
+
+      .. seealso::
+         :ref:`aiozmq-rpc-exception-translation` and
+         :ref:`aiozmq-rpc-signature-validation`
+
+   .. warning::
+
+      You should never instantiate :class:`RPCClient` by hand, use
+      :func:`open_client` instead.
+

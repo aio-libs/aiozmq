@@ -2,7 +2,7 @@ import unittest
 import datetime
 
 from unittest import mock
-from msgpack import ExtType, packb 
+from msgpack import ExtType, packb
 from pickle import dumps, loads, HIGHEST_PROTOCOL
 from functools import partial
 
@@ -145,10 +145,10 @@ class PackerTests(unittest.TestCase):
             packer.ext_type_unpack_hook(127, b'bad data')
 
     def test_simple_translators(self):
-        translators = {
+        translation_table = {
             0: (Point, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
         }
-        packer = _Packer(translators=translators)
+        packer = _Packer(translation_table=translation_table)
 
         pt = Point(1, 2)
         data = dumps(pt, protocol=HIGHEST_PROTOCOL)
@@ -159,10 +159,10 @@ class PackerTests(unittest.TestCase):
         self.assertEqual(pt, packer.ext_type_unpack_hook(0, data))
 
     def test_override_translators(self):
-        translators = {
+        translation_table = {
             125: (Point, partial(dumps, protocol=HIGHEST_PROTOCOL), loads),
         }
-        packer = _Packer(translators=translators)
+        packer = _Packer(translation_table=translation_table)
 
         pt = Point(3, 4)
         data = dumps(pt, protocol=HIGHEST_PROTOCOL)
