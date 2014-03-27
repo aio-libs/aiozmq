@@ -321,45 +321,6 @@ class ZmqEventLoopTests(unittest.TestCase):
             self.loop.run_until_complete(connect())
         self.assertEqual(errno.ENOTSUP, ctx.exception.errno)
 
-    def test_create_zmq_connection_ambiguous_args1(self):
-
-        @asyncio.coroutine
-        def connect():
-            tr, pr = yield from self.loop.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.SUB,
-                zmq_sock=1,
-                connect=2)
-
-        with self.assertRaises(ValueError):
-            self.loop.run_until_complete(connect())
-
-    def test_create_zmq_connection_ambiguous_args2(self):
-
-        @asyncio.coroutine
-        def connect():
-            tr, pr = yield from self.loop.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.SUB,
-                zmq_sock=1,
-                bind=2)
-
-        with self.assertRaises(ValueError):
-            self.loop.run_until_complete(connect())
-
-    def test_create_zmq_connection_ambiguous_args3(self):
-
-        @asyncio.coroutine
-        def connect():
-            tr, pr = yield from self.loop.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.SUB,
-                bind=1,
-                connect=2)
-
-        with self.assertRaises(ValueError):
-            self.loop.run_until_complete(connect())
-
     def test_create_zmq_connection_invalid_bind(self):
 
         @asyncio.coroutine

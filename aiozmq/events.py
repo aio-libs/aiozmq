@@ -82,11 +82,6 @@ class ZmqEventLoop(SelectorEventLoop):
 
         The only one of bind, connect or zmq_sock should be specified.
         """
-        if 1 != sum(
-                1 if i is not None else 0 for i in [zmq_sock, bind, connect]):
-            raise ValueError(
-                "the only bind, connect or zmq_sock should be specified "
-                "at the same time", bind, connect, zmq_sock)
 
         try:
             if zmq_sock is None:
