@@ -13,7 +13,6 @@ import zmq
 
 from collections import ChainMap
 from functools import partial
-from types import MethodType
 
 from aiozmq.log import logger
 
@@ -27,6 +26,7 @@ from .base import (
     )
 from .util import (
     _MethodCall,
+    _MethodDispatcher,
     _fill_error_table,
     _check_func_arguments,
     )
@@ -153,7 +153,7 @@ class RPCClient(Service):
         return _MethodCall(self._proto)
 
 
-class _ServerProtocol(_BaseProtocol):
+class _ServerProtocol(_BaseProtocol, _MethodDispatcher):
 
     REQ = struct.Struct('=HHLd')
     RESP_PREFIX = struct.Struct('=HH')
@@ -219,31 +219,3 @@ class _ServerProtocol(_BaseProtocol):
             exc_info = (exc_type.__module__ + '.' + exc_type.__name__,
                         exc.args)
             self.transport.write([peer, prefix, self.packer.packb(exc_info)])
-
-    def dispatch(self, name):
-        if not name:
-            raise NotFoundError(name)
-        namespaces, sep, method = name.rpartition('.')
-        handler = self.handler
-        if namespaces:
-            for part in namespaces.split('.'):
-                try:
-                    handler = handler[part]
-                except KeyError:
-                    raise NotFoundError(name)
-                else:
-                    if not isinstance(handler, AbstractHandler):
-                        raise NotFoundError(name)
-
-        try:
-            func = handler[method]
-        except KeyError:
-            raise NotFoundError(name)
-        else:
-            if isinstance(func, MethodType):
-                holder = func.__func__
-            else:
-                holder = func
-            if not hasattr(holder, '__rpc__'):
-                raise NotFoundError(name)
-            return func

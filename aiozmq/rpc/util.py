@@ -1,7 +1,8 @@
 import builtins
 import inspect
+from types import MethodType
 
-from .base import NotFoundError, ParametersError
+from .base import AbstractHandler, NotFoundError, ParametersError
 
 
 class _MethodCall:
@@ -19,6 +20,37 @@ class _MethodCall:
         if not self._names:
             raise ValueError('RPC method name is empty')
         return self._proto.call('.'.join(self._names), args, kwargs)
+
+
+class _MethodDispatcher:
+
+    def dispatch(self, name):
+        if not name:
+            raise NotFoundError(name)
+        namespaces, sep, method = name.rpartition('.')
+        handler = self.handler
+        if namespaces:
+            for part in namespaces.split('.'):
+                try:
+                    handler = handler[part]
+                except KeyError:
+                    raise NotFoundError(name)
+                else:
+                    if not isinstance(handler, AbstractHandler):
+                        raise NotFoundError(name)
+
+        try:
+            func = handler[method]
+        except KeyError:
+            raise NotFoundError(name)
+        else:
+            if isinstance(func, MethodType):
+                holder = func.__func__
+            else:
+                holder = func
+            if not hasattr(holder, '__rpc__'):
+                raise NotFoundError(name)
+            return func
 
 
 def _fill_error_table():
