@@ -5,10 +5,7 @@ import inspect
 
 from aiozmq import interface
 
-try:
-    from .packer import _Packer
-except ImportError:  # pragma: no cover
-    raise ImportError("aiozmq.rpc requires msgpack-python package.")
+from .packer import _Packer
 
 
 class Error(Exception):
