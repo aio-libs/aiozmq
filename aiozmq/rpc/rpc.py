@@ -21,7 +21,7 @@ from aiozmq import interface
 from aiozmq.log import logger
 
 try:
-    from aiozmq.util import _Packer
+    from .util import _Packer
 except ImportError:  # pragma: no cover
     raise ImportError("aiozmq.rpc requires msgpack-python package.")
 
@@ -140,13 +140,6 @@ def serve_rpc(handler, *, connect=None, bind=None, loop=None,
         lambda: _ServerProtocol(loop, handler, translators),
         zmq.ROUTER, connect=connect, bind=bind)
     return _RPCServer(loop, proto)
-
-
-def connect_pipeline(): pass
-def serve_pipelinet(): pass
-
-def connect_pubsub(): pass
-def serve_pubsub(): pass
 
 
 class _BaseProtocol(interface.ZmqProtocol):
