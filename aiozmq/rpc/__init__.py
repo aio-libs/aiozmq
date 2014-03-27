@@ -1,15 +1,19 @@
-from .rpc import (
+"""ZeroMQ RPC/Pipeline/PubSub services"""
+
+from .base import (
     method,
-    connect_rpc,
-    serve_rpc,
+    AbstractHandler,
+    AttrHandler,
     Error,
     GenericError,
     NotFoundError,
     ParametersError,
-    AbstractHandler,
     ServiceClosedError,
-    AttrHandler,
     Service,
+    )
+from .rpc import (
+    connect_rpc,
+    serve_rpc,
     )
 from .pipeline import (
     connect_pipeline,

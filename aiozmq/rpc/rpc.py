@@ -2,13 +2,11 @@
 
 import abc
 import asyncio
-import builtins
 import os
 import random
 import struct
 import time
 import sys
-import inspect
 
 import zmq
 
@@ -17,101 +15,27 @@ from collections import ChainMap
 from functools import partial
 from types import MethodType
 
-from aiozmq import interface
 from aiozmq.log import logger
 
-try:
-    from .util import _Packer
-except ImportError:  # pragma: no cover
-    raise ImportError("aiozmq.rpc requires msgpack-python package.")
+from .base import (
+    AbstractHandler,
+    GenericError,
+    NotFoundError,
+    ParametersError,
+    Service,
+    _BaseProtocol,
+    )
+from .util import (
+    _MethodCall,
+    _fill_error_table,
+    _check_func_arguments,
+    )
 
 
 __all__ = [
-    'method',
     'connect_rpc',
     'serve_rpc',
-    'Error',
-    'GenericError',
-    'NotFoundError',
-    'ParametersError',
-    'ServiceClosedError',
-    'AbstractHandler',
-    'AttrHandler',
-    'Service',
     ]
-
-
-class Error(Exception):
-    """Base RPC exception"""
-
-
-class GenericError(Error):
-    """Error used for all untranslated exceptions from rpc method calls."""
-
-    def __init__(self, exc_type, args):
-        super().__init__(exc_type, args)
-        self.exc_type = exc_type
-        self.arguments = args
-
-
-class NotFoundError(Error, LookupError):
-    """Error raised by server if RPC namespace/method lookup failed."""
-
-
-class ParametersError(Error, ValueError):
-    """Error raised by server when RPC method's parameters could not
-    be validated against their annotations."""
-
-
-class ServiceClosedError(Exception):
-    """RPC Service has been closed."""
-
-
-class AbstractHandler(metaclass=abc.ABCMeta):
-    """Abstract class for server-side RPC handlers."""
-
-    __slots__ = ()
-
-    @abc.abstractmethod
-    def __getitem__(self, key):
-        raise KeyError
-
-    @classmethod
-    def __subclasshook__(cls, C):
-        if cls is AbstractHandler:
-            if any("__getitem__" in B.__dict__ for B in C.__mro__):
-                return True
-        return NotImplemented
-
-
-class AttrHandler(AbstractHandler):
-    """Base class for RPC handlers via attribute lookup."""
-
-    def __getitem__(self, key):
-        try:
-            return getattr(self, key)
-        except AttributeError:
-            raise KeyError
-
-
-def method(func):
-    """Marks method as RPC endpoint handler.
-
-    The func object may provide arguments and/or return annotations.
-    If so annotations should be callable objects and
-    they will be used to validate received arguments and/or return value
-    """
-    func.__rpc__ = {}
-    func.__signature__ = sig = inspect.signature(func)
-    for name, param in sig.parameters.items():
-        ann = param.annotation
-        if ann is not param.empty and not callable(ann):
-            raise ValueError("Expected {!r} annotation to be callable"
-                             .format(name))
-    ann = sig.return_annotation
-    if ann is not sig.empty and not callable(ann):
-        raise ValueError("Expected return annotation to be callable")
-    return func
 
 
 @asyncio.coroutine
@@ -147,75 +71,6 @@ def serve_rpc(handler, *, connect=None, bind=None, loop=None,
         lambda: _ServerProtocol(loop, handler, translation_table),
         zmq.ROUTER, connect=connect, bind=bind)
     return Service(loop, proto)
-
-
-class _BaseProtocol(interface.ZmqProtocol):
-
-    def __init__(self, loop, translation_table=None):
-        self.loop = loop
-        self.transport = None
-        self.done_waiters = []
-        self.packer = _Packer(translation_table=translation_table)
-
-    def connection_made(self, transport):
-        self.transport = transport
-
-    def connection_lost(self, exc):
-        self.transport = None
-        for waiter in self.done_waiters:
-            waiter.set_result(None)
-
-
-class Service(asyncio.AbstractServer):
-    """RPC service.
-
-    Instances of Service (or
-    descendants) are returned by coroutines that creates clients or
-    servers.
-
-    Implementation of AbstractServer.
-    """
-
-    def __init__(self, loop, proto):
-        self._loop = loop
-        self._proto = proto
-
-    @property
-    def transport(self):
-        """Return the transport.
-
-        You can use the transport to dynamically bind/unbind,
-        connect/disconnect etc.
-        """
-        transport = self._proto.transport
-        if transport is None:
-            raise ServiceClosedError()
-        return transport
-
-    def close(self):
-        if self._proto.transport is None:
-            return
-        self._proto.transport.close()
-
-    @asyncio.coroutine
-    def wait_closed(self):
-        if self._proto.transport is None:
-            return
-        waiter = asyncio.Future(loop=self._loop)
-        self._proto.done_waiters.append(waiter)
-        yield from waiter
-
-
-def _fill_error_table():
-    # Fill error table with standard exceptions
-    error_table = {}
-    for name in dir(builtins):
-        val = getattr(builtins, name)
-        if isinstance(val, type) and issubclass(val, Exception):
-            error_table['builtins.'+name] = val
-    error_table[__name__ + '.NotFoundError'] = NotFoundError
-    error_table[__name__ + '.ParametersError'] = ParametersError
-    return error_table
 
 
 _default_error_table = _fill_error_table()
@@ -296,23 +151,6 @@ class RPCClient(Service):
         ret = yield from client.rpc.ns.func(1, 2)
         """
         return _MethodCall(self._proto)
-
-
-class _MethodCall:
-
-    __slots__ = ('_proto', '_names')
-
-    def __init__(self, proto, names=()):
-        self._proto = proto
-        self._names = names
-
-    def __getattr__(self, name):
-        return self.__class__(self._proto, self._names + (name,))
-
-    def __call__(self, *args, **kwargs):
-        if not self._names:
-            raise ValueError('RPC method name is empty')
-        return self._proto.call('.'.join(self._names), args, kwargs)
 
 
 class _ServerProtocol(_BaseProtocol):
@@ -409,31 +247,3 @@ class _ServerProtocol(_BaseProtocol):
             if not hasattr(holder, '__rpc__'):
                 raise NotFoundError(name)
             return func
-
-
-def _check_func_arguments(func, args, kwargs):
-    """Utility function for validating function arguments
-
-    Returns validated (args, kwargs, return annotation) tuple
-    """
-    try:
-        sig = inspect.signature(func)
-        bargs = sig.bind(*args, **kwargs)
-    except TypeError as exc:
-        raise ParametersError(repr(exc)) from exc
-    else:
-        arguments = bargs.arguments
-        for name, param in sig.parameters.items():
-            if param.annotation is param.empty:
-                continue
-            val = arguments.get(name, param.default)
-            # NOTE: default value always being passed through annotation
-            #       is it realy neccessary?
-            try:
-                arguments[name] = param.annotation(val)
-            except (TypeError, ValueError) as exc:
-                raise ParametersError('Invalid value for argument {!r}: {!r}'
-                                      .format(name, exc)) from exc
-        if sig.return_annotation is not sig.empty:
-            return bargs.args, bargs.kwargs, sig.return_annotation
-        return bargs.args, bargs.kwargs, None
