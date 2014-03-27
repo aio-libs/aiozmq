@@ -126,7 +126,6 @@ Indices and tables
 
 .. toctree::
 
-   examples
    low-level
    rpc
    glossary
