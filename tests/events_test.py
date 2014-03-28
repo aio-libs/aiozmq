@@ -586,7 +586,8 @@ class EventLoopTestsMixin:
         tr.close()
 
     @unittest.skipIf(ssl is None, 'No ssl module')
-    def xtest_create_ssl_connection(self):
+    @unittest.expectedFailure
+    def test_create_ssl_connection(self):
         with test_utils.run_test_server(use_ssl=True) as httpd:
             conn_fut = self.loop.create_connection(
                 lambda: MyProto(loop=self.loop),
@@ -597,7 +598,8 @@ class EventLoopTestsMixin:
 
     @unittest.skipIf(ssl is None, 'No ssl module')
     @unittest.skipUnless(hasattr(socket, 'AF_UNIX'), 'No UNIX Sockets')
-    def xtest_create_ssl_unix_connection(self):
+    @unittest.expectedFailure
+    def test_create_ssl_unix_connection(self):
         # Issue #20682: On Mac OS X Tiger, getsockname() returns a
         # zero-length address for UNIX socket.
         check_sockname = not osx_tiger()
