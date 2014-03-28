@@ -136,4 +136,5 @@ Indices and tables
 
    core
    rpc
+   examples
    glossary
