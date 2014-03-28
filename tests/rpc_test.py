@@ -3,6 +3,7 @@ import asyncio
 import aiozmq
 import aiozmq.rpc
 import datetime
+import time
 
 from aiozmq._test_utils import find_unused_port
 
@@ -40,6 +41,10 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     @aiozmq.rpc.method
     def generic_exception(self):
         raise MyException('additional', 'data')
+
+    @aiozmq.rpc.method
+    def slow_call(self):
+        time.sleep(0.2)
 
 
 class RpcTests(unittest.TestCase):
@@ -232,6 +237,18 @@ class RpcTests(unittest.TestCase):
         self.loop.run_until_complete(server.wait_closed())
         with self.assertRaises(aiozmq.rpc.ServiceClosedError):
             server.transport
+
+    def xtest_client_timeout(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            with self.assertRaises(asyncio.TimeoutError):
+                with client.with_timeout(0.1) as rpc:
+                    yield from rpc.slow_call()
+                yield from client.with_timeout(0.1).slow_call()
+
+        self.loop.run_until_complete(communicate())
 
 
 class AbstractHandlerTests(unittest.TestCase):

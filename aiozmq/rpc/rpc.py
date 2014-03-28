@@ -7,6 +7,7 @@ import random
 import struct
 import time
 import sys
+import contextlib
 
 import zmq
 
@@ -140,8 +141,9 @@ class _ClientProtocol(_BaseProtocol):
 
 class RPCClient(Service):
 
-    def __init__(self, loop, proto):
+    def __init__(self, loop, proto, *, timeout=10):
         super().__init__(loop, proto)
+        self._timeout = timeout
 
     @property
     def rpc(self):
@@ -150,7 +152,12 @@ class RPCClient(Service):
         The usage is:
         ret = yield from client.rpc.ns.func(1, 2)
         """
-        return _MethodCall(self._proto)
+        return _MethodCall(self._proto, timeout=self._timeout)
+
+    # FIXME: __call__ not good; make it separate method
+    @contextlib.contextmanager
+    def __call__(self, timeout):
+        yield _MethodCall(self._proto, timeout=timeout)
 
 
 class _ServerProtocol(_BaseProtocol, _MethodDispatcher):

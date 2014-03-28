@@ -1,3 +1,4 @@
+import asyncio
 import builtins
 import inspect
 from collections.abc import Iterable
@@ -8,19 +9,36 @@ from .base import AbstractHandler, NotFoundError, ParametersError
 
 class _MethodCall:
 
-    __slots__ = ('_proto', '_names')
+    __slots__ = ('_proto', '_timeout', '_names')
 
-    def __init__(self, proto, names=()):
+    def __init__(self, proto, timeout=None, names=()):
         self._proto = proto
+        self._timeout = timeout
         self._names = names
 
     def __getattr__(self, name):
-        return self.__class__(self._proto, self._names + (name,))
+        return self.__class__(self._proto, self._timeout,
+                              self._names + (name,))
 
     def __call__(self, *args, **kwargs):
         if not self._names:
             raise ValueError('RPC method name is empty')
-        return self._proto.call('.'.join(self._names), args, kwargs)
+        fut = self._proto.call('.'.join(self._names), args, kwargs)
+        return _Waiter(fut, timeout=self._timeout, loop=self._proto.loop)
+
+
+class _Waiter:
+
+    __slots__ = ('_fut', '_timeout', '_loop')
+
+    def __init__(self, fut, *, timeout=None, loop=None):
+        self._fut = fut
+        self._timeout = timeout
+        self._loop = loop
+
+    def __iter__(self):
+        return (yield from asyncio.wait_for(self._fut, self._timeout,
+                                            loop=self._loop))
 
 
 class _MethodDispatcher:
