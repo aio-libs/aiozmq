@@ -2,7 +2,7 @@ import asyncio
 import zmq
 from functools import partial
 
-from .log import logger
+from ..log import logger
 from .base import (
     NotFoundError,
     ParametersError,
