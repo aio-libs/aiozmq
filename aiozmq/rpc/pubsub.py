@@ -1,5 +1,6 @@
 import asyncio
 import zmq
+from functools import partial
 
 from .base import (
     NotFoundError,
@@ -10,6 +11,7 @@ from .base import (
 from .util import (
     _MethodDispatcher,
     _check_func_arguments,
+    _coerce_topics,
     )
 
 
@@ -35,7 +37,9 @@ def serve_pubsub(handler, *, subscribe=None, connect=None, bind=None,
         lambda: _ServerProtocol(loop, handler,
                                 translation_table=translation_table),
         zmq.SUB, connect=connect, bind=bind)
-    serv = Service(loop, proto)
+    serv = PubSubService(loop, proto)
+    if subscribe is not None:
+        serv.subscribe(subscribe)
     return serv
 
 
@@ -43,12 +47,10 @@ class _ClientProtocol(_BaseProtocol):
 
     def call(self, topic, name, args, kwargs):
         assert topic is None or isinstance(topic, (str, bytes))
-        if topic is None:
-            btopic = b''
-        elif isinstance(topic, str):
+        if isinstance(topic, str):
             btopic = topic.encode('utf-8')
-        else:   # bytes
-            btopic = topic
+        else:   # None or bytes
+            btopic = topic or b''
         bname = name.encode('utf-8')
         bargs = self.packer.packb(args)
         bkwargs = self.packer.packb(kwargs)
@@ -72,6 +74,18 @@ class PubSubClient(Service):
         topic argument may be None otherwise must be isntance of str or bytes
         """
         return _MethodCall(self._proto, topic)
+
+
+class PubSubService(Service):
+
+    def subscribe(self, topics):
+        """Subscribe to one or more topic.
+
+        topics argument must be str, bytes or iterable of str or bytes.
+        Raises ValueError in other cases
+        """
+        for btopic in _coerce_topics(topics):
+            self.transport.subscribe(btopic)
 
 
 class _MethodCall:
@@ -105,4 +119,42 @@ class _ServerProtocol(_BaseProtocol, _MethodDispatcher):
         pass
 
     def msg_received(self, data):
-        print(data)
+        btopic, bname, bargs, bkwargs = data
+
+        args = self.packer.unpackb(bargs)
+        kwargs = self.packer.unpackb(bkwargs)
+        try:
+            name = bname.decode('utf-8')
+            func = self.dispatch(name)
+            args, kwargs, ret_ann = _check_func_arguments(func, args, kwargs)
+        except (NotFoundError, ParametersError) as exc:
+            fut = asyncio.Future(loop=self.loop)
+            fut.add_done_callback(partial(self.process_call_result,
+                                          name=name))
+            fut.set_exception(exc)
+        else:
+            if asyncio.iscoroutinefunction(func):
+                fut = asyncio.async(func(*args, **kwargs), loop=self.loop)
+                fut.add_done_callback(partial(self.process_call_result,
+                                              name=name))
+            else:
+                fut = asyncio.Future(loop=self.loop)
+                fut.add_done_callback(partial(self.process_call_result,
+                                              name=name))
+                try:
+                    fut.set_result(func(*args, **kwargs))
+                except Exception as exc:
+                    fut.set_exception(exc)
+
+    def process_call_result(self, fut, *, name):
+        try:
+            if fut.result() is not None:
+                logger.warn("")
+        except Exception as exc:
+            self.loop.call_exception_handler({
+                'message': 'Call to {!r} caused error: {!r}'.format(name, exc),
+                'exception': exc,
+                'future': fut,
+                'protocol': self,
+                'transport': self.transport,
+                })

@@ -1,5 +1,6 @@
 import builtins
 import inspect
+from collections.abc import Iterable
 from types import MethodType
 
 from .base import AbstractHandler, NotFoundError, ParametersError
@@ -91,3 +92,22 @@ def _check_func_arguments(func, args, kwargs):
         if sig.return_annotation is not sig.empty:
             return bargs.args, bargs.kwargs, sig.return_annotation
         return bargs.args, bargs.kwargs, None
+
+
+def _coerce_topics(topics):
+    """Accept str, bytes or iterable of str/bytes and return tuple of bytes.
+
+    Raises ValueError when argument is neither str nor bytes
+    not iterable of those.
+    """
+    _coerce = lambda s: s if isinstance(s, bytes) else s.encode('utf-8')
+
+    if isinstance(topics, (str, bytes)):
+        return (_coerce(topics),)
+    elif isinstance(topics, Iterable):
+        if any(not isinstance(t, (str, bytes)) for t in topics):
+            raise ValueError("topic argument must be iterable of str/bytes")
+        return tuple(map(_coerce, topics))
+    else:
+        raise ValueError("topic argument must be str, bytes"
+                         " or iterable of str/bytes")
