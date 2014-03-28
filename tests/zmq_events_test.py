@@ -136,9 +136,9 @@ class ZmqEventLoopTests(unittest.TestCase):
             request = yield from pr2.received.get()
             self.assertEqual((b'node_id', b'publish'), request)
 
-        # Sorry, sleep is required to get rid of sporadic hungs
+        # Sorry, sleep is required to get rid of sporadic hangs
         # without that 0MQ not always establishes tcp connection
-        # and waiting for message from sub socket hungs.
+        # and waiting for message from sub socket hangs.
         time.sleep(0.1)
         self.loop.run_until_complete(communicate())
 

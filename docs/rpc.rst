@@ -51,7 +51,7 @@ The basic usage is::
 
    @asyncio.coroutine
    def func():
-       client = yield from rpc.open_client(connect='tcp://127.0.0.1:5555')
+       client = yield from rpc.connect_rpc(connect='tcp://127.0.0.1:5555')
 
        val = yield from client.rpc.func1(arg1, arg2)
 
@@ -62,7 +62,7 @@ The basic usage is::
     event_loop.run_until_complete(func())
 
 
-.. function:: open_client(*, connect=None, bind=None, loop=None, \
+.. function:: connect_rpc(*, connect=None, bind=None, loop=None, \
                           error_table=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds RPC client.
@@ -93,7 +93,7 @@ The basic usage is::
 RPC Server
 ----------
 
-To start RPC server you need to create handler and pass it into start_server::
+To start RPC server you need to create handler and pass it into serve_rpc::
 
    import asyncio
    from aiozmq import rpc
@@ -127,8 +127,8 @@ To start RPC server you need to create handler and pass it into start_server::
 
    @asyncio.coroutine
    def start():
-       return yield from rpc.start_server(Handler(),
-                                          bind='tcp://127.0.0.1:5555')
+       return yield from rpc.serve_rpc(Handler(),
+                                       bind='tcp://127.0.0.1:5555')
 
    @asyncio.coroutine
    def stop(server):
@@ -139,7 +139,7 @@ To start RPC server you need to create handler and pass it into start_server::
    event_loop.run_until_complete(stop(server))
 
 
-.. function:: start_server(handler, *, connect=None, bind=None, loop=None)
+.. function:: serve_rpc(handler, *, connect=None, bind=None, loop=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds RPC
     server instance.
@@ -203,7 +203,7 @@ For example if custom RPC server handler can raise ``mod1.Error1`` and
                    'pack.mod2.Error2': Error2}
 
     client = loop.run_until_complete(
-        rpc.open_client(connect='tcp://127.0.0.1:5555',
+        rpc.connect_rpc(connect='tcp://127.0.0.1:5555',
                         error_table=error_table))
 
 You have to have the way to import exception classes from server-side.
@@ -211,7 +211,7 @@ Or you can build your own translators without server-side code, use
 only string for *full exception class name* and tuple of *args* ---
 that's up to you.
 
-.. seealso:: *error_table* argument in :func:`open_client` function.
+.. seealso:: *error_table* argument in :func:`connect_rpc` function.
 
 .. _aiozmq-rpc-signature-validation:
 
@@ -351,10 +351,10 @@ example::
 
     @asyncio.coroutine
     def go():
-        server = yield from aiozmq.rpc.start_server(
+        server = yield from aiozmq.rpc.serve_rpc(
             ServerHandler(), bind='tcp://127.0.0.1:5555',
             translation_table=translation_table)
-        client = yield from aiozmq.rpc.open_client(
+        client = yield from aiozmq.rpc.connect_rpc(
             connect='tcp://127.0.0.1:5555',
             translation_table=translation_table)
 
@@ -362,7 +362,7 @@ example::
         assert ret == Point(1, 2)
 
 You should to create a *translation table* and pass it to both
-:func:`open_client` and :func:`start_server`. That's all, server and
+:func:`connect_rpc` and :func:`serve_rpc`. That's all, server and
 client now have all information about passing your ``Point`` via the
 wire.
 
@@ -550,8 +550,8 @@ RPC clases
    RPC service base class.
 
    Instances of *Service* (or descendants) are returned by
-   coroutines that creates clients or servers (:func:`open_client`,
-   :func:`start_server` and others).
+   coroutines that creates clients or servers (:func:`connect_rpc`,
+   :func:`serve_rpc` and others).
 
    Implements :class:`asyncio.AbstractServer`.
 
@@ -579,7 +579,7 @@ RPC clases
 
 .. class:: RPCClient
 
-   Class that returned by :func:`open_client` call. Inherited from
+   Class that returned by :func:`connect_rpc` call. Inherited from
    :class:`Service`.
 
    For RPC calls use :attr:`~RPCClient.rpc` property.
@@ -617,4 +617,4 @@ RPC clases
    .. warning::
 
       You should never instantiate :class:`RPCClient` by hand, use
-      :func:`open_client` instead.
+      :func:`connect_rpc` instead.

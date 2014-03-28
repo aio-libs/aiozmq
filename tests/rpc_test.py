@@ -65,11 +65,11 @@ class RpcTests(unittest.TestCase):
 
         @asyncio.coroutine
         def create():
-            server = yield from aiozmq.rpc.start_server(
+            server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
-            client = yield from aiozmq.rpc.open_client(
+            client = yield from aiozmq.rpc.connect_rpc(
                 connect='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop, error_table=error_table)
             return client, server
@@ -198,11 +198,11 @@ class RpcTests(unittest.TestCase):
 
         @asyncio.coroutine
         def create():
-            server = yield from aiozmq.rpc.start_server(
+            server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=None)
-            client = yield from aiozmq.rpc.open_client(
+            client = yield from aiozmq.rpc.connect_rpc(
                 connect='tcp://127.0.0.1:{}'.format(port),
                 loop=None)
             return client, server

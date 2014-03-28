@@ -30,12 +30,12 @@ class ServerHandler(aiozmq.rpc.AttrHandler):
 
 @asyncio.coroutine
 def go():
-    server = yield from aiozmq.rpc.start_server(
+    server = yield from aiozmq.rpc.serve_rpc(
         ServerHandler(), bind='tcp://*:*',
         translation_table=translation_table)
     server_addr = next(iter(server.transport.bindings()))
 
-    client = yield from aiozmq.rpc.open_client(
+    client = yield from aiozmq.rpc.connect_rpc(
         connect=server_addr,
         translation_table=translation_table)
 
