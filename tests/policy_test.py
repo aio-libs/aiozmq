@@ -39,13 +39,13 @@ class PolicyTests(unittest.TestCase):
 
     def test_get_event_loop_after_set_none(self):
         self.policy.set_event_loop(None)
-        self.assertRaises(RuntimeError, self.policy.get_event_loop)
+        self.assertRaises(AssertionError, self.policy.get_event_loop)
 
     @mock.patch('aiozmq.events.threading.current_thread')
     def test_get_event_loop_thread(self, m_current_thread):
 
         def f():
-            self.assertRaises(RuntimeError, self.policy.get_event_loop)
+            self.assertRaises(AssertionError, self.policy.get_event_loop)
 
         th = threading.Thread(target=f)
         th.start()
@@ -59,7 +59,7 @@ class PolicyTests(unittest.TestCase):
     def test_set_event_loop(self):
         old_loop = self.policy.get_event_loop()
 
-        self.assertRaises(TypeError, self.policy.set_event_loop, object())
+        self.assertRaises(AssertionError, self.policy.set_event_loop, object())
 
         loop = self.policy.new_event_loop()
         self.policy.set_event_loop(loop)

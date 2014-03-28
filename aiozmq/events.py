@@ -410,9 +410,9 @@ class ZmqEventLoopPolicy(asyncio.AbstractEventLoopPolicy):
                 not self._local._set_called and
                 isinstance(threading.current_thread(), threading._MainThread)):
             self.set_event_loop(self.new_event_loop())
-        if self._local._loop is None:
-            raise RuntimeError('There is no current event loop in thread %r.' %
-                               threading.current_thread().name)
+        assert self._local._loop is not None, \
+               ('There is no current event loop in thread %r.' %
+                threading.current_thread().name)
         return self._local._loop
 
     def new_event_loop(self):
@@ -440,10 +440,8 @@ class ZmqEventLoopPolicy(asyncio.AbstractEventLoopPolicy):
         """
 
         self._local._set_called = True
-        if loop is not None and not isinstance(loop,
-                                               asyncio.AbstractEventLoop):
-            raise TypeError("loop should be None "
-                            "or AbstractEventLoop instance")
+        assert loop is None or isinstance(loop, asyncio.AbstractEventLoop), \
+            "loop should be None or AbstractEventLoop instance"
         self._local._loop = loop
 
         if (self._watcher is not None and
@@ -463,10 +461,9 @@ class ZmqEventLoopPolicy(asyncio.AbstractEventLoopPolicy):
     def set_child_watcher(self, watcher):
         """Set the child watcher."""
 
-        if (watcher is not None and
-                not isinstance(watcher, asyncio.AbstractChildWatcher)):
-            raise TypeError("watcher should be None or AbstractChildWatcher "
-                            "instance")
+        assert watcher is None or \
+            isinstance(watcher, asyncio.AbstractChildWatcher), \
+            "watcher should be None or AbstractChildWatcher instance"
 
         if self._watcher is not None:
             self._watcher.close()
