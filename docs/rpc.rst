@@ -483,6 +483,25 @@ RPC exceptions
 RPC clases
 ----------
 
+.. decorator:: method
+
+   Marks a decorated function as RPC endpoint handler.
+
+   The func object may provide arguments and/or return annotations.
+   If so annotations should be callable objects and
+   they will be used to validate received arguments and/or return value.
+
+   Example::
+
+       @aiozmq.rpc.method
+       def remote(a: int, b: int) -> int:
+           return a + b
+
+   Methods are objects that returned by
+   :meth:`AbstractHander.__getitem__` lookup at RPC method search
+   stage.
+
+
 .. class:: AbstractHander
 
    The base class for all RPC handlers.
@@ -492,6 +511,10 @@ RPC clases
 
    Therefore :class:`AttrHandler` and :class:`dict` are both good
    citizens.
+
+   Returned value eighter should implement :class:`AbstractHandler`
+   interface itself for looking up forward or must be callable
+   decorated by :func:`method`.
 
     .. method:: __getitem__(self, key)
 

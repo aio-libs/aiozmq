@@ -92,11 +92,11 @@ class AttrHandler(AbstractHandler):
 
 
 def method(func):
-    """Marks method as RPC endpoint handler.
+    """Marks a decorated function as RPC endpoint handler.
 
     The func object may provide arguments and/or return annotations.
     If so annotations should be callable objects and
-    they will be used to validate received arguments and/or return value
+    they will be used to validate received arguments and/or return value.
     """
     func.__rpc__ = {}
     func.__signature__ = sig = inspect.signature(func)
