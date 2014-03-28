@@ -33,6 +33,10 @@ please feel free to build your own implementation on top of the
 This module uses :term:`ZeroMQ` *DEALER*/*ROUTER* sockets and custom
 communication protocol (which uses :term:`msgpack` by the way).
 
+.. warning:: :mod:`aiozmq.rpc` module is **optional** and requires
+   :term:`msgpack`. You can install *msgpack-python* by::
+
+       pip3 install msgpack-python
 
 .. _aiozmq-rpc-client:
 
