@@ -79,8 +79,6 @@ class ZmqEventLoop(SelectorEventLoop):
 
         zmq_sock is a zmq.Socket instance to use preexisting object
         with created transport.
-
-        The only one of bind, connect or zmq_sock should be specified.
         """
 
         try:
