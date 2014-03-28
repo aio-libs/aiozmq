@@ -411,8 +411,8 @@ class ZmqEventLoopPolicy(asyncio.AbstractEventLoopPolicy):
                 isinstance(threading.current_thread(), threading._MainThread)):
             self.set_event_loop(self.new_event_loop())
         assert self._local._loop is not None, \
-               ('There is no current event loop in thread %r.' %
-                threading.current_thread().name)
+            ('There is no current event loop in thread %r.' %
+             threading.current_thread().name)
         return self._local._loop
 
     def new_event_loop(self):

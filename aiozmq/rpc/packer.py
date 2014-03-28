@@ -10,7 +10,7 @@ _msgpack_version_str = '.'.join(map(str, _msgpack_version))
 
 try:
     from msgpack import version as msgpack_version
-except ImportError: # pragma: no cover
+except ImportError:  # pragma: no cover
     msgpack_version = (0,)
 
 if msgpack_version < _msgpack_version:  # pragma: no cover

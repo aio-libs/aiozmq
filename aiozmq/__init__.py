@@ -16,7 +16,8 @@ __version__ = '0.1.0a'
 version = __version__ + ' , Python ' + sys.version
 
 
-VersionInfo = namedtuple('VersionInfo', 'major minor micro releaselevel serial')
+VersionInfo = namedtuple('VersionInfo',
+                         'major minor micro releaselevel serial')
 
 
 def _parse_version(ver):
@@ -36,7 +37,6 @@ def _parse_version(ver):
         return VersionInfo(major, minor, micro, releaselevel, serial)
     except Exception:
         raise ImportError("Invalid package version {}".format(ver))
-
 
 
 version_info = _parse_version(__version__)

@@ -1,6 +1,5 @@
 import abc
 import asyncio
-import builtins
 import inspect
 
 from aiozmq import interface

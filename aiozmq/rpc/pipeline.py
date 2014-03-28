@@ -8,6 +8,7 @@ from aiozmq.log import logger
 from .base import (
     NotFoundError,
     ParametersError,
+    AbstractHandler,
     Service,
     _BaseProtocol,
     )
@@ -75,11 +76,9 @@ class _ServerProtocol(_BaseProtocol, _MethodDispatcher):
 
     def __init__(self, loop, handler, translation_table=None):
         super().__init__(loop, translation_table=translation_table)
-        self.prepare_handler(handler)
+        if not isinstance(handler, AbstractHandler):
+            raise TypeError('handler should implement AbstractHandler ABC')
         self.handler = handler
-
-    def prepare_handler(self, handler):
-        pass
 
     def msg_received(self, data):
         bname, bargs, bkwargs = data

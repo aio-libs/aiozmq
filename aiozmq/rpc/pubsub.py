@@ -2,9 +2,11 @@ import asyncio
 import zmq
 from functools import partial
 
+from .log import logger
 from .base import (
     NotFoundError,
     ParametersError,
+    AbstractHandler,
     Service,
     _BaseProtocol,
     )
@@ -112,11 +114,9 @@ class _ServerProtocol(_BaseProtocol, _MethodDispatcher):
 
     def __init__(self, loop, handler, translation_table=None):
         super().__init__(loop, translation_table=translation_table)
-        self.prepare_handler(handler)
         self.handler = handler
-
-    def prepare_handler(self, handler):
-        pass
+        if not isinstance(handler, AbstractHandler):
+            raise TypeError('handler should implement AbstractHandler ABC')
 
     def msg_received(self, data):
         btopic, bname, bargs, bkwargs = data

@@ -1,6 +1,5 @@
 """ZeroMQ RPC"""
 
-import abc
 import asyncio
 import os
 import random
@@ -18,10 +17,10 @@ from functools import partial
 from aiozmq.log import logger
 
 from .base import (
-    AbstractHandler,
     GenericError,
     NotFoundError,
     ParametersError,
+    AbstractHandler,
     Service,
     _BaseProtocol,
     )
@@ -61,7 +60,7 @@ def connect_rpc(*, connect=None, bind=None, loop=None,
 
 @asyncio.coroutine
 def serve_rpc(handler, *, connect=None, bind=None, loop=None,
-                 translation_table=None):
+              translation_table=None):
     """A coroutine that creates and connects/binds RPC server instance."""
     # TODO: describe params
     # TODO: add a way to pass value translator
@@ -168,15 +167,12 @@ class _ServerProtocol(_BaseProtocol, _MethodDispatcher):
 
     def __init__(self, loop, handler, translation_table=None):
         super().__init__(loop, translation_table)
-        self.prepare_handler(handler)
+        if not isinstance(handler, AbstractHandler):
+            raise TypeError('handler should implement AbstractHandler ABC')
+
         self.handler = handler
         self.prefix = self.RESP_PREFIX.pack(os.getpid() % 0x10000,
                                             random.randrange(0x10000))
-
-    def prepare_handler(self, handler):
-        # TODO: check handler and subhandlers for correctness
-        # raise exception if needed
-        pass
 
     def msg_received(self, data):
         peer, header, bname, bargs, bkwargs = data
