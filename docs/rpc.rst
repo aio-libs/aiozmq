@@ -30,8 +30,10 @@ If you need to support custor protocol over :term:`ZeroMQ` layer
 please feel free to build your own implementation on top of the
 :ref:`core primitives <aiozmq-core>`.
 
-This module uses :term:`ZeroMQ` *DEALER*/*ROUTER* sockets and custom
-communication protocol (which uses :term:`msgpack` by the way).
+The :mod:`aiozmq.rpc` supports three pairs of communications:
+   * :ref:`aiozmq-rpc-rpc`
+   * :ref:`aiozmq-rpc-pushpull`
+   * :ref:`aiozmq-rpc-pubsub`
 
 .. warning:: :mod:`aiozmq.rpc` module is **optional** and requires
    :term:`msgpack`. You can install *msgpack-python* by::
@@ -39,38 +41,65 @@ communication protocol (which uses :term:`msgpack` by the way).
        pip3 install msgpack-python
 
 
-.. _aiozmq-rpc-client:
+.. _aiozmq-rpc-rpc:
 
-RPC Client
-----------
+Request-Reply
+-------------
+
+This is **Remote Procedure Call** pattern itself. Client calls remote
+function on server and waits for returned value. If remote function
+raises exception that exception instance raises on client side.
+
+Let's assume we have *N* clients bound to *M* servers.  Any client can
+connect to several servers and any server can listen multiple
+*endpoints*.
+
+When client sends a message the message will be delivered to any server
+that is ready (doesn't processes another message).
+
+When server sends reply with result of remote call back the result is
+routed to client that sent the request.
+
+This pair uses *DEALER*/*ROUTER* :term:`ZeroMQ` sockets.
+
 
 The basic usage is::
 
    import asyncio
    from aiozmq import rpc
 
+   class Handler(rpc.AttrHandler):
+
+       @rpc.method
+       def remote(self, arg1, arg2):
+           return arg1 + arg2
+
    @asyncio.coroutine
-   def func():
+   def go():
+       server =  yield from rpc.serve_rpc(Handler(),
+                                          bind='tcp://127.0.0.1:5555')
+
        client = yield from rpc.connect_rpc(connect='tcp://127.0.0.1:5555')
 
-       val = yield from client.rpc.func1(arg1, arg2)
+       ret = yield from client.rpc.remote(1, 2)
+       assert ret == 3
 
        client.close()
        yield from client.wait_closed()
+       server.close()
+       yield from server.wait_closed()
 
-
-    event_loop.run_until_complete(func())
+   event_loop.run_until_complete(go())
 
 
 .. function:: connect_rpc(*, connect=None, bind=None, loop=None, \
-                          error_table=None)
+                          error_table=None, translation_table=None)
 
-    A :ref:`coroutine<coroutine>` that creates and connects/binds RPC client.
+    A :ref:`coroutine<coroutine>` that creates and connects/binds
+    *RPC* client.
 
     Usually for this function you need to use *connect* parameter, but
     :term:`ZeroMQ` does not forbid to use *bind*.
-
-    Either *connect* or *bind* parameter should be not *None*.
 
     .. seealso:: Please take a look on
        :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
@@ -84,64 +113,19 @@ The basic usage is::
 
        .. seealso:: :ref:`aiozmq-rpc-exception-translation`
 
+    :param dict translation_table:
+       an optional table for custom value translators.
+
+       .. seealso:: :ref:`aiozmq-rpc-value-translators`
+
     :return: :class:`RPCClient` instance.
 
 
 
-.. _aiozmq-rpc-server:
+.. function:: serve_rpc(handler, *, connect=None, bind=None, loop=None, \
+                        translation_table=None)
 
-RPC Server
-----------
-
-To start RPC server you need to create handler and pass it into serve_rpc::
-
-   import asyncio
-   from aiozmq import rpc
-
-
-   class Handler(rpc.AttrHandler):
-
-       def __init__(self):
-           self.inner = SubHandler()
-
-       @rpc.method
-       def func(self, arg1, arg2):
-           return arg1 + arg2
-
-       @rpc.method
-       def bad(self):
-           raise RuntimeError("Bad method")
-
-       @rpc.method
-       @asyncio.coroutine
-       def coro(self):
-           ret = yield from some_long_running()
-           return ret
-
-   class SubHandler(rpc.AttrHandler):
-
-       @rpc.method
-       def inner_func(self):
-           return 'inner'
-
-
-   @asyncio.coroutine
-   def start():
-       return yield from rpc.serve_rpc(Handler(),
-                                       bind='tcp://127.0.0.1:5555')
-
-   @asyncio.coroutine
-   def stop(server):
-       server.close()
-       yield from server.wait_closed()
-
-   server = event_loop.run_until_complete(start())
-   event_loop.run_until_complete(stop(server))
-
-
-.. function:: serve_rpc(handler, *, connect=None, bind=None, loop=None)
-
-    A :ref:`coroutine<coroutine>` that creates and connects/binds RPC
+    A :ref:`coroutine<coroutine>` that creates and connects/binds *RPC*
     server instance.
 
     Usually for this function you need to use *bind* parameter, but
@@ -153,6 +137,11 @@ To start RPC server you need to create handler and pass it into serve_rpc::
 
       Usually you like to pass :class:`AttrHandler` instance.
 
+    :param dict translation_table:
+       an optional table for custom value translators.
+
+       .. seealso:: :ref:`aiozmq-rpc-value-translators`
+
     :return: :class:`Service` instance.
 
     .. seealso::
@@ -160,6 +149,225 @@ To start RPC server you need to create handler and pass it into serve_rpc::
        Please take a look on
        :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
        values for *connect* and *bind* parameters.
+
+.. _aiozmq-rpc-pushpull:
+
+Push-Pull
+---------
+
+This is **Notify** aka **Pipeline** pattern. Client calls remote function
+on server and **doesn't** wait for result. If a *remote function call*
+raises an exception the exception is only **logged** at server side.  Client
+**cannot** get any information about *processing the remote call on server*.
+
+Thus this is **one-way** communication: **fire and forget**.
+
+Let's assume we have *N* clients bound to *M* servers.  Any client can
+connect to several servers and any server can listen multiple
+*endpoints*.
+
+When client sends a message the message will be delivered to any server
+that is *ready* (doesn't processes another message).
+
+That's all.
+
+This pair uses *PUSH*/*PULL* :term:`ZeroMQ` sockets.
+
+
+The basic usage is::
+
+   import asyncio
+   from aiozmq import rpc
+
+   class Handler(rpc.AttrHandler):
+
+       @rpc.method
+       def remote(self):
+           do_something(arg)
+
+   @asyncio.coroutine
+   def go():
+       server =  yield from rpc.serve_pipeline(Handler(),
+                                               bind='tcp://127.0.0.1:5555')
+
+       client = yield from rpc.connect_pipeline(connect='tcp://127.0.0.1:5555')
+
+       ret = yield from client.notify.remote(1)
+
+       client.close()
+       yield from client.wait_closed()
+       server.close()
+       yield from server.wait_closed()
+
+   event_loop.run_until_complete(go())
+
+
+.. function:: connect_pipeline(*, connect=None, bind=None, loop=None, \
+                               error_table=None, translation_table=None)
+
+    A :ref:`coroutine<coroutine>` that creates and connects/binds
+    *pipeline* client.
+
+    Usually for this function you need to use *connect* parameter, but
+    :term:`ZeroMQ` does not forbid to use *bind*.
+
+    .. seealso:: Please take a look on
+       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
+       values to *connect* and *bind* parameters.
+
+    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
+       :ref:`asyncio-event-loop`.  if *loop* is *None* then default
+       event loop will be given by :func:`asyncio.get_event_loop` call.
+
+    :param dict translation_table:
+       an optional table for custom value translators.
+
+       .. seealso:: :ref:`aiozmq-rpc-value-translators`
+
+    :return: :class:`RPCClient` instance.
+
+
+
+.. function:: serve_pipeline(handler, *, connect=None, bind=None, loop=None, \
+                        translation_table=None)
+
+    A :ref:`coroutine<coroutine>` that creates and connects/binds *pipeline*
+    server instance.
+
+    Usually for this function you need to use *bind* parameter, but
+    :term:`ZeroMQ` does not forbid to use *connect*.
+
+    :param aiozmq.rpc.AbstractHander handler:
+
+       an object which processes incoming *pipeline* calls.
+
+      Usually you like to pass :class:`AttrHandler` instance.
+
+    :param dict translation_table:
+       an optional table for custom value translators.
+
+       .. seealso:: :ref:`aiozmq-rpc-value-translators`
+
+    :return: :class:`Service` instance.
+
+    .. seealso::
+
+       Please take a look on
+       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
+       values for *connect* and *bind* parameters.
+
+
+.. _aiozmq-rpc-pubsub:
+
+Publish-Subscribe
+-----------------
+
+This is **PubSub** pattern. It's very close to :ref:`aiozmq-rpc-pubsub`
+but has some difference:
+
+  * server *subscribes* to *topics* to recive messages from only that
+    *topics*.
+  * client sends a message to concrete *topic*.
+
+Let's assume we have *N* clients bound to *M* servers.  Any client can
+connect to several servers and any server can listen multiple
+*endpoints*.
+
+When client sends a message to *topic* the message will be delivered
+to only servers that has been subscibed to this *topic*.
+
+This pair uses *PUB*/*SUB* :term:`ZeroMQ` sockets.
+
+
+The basic usage is::
+
+   import asyncio
+   from aiozmq import rpc
+
+   class Handler(rpc.AttrHandler):
+
+       @rpc.method
+       def remote(self):
+           do_something(arg)
+
+   @asyncio.coroutine
+   def go():
+       server =  yield from rpc.serve_pubsub(Handler(),
+                                             subscribe='topic',
+                                             bind='tcp://127.0.0.1:5555')
+
+       client = yield from rpc.connect_pubsub(connect='tcp://127.0.0.1:5555')
+
+       ret = yield from client.publish('topic').remote(1)
+
+       client.close()
+       yield from client.wait_closed()
+       server.close()
+       yield from server.wait_closed()
+
+   event_loop.run_until_complete(go())
+
+
+.. function:: connect_pubsub(*, connect=None, bind=None, loop=None, \
+                             error_table=None, translation_table=None)
+
+    A :ref:`coroutine<coroutine>` that creates and connects/binds
+    *pubsub* client.
+
+    Usually for this function you need to use *connect* parameter, but
+    :term:`ZeroMQ` does not forbid to use *bind*.
+
+    .. seealso:: Please take a look on
+       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
+       values to *connect* and *bind* parameters.
+
+    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
+       :ref:`asyncio-event-loop`.  if *loop* is *None* then default
+       event loop will be given by :func:`asyncio.get_event_loop` call.
+
+    :param dict translation_table:
+       an optional table for custom value translators.
+
+       .. seealso:: :ref:`aiozmq-rpc-value-translators`
+
+    :return: :class:`RPCClient` instance.
+
+
+.. function:: serve_pubsub(handler, *, connect=None, bind=None, subscribe=None,\
+              loop=None, translation_table=None)
+
+    A :ref:`coroutine<coroutine>` that creates and connects/binds *pubsub*
+    server instance.
+
+    Usually for this function you need to use *bind* parameter, but
+    :term:`ZeroMQ` does not forbid to use *connect*.
+
+    :param aiozmq.rpc.AbstractHander handler:
+
+       an object which processes incoming *pipeline* calls.
+
+      Usually you like to pass :class:`AttrHandler` instance.
+
+   :param subscribe: subscription specification.
+
+      Subscribe server to *topics*.
+
+      Allowed parameters: :class:`str`, :class:`bytes`, *iterable* of
+      *str* or *bytes*.
+
+   :param dict translation_table:
+       an optional table for custom value translators.
+
+       .. seealso:: :ref:`aiozmq-rpc-value-translators`
+
+    :return: :class:`Service` instance.
+
+    .. seealso::
+
+       Please take a look on
+       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
+       values for *connect* and *bind* parameters.
+
 
 .. _aiozmq-rpc-exception-translation:
 

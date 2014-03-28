@@ -85,11 +85,11 @@ class PipelineTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            yield from client.pipeline.coro(1)
+            yield from client.notify.coro(1)
             ret = yield from self.queue.get()
             self.assertEqual(1, ret)
 
-            yield from client.pipeline.coro(2)
+            yield from client.notify.coro(2)
             ret = yield from self.queue.get()
             self.assertEqual(2, ret)
 
@@ -100,10 +100,10 @@ class PipelineTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            yield from client.pipeline.add()
+            yield from client.notify.add()
             ret = yield from self.queue.get()
             self.assertEqual(ret, 2)
-            yield from client.pipeline.add(2)
+            yield from client.notify.add(2)
             ret = yield from self.queue.get()
             self.assertEqual(ret, 3)
 
@@ -114,7 +114,7 @@ class PipelineTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            yield from client.pipeline.raise_error()
+            yield from client.notify.raise_error()
             ctx = yield from self.err_queue.get()
             self.assertRegex(ctx['message'],
                              "Call to 'raise_error'.*RuntimeError")
@@ -128,7 +128,7 @@ class PipelineTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            yield from client.pipeline.bad_handler()
+            yield from client.notify.bad_handler()
             ctx = yield from self.err_queue.get()
             self.assertRegex(ctx['message'],
                              "Call to 'bad_handler'.*NotFoundError")
@@ -140,7 +140,7 @@ class PipelineTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            yield from client.pipeline.func(123)
+            yield from client.notify.func(123)
             ret = yield from self.queue.get()
             self.assertEqual(ret, 123)
 
@@ -151,7 +151,7 @@ class PipelineTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            yield from client.pipeline.func_error()
+            yield from client.notify.func_error()
             ctx = yield from self.err_queue.get()
             self.assertRegex(ctx['message'],
                              "Call to 'func_error'.*ValueError")

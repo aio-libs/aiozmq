@@ -24,10 +24,11 @@ Features
 
 - Implements :mod:`asyncio` event loop for :term:`ZeroMQ` sockets via
   :class:`~aiozmq.ZmqEventLoop`
-- Has installable policy for ZerMQ event loop (see :ref:`install-aiozmq-policy`)
+- Implements installable policy for ZerMQ event loop (see
+  :ref:`install-aiozmq-policy`), **required for ZeroMQ sockets layer.
 - Provides :class:`~aiozmq.ZmqTransport` and :class:`~aiozmq.ZmqProtocol`
-- Provides RPC :ref:`client <aiozmq-rpc-client>` and :ref:`server
-  <aiozmq-rpc-server>` based on :term:`ZeroMQ` *DEALER/ROUTER* sockets
+- Provides RPC :ref:`aiozmq-rpc-rpc` :ref:`aiozmq-rpc-pushpull` and
+  :ref:`aiozmq-rpc-pubsub` patterns for *remote calls*.
 
 Library Installation
 --------------------

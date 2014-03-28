@@ -63,7 +63,7 @@ class PipelineClient(Service):
         super().__init__(loop, proto)
 
     @property
-    def pipeline(self):
+    def notify(self):
         """Return object for dynamic Pipeline calls.
 
         The usage is:

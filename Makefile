@@ -7,6 +7,7 @@ FILTER=
 
 doc:
 	cd docs && make html
+	echo "open file://`pwd`/docs/_build/html/index.html"
 
 pep:
 	$(FLAKE) ./
