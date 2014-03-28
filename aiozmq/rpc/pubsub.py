@@ -149,7 +149,7 @@ class _ServerProtocol(_BaseProtocol, _MethodDispatcher):
     def process_call_result(self, fut, *, name):
         try:
             if fut.result() is not None:
-                logger.warn("")
+                logger.warn("PubSub handler %r returned not None", name)
         except Exception as exc:
             self.loop.call_exception_handler({
                 'message': 'Call to {!r} caused error: {!r}'.format(name, exc),
