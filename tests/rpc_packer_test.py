@@ -1,12 +1,13 @@
 import unittest
 import datetime
 
+from aiozmq.rpc.packer import _Packer
+
 from unittest import mock
 from msgpack import ExtType, packb
 from pickle import dumps, loads, HIGHEST_PROTOCOL
 from functools import partial
 
-from aiozmq.rpc.packer import _Packer
 
 
 class Point:
