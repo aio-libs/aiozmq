@@ -20,7 +20,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
     @asyncio.coroutine
     @aiozmq.rpc.method
-    def add(self, arg:int=1):
+    def add(self, arg: int=1):
         yield from self.queue.put(arg + 1)
 
     @asyncio.coroutine

@@ -9,7 +9,7 @@ doc:
 	echo "open file://`pwd`/docs/_build/html/index.html"
 
 pep:
-	pep8 aiozmq examples
+	pep8 aiozmq examples tests
 
 flake:
 	pyflakes3 .

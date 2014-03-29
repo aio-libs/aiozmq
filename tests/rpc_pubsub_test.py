@@ -21,7 +21,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         yield from self.queue.put(arg)
 
     @aiozmq.rpc.method
-    def func(self, arg:int):
+    def func(self, arg: int):
         self.queue.put_nowait(arg + 1)
 
     @aiozmq.rpc.method

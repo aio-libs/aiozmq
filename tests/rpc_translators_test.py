@@ -1,6 +1,7 @@
 import unittest
 import asyncio
-import aiozmq, aiozmq.rpc
+import aiozmq
+import aiozmq.rpc
 import msgpack
 
 from aiozmq._test_utils import find_unused_port
