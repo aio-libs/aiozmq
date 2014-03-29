@@ -55,8 +55,8 @@ class _ClientProtocol(_BaseProtocol):
         elif isinstance(topic, bytes):
             btopic = topic
         else:
-            raise TypeError('topic argument should be None, str or bytes ({!r})'
-                            .format(topic))
+            raise TypeError('topic argument should be None, str or bytes '
+                            '({!r})'.format(topic))
         bname = name.encode('utf-8')
         bargs = self.packer.packb(args)
         bkwargs = self.packer.packb(kwargs)

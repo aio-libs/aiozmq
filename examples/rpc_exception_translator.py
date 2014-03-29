@@ -1,5 +1,6 @@
 import asyncio
-import aiozmq, aiozmq.rpc
+import aiozmq
+import aiozmq.rpc
 
 
 class CustomError(Exception):
@@ -9,10 +10,8 @@ class CustomError(Exception):
         super().__init__(val)
 
 
-error_table = {
-    CustomError.__module__+'.'+CustomError.__name__:
-        CustomError
-}
+exc_name = CustomError.__module__+'.'+CustomError.__name__
+error_table = {exc_name: CustomError}
 
 
 class ServerHandler(aiozmq.rpc.AttrHandler):

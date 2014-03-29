@@ -6,7 +6,7 @@ import aiozmq.rpc
 class ServerHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
-    def remote_func(self, a:int, b:int) -> int:
+    def remote_func(self, a: int, b: int) -> int:
         return a + b
 
 

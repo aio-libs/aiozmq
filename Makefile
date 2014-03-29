@@ -1,7 +1,6 @@
 # Some simple testing tasks (sorry, UNIX only).
 
 PYTHON=python3.3
-FLAKE=flake8
 
 FILTER=
 
@@ -10,7 +9,10 @@ doc:
 	echo "open file://`pwd`/docs/_build/html/index.html"
 
 pep:
-	$(FLAKE) ./
+	pep8 aiozmq examples
+
+flake:
+	pyflakes3 .
 
 test:
 	$(PYTHON) runtests.py $(FILTER)

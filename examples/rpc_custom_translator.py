@@ -1,5 +1,6 @@
 import asyncio
-import aiozmq, aiozmq.rpc
+import aiozmq
+import aiozmq.rpc
 import msgpack
 
 

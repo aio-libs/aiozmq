@@ -3,8 +3,6 @@ import asyncio
 import aiozmq, aiozmq.rpc
 import msgpack
 
-from functools import partial
-from pickle import dumps, loads, HIGHEST_PROTOCOL
 from aiozmq._test_utils import find_unused_port
 
 

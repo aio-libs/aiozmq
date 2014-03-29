@@ -3,7 +3,6 @@ import asyncio
 
 import aiozmq
 import aiozmq.rpc
-from aiozmq._test_utils import find_unused_port
 
 
 def my_checker(val):

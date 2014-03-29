@@ -14,8 +14,7 @@ def b():
 
 
 handlers_dict = {'a': a,
-                 'subnamespace': {'b': b}
-                }
+                 'subnamespace': {'b': b}}
 
 
 @asyncio.coroutine
