@@ -48,7 +48,7 @@ Request-Reply
 
 This is **Remote Procedure Call** pattern itself. Client calls remote
 function on server and waits for returned value. If remote function
-raises exception that exception instance raises on client side.
+raises exception that exception instance raises on client side also.
 
 Let's assume we have *N* clients bound to *M* servers.  Any client can
 connect to several servers and any server can listen multiple
@@ -84,11 +84,6 @@ The basic usage is::
        ret = yield from client.call.remote(1, 2)
        assert ret == 3
 
-       client.close()
-       yield from client.wait_closed()
-       server.close()
-       yield from server.wait_closed()
-
    event_loop.run_until_complete(go())
 
 
@@ -100,10 +95,6 @@ The basic usage is::
 
     Usually for this function you need to use *connect* parameter, but
     :term:`ZeroMQ` does not forbid to use *bind*.
-
-    .. seealso:: Please take a look on
-       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
-       values to *connect* and *bind* parameters.
 
     :param aiozmq.ZmqEventLoop loop: an optional parameter to point
        :ref:`asyncio-event-loop`.  if *loop* is *None* then default
@@ -120,6 +111,11 @@ The basic usage is::
 
     :return: :class:`RPCClient` instance.
 
+    .. seealso::
+
+       Please take a look on
+       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
+       values to *connect* and *bind* parameters.
 
 
 .. function:: serve_rpc(handler, *, connect=None, bind=None, loop=None, \
@@ -194,11 +190,6 @@ The basic usage is::
 
        ret = yield from client.notify.remote(1)
 
-       client.close()
-       yield from client.wait_closed()
-       server.close()
-       yield from server.wait_closed()
-
    event_loop.run_until_complete(go())
 
 
@@ -211,10 +202,6 @@ The basic usage is::
     Usually for this function you need to use *connect* parameter, but
     :term:`ZeroMQ` does not forbid to use *bind*.
 
-    .. seealso:: Please take a look on
-       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
-       values to *connect* and *bind* parameters.
-
     :param aiozmq.ZmqEventLoop loop: an optional parameter to point
        :ref:`asyncio-event-loop`.  if *loop* is *None* then default
        event loop will be given by :func:`asyncio.get_event_loop` call.
@@ -224,7 +211,13 @@ The basic usage is::
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
 
-    :return: :class:`RPCClient` instance.
+    :return: :class:`PipelineClient` instance.
+
+    .. seealso::
+
+       Please take a look on
+       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
+       values to *connect* and *bind* parameters.
 
 
 
@@ -300,11 +293,6 @@ The basic usage is::
 
        ret = yield from client.publish('topic').remote(1)
 
-       client.close()
-       yield from client.wait_closed()
-       server.close()
-       yield from server.wait_closed()
-
    event_loop.run_until_complete(go())
 
 
@@ -317,10 +305,6 @@ The basic usage is::
     Usually for this function you need to use *connect* parameter, but
     :term:`ZeroMQ` does not forbid to use *bind*.
 
-    .. seealso:: Please take a look on
-       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
-       values to *connect* and *bind* parameters.
-
     :param aiozmq.ZmqEventLoop loop: an optional parameter to point
        :ref:`asyncio-event-loop`.  if *loop* is *None* then default
        event loop will be given by :func:`asyncio.get_event_loop` call.
@@ -330,7 +314,11 @@ The basic usage is::
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
 
-    :return: :class:`RPCClient` instance.
+    :return: :class:`PubSubClient` instance.
+
+    .. seealso:: Please take a look on
+       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
+       values to *connect* and *bind* parameters.
 
 
 .. function:: serve_pubsub(handler, *, connect=None, bind=None, subscribe=None,\
@@ -352,7 +340,7 @@ The basic usage is::
 
       Subscribe server to *topics*.
 
-      Allowed parameters: :class:`str`, :class:`bytes`, *iterable* of
+      Allowed parameters are :class:`str`, :class:`bytes`, *iterable* of
       *str* or *bytes*.
 
    :param dict translation_table:
@@ -360,7 +348,7 @@ The basic usage is::
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
 
-    :return: :class:`Service` instance.
+    :return: :class:`PubSubService` instance.
 
     .. seealso::
 
@@ -371,7 +359,7 @@ The basic usage is::
 
 .. _aiozmq-rpc-exception-translation:
 
-RPC exception translation at client side
+Exception translation at client side
 ----------------------------------------
 
 If remote server method raises an exception that error is passed
@@ -423,7 +411,7 @@ that's up to you.
 
 .. _aiozmq-rpc-signature-validation:
 
-RPC signature validation
+Signature validation
 ------------------------
 
 The library supports **optional** validation of remote call signatures.
@@ -495,7 +483,7 @@ can create custom trafarets if needed. It's easy, trust me.
 
 .. _aiozmq-rpc-value-translators:
 
-RPC value translators
+Value translators
 ---------------------
 
 aiozmq.rpc uses :term:`msgpack` for transfering python objects from
@@ -647,7 +635,7 @@ Table of predefined translators:
    instances.
 
 
-RPC exceptions
+Exceptions
 --------------
 
 .. exception:: Error
@@ -693,7 +681,7 @@ RPC exceptions
       :attr:`Service.transport` property.
 
 
-RPC clases
+Clases
 ----------
 
 .. decorator:: method
@@ -783,7 +771,8 @@ RPC clases
 
       :ref:`Coroutine <coroutine>` to wait until service is closed.
 
-   .. warning:: You should never instantiate :class:`Service` by hand.
+      .. seealso::
+         :ref:`aiozmq-rpc-signature-validation`
 
 .. class:: RPCClient
 
@@ -818,11 +807,71 @@ RPC clases
           except ValueError as exc:
               process_error(exc)
 
-      .. seealso::
-         :ref:`aiozmq-rpc-exception-translation` and
-         :ref:`aiozmq-rpc-signature-validation`
+   .. seealso::
+      :ref:`aiozmq-rpc-exception-translation` and
+      :ref:`aiozmq-rpc-signature-validation`
 
-   .. warning::
+.. class:: PipelineClient
 
-      You should never instantiate :class:`RPCClient` by hand, use
-      :func:`connect_rpc` instead.
+   Class that returned by :func:`connect_pipeline` call. Inherited from
+   :class:`Service`.
+
+   .. attribute:: notify
+
+      The readonly property that returns ephemeral object used to making
+      notification call.
+
+      Construction like::
+
+          ret = yield from client.notify.ns.method(1, 2, 3)
+
+      makes a remote call with arguments(1, 2, 3) and returns *None*.
+
+      You cannot get any answer from the server.
+
+
+.. class:: PubSubClient
+
+   Class that returned by :func:`connect_pubsub` call. Inherited from
+   :class:`Service`.
+
+   For *pubsub* calls use :attr:`~RPCClient.publish` method.
+
+   .. method:: publish(topic)
+
+      The call that returns ephemeral object used to making
+      *publisher call*.
+
+      Construction like::
+
+          ret = yield from client.publish('topic').ns.method(1, b=2)
+
+      makes a remote call with arguments ``(1, b=2)`` and topic name
+      ``b'topic'`` and returns *None*.
+
+      You cannot get any answer from the server.
+
+   .. seealso::
+      :ref:`aiozmq-rpc-signature-validation`
+
+.. class:: PubSubClient
+
+   Class that returned by :func:`connect_pubsub` call. Inherited from
+   :class:`Service`.
+
+   For *pubsub* calls use :attr:`~RPCClient.publish` method.
+
+   .. method:: publish(topic)
+
+      The call that returns ephemeral object used to making
+      *publisher call*.
+
+      Construction like::
+
+          ret = yield from client.publish('topic').ns.method(1, b=2)
+
+      makes a remote call with arguments ``(1, b=2)`` and topic name
+      ``b'topic'``
+
+   .. seealso::
+      :ref:`aiozmq-rpc-signature-validation`
