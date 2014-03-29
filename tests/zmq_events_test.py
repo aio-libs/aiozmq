@@ -205,7 +205,13 @@ class ZmqEventLoopTests(unittest.TestCase):
             answer = yield from pr1.received.get()
             self.assertEqual((b'answer',), answer)
 
-        self.loop.run_until_complete(communicate())
+        try:
+            self.loop.run_until_complete(communicate())
+        except OSError as exc:
+            if exc.errno == errno.ENOTSOCK:
+                self.skipTest("misterious ENOTSOCK")
+            else:
+                raise
 
         @asyncio.coroutine
         def closing():
