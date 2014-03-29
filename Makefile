@@ -14,16 +14,16 @@ pep:
 flake:
 	pyflakes3 .
 
-test:
+test: pep flake
 	$(PYTHON) runtests.py $(FILTER)
 
-vtest:
+vtest: pep flake
 	$(PYTHON) runtests.py -v $(FILTER)
 
-testloop:
+testloop: pep flake
 	$(PYTHON) runtests.py --forever $(FILTER)
 
-cov cover coverage:
+cov cover coverage: pep flake
 	$(PYTHON) runtests.py --coverage $(FILTER)
 
 clean:
