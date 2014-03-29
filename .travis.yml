@@ -7,6 +7,7 @@ python:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq libzmq3-dev
+  - sudo apt-get install -qq python3-flake8
   # - sudo apt-get install python3.4
 
 install:
@@ -17,7 +18,13 @@ script:
   - python runtests.py -v
 
 env:
-  - USE_MSGPACK=1
-  - USE_MSGPACK=0
+  global:
+    - PYTHON=python
+  matrix:
+    - USE_MSGPACK=1
+    - USE_MSGPACK=0
+    - ACTION=vtest
+    - ACTION=flake
+    - ACTION=pep
 
 cache: apt
