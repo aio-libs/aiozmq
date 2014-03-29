@@ -16,8 +16,8 @@ install:
   - pip install pep8
 
 script:
-  - make pep
-  - make flake
+  - pep8 aiozmq examples
+  - pyflakes .
   - python runtests.py -v
 
 env:
