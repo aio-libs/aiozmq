@@ -1,12 +1,14 @@
 CHANGES
-=======
+-------
 
-0.0.2 (XXXX-XX-XX)
-------------------
+0.1.0 (XXXX-XX-XX)
+^^^^^^^^^^^^^^^^^^
 
-Implement ZmqEventLoop with method create_zmq_connection which operates
+Implement ZmqEventLoop with *create_zmq_connection* method which operates
 on zmq transport and protocol.
+
+Implement ZmqEventLoopPolicy.
 
 Introduce ZmqTransport and ZmqProtocol.
 
-Implement zmq.rpc
+Implement zmq.rpc with RPC, PUSHPULL and PUBSUB protocols.

@@ -6,7 +6,6 @@ import random
 import struct
 import time
 import sys
-import contextlib
 
 import zmq
 
@@ -40,7 +39,7 @@ __all__ = [
 
 @asyncio.coroutine
 def connect_rpc(*, connect=None, bind=None, loop=None,
-                error_table=None, translation_table=None):
+                error_table=None, translation_table=None, timeout=10):
     """A coroutine that creates and connects/binds RPC client.
 
     Return value is a client instance.
@@ -55,7 +54,7 @@ def connect_rpc(*, connect=None, bind=None, loop=None,
         lambda: _ClientProtocol(loop, error_table=error_table,
                                 translation_table=translation_table),
         zmq.DEALER, connect=connect, bind=bind)
-    return RPCClient(loop, proto)
+    return RPCClient(loop, proto, timeout=timeout)
 
 
 @asyncio.coroutine
@@ -140,7 +139,7 @@ class _ClientProtocol(_BaseProtocol):
 
 class RPCClient(Service):
 
-    def __init__(self, loop, proto, *, timeout=10):
+    def __init__(self, loop, proto, *, timeout):
         super().__init__(loop, proto)
         self._timeout = timeout
 
@@ -153,10 +152,9 @@ class RPCClient(Service):
         """
         return _MethodCall(self._proto, timeout=self._timeout)
 
-    # FIXME: __call__ not good; make it separate method
-    @contextlib.contextmanager
-    def __call__(self, timeout):
-        yield _MethodCall(self._proto, timeout=timeout)
+    def with_timeout(self, timeout):
+        """Return a new RPCClient instance with overriden timeout"""
+        return self.__class__(self._loop, self._proto, timeout=timeout)
 
 
 class _ServerProtocol(_BaseProtocol, _MethodDispatcher):

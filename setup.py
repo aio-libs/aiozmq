@@ -35,21 +35,28 @@ def read_version():
         else:
             raise RuntimeError('Cannot find version in aiozmq/__init__.py')
 
+classifiers=[
+    'License :: OSI Approved :: BSD License',
+    'Intended Audience :: Developers',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3.3',
+    'Programming Language :: Python :: 3.4',
+    'Operating System :: POSIX',
+    'Environment :: Web Environment',
+]
+
+if 'a' in read_version():
+    classifiers.append('Development Status :: 3 - Alpha')
+elif 'b' in read_version():
+    classifiers.append('Development Status :: 4 - Beta')
+else:
+    classifiers.append('Development Status :: 5 - Production/Stable')
 
 setup(name='aiozmq',
       version=read_version(),
       description=('ZeroMQ integration with asyncio.'),
       long_description='\n\n'.join((read('README.rst'), read('CHANGES.txt'))),
-      classifiers=[
-          'License :: OSI Approved :: BSD License',
-          'Intended Audience :: Developers',
-          'Programming Language :: Python',
-          'Programming Language :: Python :: 3.3',
-          'Programming Language :: Python :: 3.4',
-          'Operating System :: POSIX',
-          'Environment :: Web Environment',
-          'Framework :: asyncio',
-        ],
+      classifiers=classifiers,
       platforms=['POSIX'],
       author='Nikolay Kim',
       author_email='fafhrd91@gmail.com',
