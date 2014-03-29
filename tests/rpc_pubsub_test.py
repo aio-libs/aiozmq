@@ -2,7 +2,6 @@ import unittest
 import asyncio
 import aiozmq
 import aiozmq.rpc
-import time
 
 
 class MyHandler(aiozmq.rpc.AttrHandler):
@@ -10,6 +9,11 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     def __init__(self, queue):
         super().__init__()
         self.queue = queue
+
+    @aiozmq.rpc.method
+    @asyncio.coroutine
+    def start(self):
+        yield from self.queue.put('started')
 
     @aiozmq.rpc.method
     @asyncio.coroutine
@@ -62,6 +66,23 @@ class PubSubTests(unittest.TestCase):
             client = yield from aiozmq.rpc.connect_pubsub(
                 connect=connect,
                 loop=self.loop)
+
+            if subscribe is not None:
+                if not isinstance(subscribe, (str, bytes)):
+                    pub = subscribe[0]
+                else:
+                    pub = subscribe
+                for i in range(3):
+                    try:
+                        yield from client.publish(pub).start()
+                        ret = yield from asyncio.wait_for(self.queue.get(),
+                                                          0.1, loop=self.loop)
+                        self.assertEqual(ret, 'started')
+                        break
+                    except asyncio.TimeoutError:
+                        self.assertLess(i, 3)
+                else:
+                    self.fail('Cannot connect')
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())
@@ -69,11 +90,6 @@ class PubSubTests(unittest.TestCase):
 
     def test_coro(self):
         client, server = self.make_pubsub_pair('my-topic')
-
-        # Sorry, sleep is required to get rid of sporadic hangs
-        # without that 0MQ not always establishes tcp connection
-        # and waiting for message from sub socket hangs.
-        time.sleep(0.1)
 
         @asyncio.coroutine
         def communicate():
@@ -89,9 +105,6 @@ class PubSubTests(unittest.TestCase):
     def test_coro__multiple_topics(self):
         client, server = self.make_pubsub_pair(('topic1', 'topic2'))
 
-        # see test_coro
-        time.sleep(0.1)
-
         @asyncio.coroutine
         def communicate():
             yield from client.publish('topic1').coro(1)
@@ -106,9 +119,6 @@ class PubSubTests(unittest.TestCase):
 
     def test_coro__subscribe_to_all(self):
         client, server = self.make_pubsub_pair('')
-
-        # see test_coro
-        time.sleep(0.1)
 
         @asyncio.coroutine
         def communicate():
@@ -135,9 +145,6 @@ class PubSubTests(unittest.TestCase):
     def test_not_found(self):
         client, server = self.make_pubsub_pair('my-topic')
 
-        # see test_coro
-        time.sleep(0.1)
-
         @asyncio.coroutine
         def communicate():
             yield from client.publish('my-topic').bad.method(1, 2)
@@ -150,9 +157,6 @@ class PubSubTests(unittest.TestCase):
     def test_func(self):
         client, server = self.make_pubsub_pair('my-topic')
 
-        # see test_coro
-        time.sleep(0.1)
-
         @asyncio.coroutine
         def communicate():
             yield from client.publish('my-topic').func(1)
@@ -163,9 +167,6 @@ class PubSubTests(unittest.TestCase):
 
     def test_func__arg_error(self):
         client, server = self.make_pubsub_pair('my-topic')
-
-        # see test_coro
-        time.sleep(0.1)
 
         @asyncio.coroutine
         def communicate():
@@ -179,9 +180,6 @@ class PubSubTests(unittest.TestCase):
 
     def test_func_raises_error(self):
         client, server = self.make_pubsub_pair('my-topic')
-
-        # see test_coro
-        time.sleep(0.1)
 
         @asyncio.coroutine
         def communicate():

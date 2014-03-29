@@ -48,11 +48,15 @@ def serve_pubsub(handler, *, subscribe=None, connect=None, bind=None,
 class _ClientProtocol(_BaseProtocol):
 
     def call(self, topic, name, args, kwargs):
-        assert topic is None or isinstance(topic, (str, bytes))
-        if isinstance(topic, str):
+        if topic is None:
+            btopic = b''
+        elif isinstance(topic, str):
             btopic = topic.encode('utf-8')
-        else:   # None or bytes
-            btopic = topic or b''
+        elif isinstance(topic, bytes):
+            btopic = topic
+        else:
+            raise TypeError('topic argument should be None, str or bytes ({!r})'
+                            .format(topic))
         bname = name.encode('utf-8')
         bargs = self.packer.packb(args)
         bkwargs = self.packer.packb(kwargs)
