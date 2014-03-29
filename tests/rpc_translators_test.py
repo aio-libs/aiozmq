@@ -80,7 +80,7 @@ class RpcTranslatorsTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            ret = yield from client.rpc.func(pt)
+            ret = yield from client.call.func(pt)
             self.assertEqual(ret, pt)
 
         self.loop.run_until_complete(communicate())

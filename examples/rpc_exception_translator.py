@@ -31,7 +31,7 @@ def go():
         error_table=error_table)
 
     try:
-        yield from client.rpc.remote('value')
+        yield from client.call.remote('value')
     except CustomError as exc:
         exc.val == 'value'
 

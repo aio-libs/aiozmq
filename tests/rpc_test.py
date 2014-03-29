@@ -88,7 +88,7 @@ class RpcTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            ret = yield from client.rpc.func(1)
+            ret = yield from client.call.func(1)
             self.assertEqual(2, ret)
             client.close()
             yield from client.wait_closed()
@@ -101,7 +101,7 @@ class RpcTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             with self.assertRaises(RuntimeError) as exc:
-                yield from client.rpc.exc(1)
+                yield from client.call.exc(1)
             self.assertEqual(('bad arg', 1), exc.exception.args)
 
         self.loop.run_until_complete(communicate())
@@ -112,7 +112,7 @@ class RpcTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             with self.assertRaises(aiozmq.rpc.NotFoundError) as exc:
-                yield from client.rpc.unknown_method(1, 2, 3)
+                yield from client.call.unknown_method(1, 2, 3)
             self.assertEqual(('unknown_method',), exc.exception.args)
 
         self.loop.run_until_complete(communicate())
@@ -122,7 +122,7 @@ class RpcTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            ret = yield from client.rpc.coro(2)
+            ret = yield from client.call.coro(2)
             self.assertEqual(3, ret)
 
         self.loop.run_until_complete(communicate())
@@ -133,7 +133,7 @@ class RpcTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             with self.assertRaises(RuntimeError) as exc:
-                yield from client.rpc.exc_coro(1)
+                yield from client.call.exc_coro(1)
             self.assertEqual(('bad arg 2', 1), exc.exception.args)
 
         self.loop.run_until_complete(communicate())
@@ -143,8 +143,8 @@ class RpcTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            ret = yield from client.rpc.add(datetime.date(2014, 3, 21),
-                                            datetime.timedelta(days=2))
+            ret = yield from client.call.add(datetime.date(2014, 3, 21),
+                                             datetime.timedelta(days=2))
             self.assertEqual(datetime.date(2014, 3, 23), ret)
 
         self.loop.run_until_complete(communicate())
@@ -155,7 +155,7 @@ class RpcTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             with self.assertRaises(ValueError) as exc:
-                yield from client.rpc(1, 2, 3)
+                yield from client.call(1, 2, 3)
             self.assertEqual(('RPC method name is empty',), exc.exception.args)
 
         self.loop.run_until_complete(communicate())
@@ -177,7 +177,7 @@ class RpcTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             with self.assertRaises(aiozmq.rpc.GenericError) as exc:
-                yield from client.rpc.generic_exception()
+                yield from client.call.generic_exception()
             self.assertEqual(('rpc_test.MyException',
                              ('additional', 'data')),
                              exc.exception.args)
@@ -191,7 +191,7 @@ class RpcTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             with self.assertRaises(MyException) as exc:
-                yield from client.rpc.generic_exception()
+                yield from client.call.generic_exception()
             self.assertEqual(('additional', 'data'), exc.exception.args)
 
         self.loop.run_until_complete(communicate())
@@ -217,7 +217,7 @@ class RpcTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            ret = yield from self.client.rpc.func(1)
+            ret = yield from self.client.call.func(1)
             self.assertEqual(2, ret)
 
         loop.run_until_complete(communicate())

@@ -60,7 +60,7 @@ class RpcNamespaceTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            ret = yield from client.rpc.ns.func(1)
+            ret = yield from client.call.ns.func(1)
             self.assertEqual(2, ret)
 
         self.loop.run_until_complete(communicate())
@@ -71,7 +71,7 @@ class RpcNamespaceTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             with self.assertRaisesRegex(aiozmq.rpc.NotFoundError, 'ns1.func'):
-                yield from client.rpc.ns1.func(1)
+                yield from client.call.ns1.func(1)
 
         self.loop.run_until_complete(communicate())
 
@@ -82,7 +82,7 @@ class RpcNamespaceTests(unittest.TestCase):
         def communicate():
             with self.assertRaisesRegex(aiozmq.rpc.NotFoundError,
                                         'ns.func.foo'):
-                yield from client.rpc.ns.func.foo(1)
+                yield from client.call.ns.func.foo(1)
 
         self.loop.run_until_complete(communicate())
 
@@ -92,6 +92,6 @@ class RpcNamespaceTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             with self.assertRaisesRegex(aiozmq.rpc.NotFoundError, 'ns'):
-                yield from client.rpc.ns(1)
+                yield from client.call.ns(1)
 
         self.loop.run_until_complete(communicate())

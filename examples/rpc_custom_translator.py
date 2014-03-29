@@ -40,7 +40,7 @@ def go():
         connect=server_addr,
         translation_table=translation_table)
 
-    ret = yield from client.rpc.remote(Point(1, 2))
+    ret = yield from client.call.remote(Point(1, 2))
     assert ret == Point(1, 2)
 
     server.close()

@@ -28,13 +28,13 @@ def go():
     client = yield from aiozmq.rpc.open_client(
         connect=server_addr)
 
-    ret = yield from client.rpc.func()
+    ret = yield from client.call.func()
     assert ((), 'val') == ret, ret
 
-    ret = yield from client.rpc.a.func()
+    ret = yield from client.call.a.func()
     assert (('a',), 'val') == ret, ret
 
-    ret = yield from client.rpc.a.b.func()
+    ret = yield from client.call.a.b.func()
     assert (('a', 'b'), 'val') == ret, ret
 
     server.close()

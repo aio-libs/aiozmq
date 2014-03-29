@@ -145,11 +145,11 @@ class RPCClient(Service):
         self._timeout = timeout
 
     @property
-    def rpc(self):
+    def call(self):
         """Return object for dynamic RPC calls.
 
         The usage is:
-        ret = yield from client.rpc.ns.func(1, 2)
+        ret = yield from client.call.ns.func(1, 2)
         """
         return _MethodCall(self._proto, timeout=self._timeout)
 

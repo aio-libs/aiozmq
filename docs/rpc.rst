@@ -81,7 +81,7 @@ The basic usage is::
 
        client = yield from rpc.connect_rpc(connect='tcp://127.0.0.1:5555')
 
-       ret = yield from client.rpc.remote(1, 2)
+       ret = yield from client.call.remote(1, 2)
        assert ret == 3
 
        client.close()
@@ -378,7 +378,7 @@ If remote server method raises an exception that error is passed
 back to client and raised on client side, as follows::
 
     try:
-        yield from client.rpc.func_raises_value_error()
+        yield from client.call.func_raises_value_error()
     except ValueError as exc:
         log.exception(exc)
 
@@ -566,7 +566,7 @@ example::
             connect='tcp://127.0.0.1:5555',
             translation_table=translation_table)
 
-        ret = yield from client.rpc.remote(Point(1, 2))
+        ret = yield from client.call.remote(Point(1, 2))
         assert ret == Point(1, 2)
 
 You should to create a *translation table* and pass it to both
@@ -792,21 +792,21 @@ RPC clases
 
    For RPC calls use :attr:`~RPCClient.rpc` property.
 
-   .. attribute:: rpc
+   .. attribute:: call
 
       The readonly property that returns ephemeral object used to making
       RPC call.
 
       Construction like::
 
-          ret = yield from client.rpc.ns.method(1, 2, 3)
+          ret = yield from client.call.ns.method(1, 2, 3)
 
       makes a remote call with arguments(1, 2, 3) and returns answer
       from this call.
 
       You can also pass *named parameters*::
 
-          ret = yield from client.rpc.ns.method(1, b=2, c=3)
+          ret = yield from client.call.ns.method(1, b=2, c=3)
 
       If the call raises exception that exception propagates to client side.
 
@@ -814,7 +814,7 @@ RPC clases
       ``ValueError`` instance with *args* sent by remote::
 
           try:
-              yield from client.rpc.raise_value_error()
+              yield from client.call.raise_value_error()
           except ValueError as exc:
               process_error(exc)
 

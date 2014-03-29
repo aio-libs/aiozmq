@@ -34,10 +34,10 @@ def go():
     client = yield from aiozmq.rpc.open_client(
         connect=server_addr)
 
-    ret = yield from client.rpc.a()
+    ret = yield from client.call.a()
     assert ('ident', 'a') == ret
 
-    ret = yield from client.rpc.subhandler.b()
+    ret = yield from client.call.subhandler.b()
     assert ('ident', 'subident', 'b') == ret
 
     server.close()

@@ -26,10 +26,10 @@ def go():
     client = yield from aiozmq.rpc.open_client(
         connect=server_addr)
 
-    ret = yield from client.rpc.a()
+    ret = yield from client.call.a()
     assert 'a' == ret
 
-    ret = yield from client.rpc.subnamespace.b()
+    ret = yield from client.call.subnamespace.b()
     assert 'b' == ret
 
     server.close()

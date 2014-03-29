@@ -100,7 +100,7 @@ class FuncAnnotationsTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            ret = yield from client.rpc.no_params(1)
+            ret = yield from client.call.no_params(1)
             self.assertEqual(ret, 2)
 
         self.loop.run_until_complete(communicate())
@@ -110,32 +110,32 @@ class FuncAnnotationsTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            ret = yield from client.rpc.single_param(1)
+            ret = yield from client.call.single_param(1)
             self.assertEqual(ret, 2)
-            ret = yield from client.rpc.single_param('1')
+            ret = yield from client.call.single_param('1')
             self.assertEqual(ret, 2)
-            ret = yield from client.rpc.single_param(1.0)
+            ret = yield from client.call.single_param(1.0)
             self.assertEqual(ret, 2)
 
             msg = "Invalid value for argument 'arg'"
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.rpc.single_param('1.0')
+                yield from client.call.single_param('1.0')
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.rpc.single_param('bad value')
+                yield from client.call.single_param('bad value')
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.rpc.single_param({})
+                yield from client.call.single_param({})
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.rpc.single_param(None)
+                yield from client.call.single_param(None)
 
             msg = "TypeError.*'arg' parameter lacking default value"
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.rpc.single_param()
+                yield from client.call.single_param()
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.rpc.single_param(bad='value')
+                yield from client.call.single_param(bad='value')
 
             msg = "TypeError.*too many keyword arguments"
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.rpc.single_param(1, bad='value')
+                yield from client.call.single_param(1, bad='value')
 
         self.loop.run_until_complete(communicate())
 
@@ -144,14 +144,14 @@ class FuncAnnotationsTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            ret = yield from client.rpc.custom_annotation(1)
+            ret = yield from client.call.custom_annotation(1)
             self.assertEqual(ret, 1)
-            ret = yield from client.rpc.custom_annotation(None)
+            ret = yield from client.call.custom_annotation(None)
             self.assertIsNone(ret)
 
             msg = "Invalid value for argument 'arg': ValueError.*bad value.*"
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.rpc.custom_annotation(1.0)
+                yield from client.call.custom_annotation(1.0)
 
         self.loop.run_until_complete(communicate())
 
@@ -160,9 +160,9 @@ class FuncAnnotationsTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            ret = yield from client.rpc.ret_annotation(1)
+            ret = yield from client.call.ret_annotation(1)
             self.assertEqual(ret, 1.0)
-            ret = yield from client.rpc.ret_annotation('2')
+            ret = yield from client.call.ret_annotation('2')
             self.assertEqual(ret, 2.0)
 
         self.loop.run_until_complete(communicate())
@@ -172,16 +172,16 @@ class FuncAnnotationsTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            ret = yield from client.rpc.bad_return(1)
+            ret = yield from client.call.bad_return(1)
             self.assertEqual(ret, 1)
-            ret = yield from client.rpc.bad_return(1.2)
+            ret = yield from client.call.bad_return(1.2)
             self.assertEqual(ret, 1)
-            ret = yield from client.rpc.bad_return('2')
+            ret = yield from client.call.bad_return('2')
             self.assertEqual(ret, 2)
 
             with self.assertRaises(ValueError):
-                yield from client.rpc.bad_return('1.0')
+                yield from client.call.bad_return('1.0')
             with self.assertRaises(TypeError):
-                yield from client.rpc.bad_return(None)
+                yield from client.call.bad_return(None)
 
         self.loop.run_until_complete(communicate())

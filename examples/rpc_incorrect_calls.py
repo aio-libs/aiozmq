@@ -20,22 +20,22 @@ def go():
         connect=server_addr)
 
     try:
-        yield from client.rpc.unknown_function()
+        yield from client.call.unknown_function()
     except aiozmq.rpc.NotFoundError as exc:
         print("client.rpc.unknown_function(): {}".format(exc))
 
     try:
-        yield from client.rpc.remote_func(bad_arg=1)
+        yield from client.call.remote_func(bad_arg=1)
     except aiozmq.rpc.ParametersError as exc:
         print("client.rpc.remote_func(bad_arg=1): {}".format(exc))
 
     try:
-        yield from client.rpc.remote_func(1)
+        yield from client.call.remote_func(1)
     except aiozmq.rpc.ParametersError as exc:
         print("client.rpc.remote_func(1): {}".format(exc))
 
     try:
-        yield from client.rpc.remote_func('a', 'b')
+        yield from client.call.remote_func('a', 'b')
     except aiozmq.rpc.ParametersError as exc:
         print("client.rpc.remote_func('a', 'b'): {}".format(exc))
 
