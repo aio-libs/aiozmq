@@ -219,15 +219,28 @@ ZmqTransport
       Bind transpot to :term:`endpoint`.
       See http://api.zeromq.org/master:zmq-bind for details.
 
+      This method is a :ref:`coroutine <coroutine>`.
+
       :param endpoint: a string in format ``transport://address`` as
          :term:`ZeroMQ` requires.
 
       :return: bound endpoint, unwinding wildcards if needed.
-      :rtype: str
+      :rtype: :class:`str`
+      :raises: :class:`OSError` on error from ZeroMQ layer
+      :raises: :class:`TypeError` if *endpoint* is not a :class:`str`
 
    .. method:: unbind(endpoint)
 
       Unbind transpot from :term:`endpoint`.
+
+      This method is a :ref:`coroutine <coroutine>`.
+
+      :param endpoint: a string in format ``transport://address`` as
+         :term:`ZeroMQ` requires.
+
+      :return: *None*
+      :raises: :class:`OSError` on error from ZeroMQ layer
+      :raises: :class:`TypeError` if *endpoint* is not a :class:`str`
 
    .. method:: bindings()
 
@@ -246,6 +259,8 @@ ZmqTransport
       Connect transpot to :term:`endpoint`.
       See http://api.zeromq.org/master:zmq-connect for details.
 
+      This method is a :ref:`coroutine <coroutine>`.
+
       :param str endpoint: a string in format ``transport://address`` as
         :term:`ZeroMQ` requires.
 
@@ -254,13 +269,26 @@ ZmqTransport
         get_event_loop().getaddrinfo(host, port)`` for translating
         *DNS* into *IP address*.
 
-      :raise ValueError: if the endpoint is a tcp DNS address.
       :return: endpoint
-      :rtype: str
+      :rtype: :class:`str`
+
+      :raises: :class:`ValueError` if the endpoint is a tcp DNS address.
+      :raises: :class:`OSError` on error from ZeroMQ layer
+      :raises: :class:`TypeError` if *endpoint* is not a :class:`str`
+
 
    .. method:: disconnect(endpoint)
 
       Disconnect transpot from :term:`endpoint`.
+
+      This method is a :ref:`coroutine <coroutine>`.
+
+      :param endpoint: a string in format ``transport://address`` as
+         :term:`ZeroMQ` requires.
+
+      :return: *None*
+      :raises: :class:`OSError` on error from ZeroMQ layer
+      :raises: :class:`TypeError` if *endpoint* is not a :class:`str`
 
    .. method:: connections()
 

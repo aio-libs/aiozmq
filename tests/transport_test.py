@@ -1,5 +1,6 @@
 import unittest
 
+import asyncio
 import zmq
 import aiozmq
 import errno
@@ -164,8 +165,10 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.tr.can_write_eof())
 
     def test_dns_address(self):
-        with self.assertRaises(ValueError):
-            self.tr.connect('tcp://example.com:8080')
+        @asyncio.coroutine
+        def go():
+            with self.assertRaises(ValueError):
+                yield from self.tr.connect('tcp://example.com:8080')
 
     def test_write_none(self):
         self.tr.write(None)

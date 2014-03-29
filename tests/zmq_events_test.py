@@ -232,19 +232,19 @@ class ZmqEventLoopTests(unittest.TestCase):
                 zmq.REQ,
                 bind=[addr1, addr2])
             yield from pr.connected
-            return tr, pr
 
-        tr, pr = self.loop.run_until_complete(connect())
-        self.assertEqual({addr1, addr2}, tr.bindings())
+            self.assertEqual({addr1, addr2}, tr.bindings())
 
-        addr3 = tr.bind('tcp://*:*')
-        self.assertEqual({addr1, addr2, addr3}, tr.bindings())
-        tr.unbind(addr2)
-        self.assertEqual({addr1, addr3}, tr.bindings())
-        self.assertIn(addr1, tr.bindings())
-        self.assertRegex(repr(tr.bindings()),
-                         r'{tcp://0.0.0.0:.\d+, tcp://127.0.0.1:\d+}')
-        tr.close()
+            addr3 = yield from tr.bind('tcp://*:*')
+            self.assertEqual({addr1, addr2, addr3}, tr.bindings())
+            yield from tr.unbind(addr2)
+            self.assertEqual({addr1, addr3}, tr.bindings())
+            self.assertIn(addr1, tr.bindings())
+            self.assertRegex(repr(tr.bindings()),
+                             r'{tcp://0.0.0.0:.\d+, tcp://127.0.0.1:\d+}')
+            tr.close()
+
+        self.loop.run_until_complete(connect())
 
     def test_connects(self):
         port1 = find_unused_port()
@@ -255,21 +255,21 @@ class ZmqEventLoopTests(unittest.TestCase):
         addr3 = 'tcp://127.0.0.1:{}'.format(port3)
 
         @asyncio.coroutine
-        def connect():
+        def go():
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 connect=[addr1, addr2])
             yield from pr.connected
-            return tr, pr
 
-        tr, pr = self.loop.run_until_complete(connect())
-        self.assertEqual({addr1, addr2}, tr.connections())
-        tr.connect(addr3)
-        self.assertEqual({addr1, addr3, addr2}, tr.connections())
-        tr.disconnect(addr1)
-        self.assertEqual({addr2, addr3}, tr.connections())
-        tr.close()
+            self.assertEqual({addr1, addr2}, tr.connections())
+            yield from tr.connect(addr3)
+            self.assertEqual({addr1, addr3, addr2}, tr.connections())
+            yield from tr.disconnect(addr1)
+            self.assertEqual({addr2, addr3}, tr.connections())
+            tr.close()
+
+        self.loop.run_until_complete(go())
 
     def test_zmq_socket(self):
         zmq_sock = self.loop._zmq_context.socket(zmq.PUB)
@@ -434,46 +434,46 @@ class ZmqEventLoopTests(unittest.TestCase):
                 zmq.SUB,
                 bind=addr)
             yield from pr.connected
-            return tr, pr
 
-        tr, pr = self.loop.run_until_complete(connect())
+            self.assertEqual({addr}, tr.bindings())
+            with self.assertRaises(OSError) as ctx:
+                yield from tr.unbind('ipc:///some-addr')  # non-bound addr
 
-        self.assertEqual({addr}, tr.bindings())
-        with self.assertRaises(OSError) as ctx:
-            tr.unbind('ipc:///some-addr')  # non-bound addr
+            # TODO: check travis build and remove skip when test passed.
+            if (ctx.exception.errno == errno.EAGAIN and
+                    os.environ.get('TRAVIS')):
+                raise unittest.SkipTest("Travis has a bug, it returns "
+                                        "EAGAIN for unknown endpoint")
+            self.assertEqual(errno.ENOENT, ctx.exception.errno)
+            self.assertEqual({addr}, tr.bindings())
 
-        # TODO: check travis build and remove skip when test passed.
-        if ctx.exception.errno == errno.EAGAIN and os.environ.get('TRAVIS'):
-            raise unittest.SkipTest("Travis has a bug, it returns "
-                                    "EAGAIN for unknown endpoint")
-        self.assertEqual(errno.ENOENT, ctx.exception.errno)
-        self.assertEqual({addr}, tr.bindings())
+        self.loop.run_until_complete(connect())
 
     def test_disconnect_from_nonbinded_addr(self):
         port = find_unused_port()
         addr = 'tcp://127.0.0.1:{}'.format(port)
 
         @asyncio.coroutine
-        def connect():
+        def go():
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.SUB,
                 connect=addr)
             yield from pr.connected
-            return tr, pr
 
-        tr, pr = self.loop.run_until_complete(connect())
+            self.assertEqual({addr}, tr.connections())
+            with self.assertRaises(OSError) as ctx:
+                yield from tr.disconnect('ipc:///some-addr')  # non-bound addr
 
-        self.assertEqual({addr}, tr.connections())
-        with self.assertRaises(OSError) as ctx:
-            tr.disconnect('ipc:///some-addr')  # non-bound addr
+            # TODO: check travis build and remove skip when test passed.
+            if (ctx.exception.errno == errno.EAGAIN and
+                    os.environ.get('TRAVIS')):
+                raise unittest.SkipTest("Travis has a bug, it returns "
+                                        "EAGAIN for unknown endpoint")
+            self.assertEqual(errno.ENOENT, ctx.exception.errno)
+            self.assertEqual({addr}, tr.connections())
 
-        # TODO: check travis build and remove skip when test passed.
-        if ctx.exception.errno == errno.EAGAIN and os.environ.get('TRAVIS'):
-            raise unittest.SkipTest("Travis has a bug, it returns "
-                                    "EAGAIN for unknown endpoint")
-        self.assertEqual(errno.ENOENT, ctx.exception.errno)
-        self.assertEqual({addr}, tr.connections())
+        self.loop.run_until_complete(go())
 
     def test_subscriptions_of_invalid_socket(self):
 
@@ -546,3 +546,27 @@ class ZmqEventLoopTests(unittest.TestCase):
         self.assertFalse(tr.subscriptions())
         tr.unsubscribe(b'val')
         self.assertFalse(tr.subscriptions())
+
+    def test_endpoint_is_not_a_str(self):
+
+        @asyncio.coroutine
+        def go():
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.PUSH,
+                bind='tcp://*:*')
+            yield from pr.connected
+
+            with self.assertRaises(TypeError):
+                yield from tr.bind(123)
+
+            with self.assertRaises(TypeError):
+                yield from tr.unbind(123)
+
+            with self.assertRaises(TypeError):
+                yield from tr.connect(123)
+
+            with self.assertRaises(TypeError):
+                yield from tr.disconnect(123)
+
+        self.loop.run_until_complete(go())
