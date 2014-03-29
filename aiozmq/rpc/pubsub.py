@@ -1,6 +1,7 @@
 import asyncio
 import zmq
 from functools import partial
+from collections import Iterable
 
 from ..log import logger
 from .base import (
@@ -13,7 +14,6 @@ from .base import (
 from .util import (
     _MethodDispatcher,
     _check_func_arguments,
-    _coerce_topics,
     )
 
 
@@ -41,7 +41,13 @@ def serve_pubsub(handler, *, subscribe=None, connect=None, bind=None,
         zmq.SUB, connect=connect, bind=bind)
     serv = PubSubService(loop, proto)
     if subscribe is not None:
-        serv.subscribe(subscribe)
+        if isinstance(subscribe, (str, bytes)):
+            subscribe = [subscribe]
+        else:
+            if not isinstance(subscribe, Iterable):
+                raise ValueError('bind should be str, bytes or iterable')
+        for topic in subscribe:
+            serv.subscribe(topic)
     return serv
 
 
@@ -84,14 +90,35 @@ class PubSubClient(Service):
 
 class PubSubService(Service):
 
-    def subscribe(self, topics):
-        """Subscribe to one or more topic.
+    def subscribe(self, topic):
+        """Subscribe to the topic.
 
-        topics argument must be str, bytes or iterable of str or bytes.
-        Raises ValueError in other cases
+        topic argument must be str or bytes.
+        Raises TypeError in other cases
         """
-        for btopic in _coerce_topics(topics):
-            self.transport.subscribe(btopic)
+        if isinstance(topic, bytes):
+            btopic = topic
+        elif isinstance(topic, str):
+            btopic = topic.encode('utf-8')
+        else:
+            raise TypeError('topic should be str or bytes, got {!r}'
+                            .format(topic))
+        self.transport.subscribe(btopic)
+
+    def unsubscribe(self, topic):
+        """Unsubscribe from the topic.
+
+        topic argument must be str or bytes.
+        Raises TypeError in other cases
+        """
+        if isinstance(topic, bytes):
+            btopic = topic
+        elif isinstance(topic, str):
+            btopic = topic.encode('utf-8')
+        else:
+            raise TypeError('topic should be str or bytes, got {!r}'
+                            .format(topic))
+        self.transport.unsubscribe(btopic)
 
 
 class _MethodCall:

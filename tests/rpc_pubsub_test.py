@@ -189,3 +189,47 @@ class PubSubTests(unittest.TestCase):
                              "Call to 'func_raise_error'.*RuntimeError")
 
         self.loop.run_until_complete(communicate())
+
+    def test_subscribe_to_bytes(self):
+        client, server = self.make_pubsub_pair(b'my-topic')
+
+        @asyncio.coroutine
+        def communicate():
+            yield from client.publish(b'my-topic').func_raise_error()
+            ret = yield from self.err_queue.get()
+            self.assertRegex(ret['message'],
+                             "Call to 'func_raise_error'.*RuntimeError")
+
+        self.loop.run_until_complete(communicate())
+
+    def test_subscribe_to_invalid(self):
+        @asyncio.coroutine
+        def go():
+            server = yield from aiozmq.rpc.serve_pubsub(
+                MyHandler(self.queue),
+                bind='tcp://*:*',
+                loop=self.loop)
+            self.assertRaises(TypeError, server.subscribe, 123)
+
+        self.loop.run_until_complete(go())
+
+    def test_unsubscribe(self):
+        @asyncio.coroutine
+        def go():
+            server = yield from aiozmq.rpc.serve_pubsub(
+                MyHandler(self.queue),
+                bind='tcp://*:*',
+                loop=self.loop)
+            self.assertRaises(TypeError, server.subscribe, 123)
+
+            server.subscribe('topic')
+            server.unsubscribe('topic')
+            self.assertNotIn('topic', server.transport.subscriptions())
+
+            server.subscribe(b'btopic')
+            server.unsubscribe(b'btopic')
+            self.assertNotIn(b'btopic', server.transport.subscriptions())
+
+            self.assertRaises(TypeError, server.unsubscribe, 123)
+
+        self.loop.run_until_complete(go())
