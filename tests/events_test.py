@@ -1288,7 +1288,7 @@ class EventLoopTestsMixin:
         r.close()
         w.close()
 
-    def xtest_timeout_rounding(self):
+    def test_timeout_rounding(self):
         def _run_once():
             self.loop._run_once_counter += 1
             orig_run_once()

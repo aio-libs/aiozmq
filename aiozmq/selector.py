@@ -3,6 +3,8 @@
 
 __all__ = ['ZmqSelector']
 
+import math
+
 try:
     from asyncio.selectors import (BaseSelector, SelectorKey,
                                    EVENT_READ, EVENT_WRITE)
@@ -100,8 +102,6 @@ class ZmqSelector(BaseSelector):
             raise KeyError("{!r} (FD {}) is already registered"
                            .format(fileobj, key.fd))
 
-        self._fd_to_key[key.fd] = key
-
         z_events = 0
         if events & EVENT_READ:
             z_events |= POLLIN
@@ -112,6 +112,7 @@ class ZmqSelector(BaseSelector):
         except ZMQError as exc:
             raise OSError(exc.errno, exc.strerror) from exc
 
+        self._fd_to_key[key.fd] = key
         return key
 
     def unregister(self, fileobj):
@@ -122,6 +123,7 @@ class ZmqSelector(BaseSelector):
         try:
             self._poller.unregister(key.fd)
         except ZMQError as exc:
+            self._fd_to_key[key.fd] = key
             raise OSError(exc.errno, exc.strerror) from exc
         return key
 
@@ -131,6 +133,8 @@ class ZmqSelector(BaseSelector):
             key = self._fd_to_key[fd]
         except KeyError:
             raise KeyError("{!r} is not registered".format(fileobj)) from None
+        if data == key.data and events == key.events:
+            return key
         if events != key.events:
             z_events = 0
             if events & EVENT_READ:
@@ -141,10 +145,9 @@ class ZmqSelector(BaseSelector):
                 self._poller.modify(fd, z_events)
             except ZMQError as exc:
                 raise OSError(exc.errno, exc.strerror) from exc
-        if data != key.data or events != key.events:
-            # Use a shortcut to update the data.
-            key = key._replace(data=data, events=events)
-            self._fd_to_key[key.fd] = key
+
+        key = key._replace(data=data, events=events)
+        self._fd_to_key[key.fd] = key
         return key
 
     def close(self):
@@ -169,7 +172,14 @@ class ZmqSelector(BaseSelector):
             return None
 
     def select(self, timeout=None):
-        timeout = None if timeout is None else max(timeout, 0)
+        if timeout is None:
+            timeout = None
+        elif timeout <= 0:
+            timeout = 0
+        else:
+            # poll() has a resolution of 1 millisecond, round away from
+            # zero to wait *at least* timeout seconds.
+            timeout = math.ceil(timeout * 1e3)
 
         ready = []
         try:
