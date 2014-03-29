@@ -9,7 +9,6 @@ from pickle import dumps, loads, HIGHEST_PROTOCOL
 from functools import partial
 
 
-
 class Point:
 
     def __init__(self, x, y):
