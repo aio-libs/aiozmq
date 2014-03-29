@@ -15,7 +15,7 @@ elif PY_VER >= (3, 3):
 else:
     raise RuntimeError("aiozmq doesn't suppport Python earllier than 3.3")
 
-tests_require = install_requires + ['nose']
+tests_require = install_requires + ['msgpack']
 
 extras_require = {'rpc': ['trafaret>=0.5.0', 'msgpack-python>=0.4.1']}
 
@@ -61,5 +61,7 @@ setup(name='aiozmq',
       packages=find_packages(),
       install_requires = install_requires,
       tests_require = tests_require,
-      test_suite = 'nose.collector',
+      #test_suite = 'nose.collector',
+      provides = ['aiozmq', 'aiozmq.rpc'],
+      requires = ['pyzmq'],
       include_package_data = True)
