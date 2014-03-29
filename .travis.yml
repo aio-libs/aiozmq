@@ -15,6 +15,8 @@ install:
   - test $USE_MSGPACK == 1 && pip install msgpack-python || true
 
 script:
+  - make pep
+  - make flake
   - python runtests.py -v
 
 env:
@@ -23,8 +25,5 @@ env:
   matrix:
     - USE_MSGPACK=1
     - USE_MSGPACK=0
-    - ACTION=vtest
-    - ACTION=flake
-    - ACTION=pep
 
 cache: apt
