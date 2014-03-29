@@ -5,18 +5,6 @@ from datetime import datetime, date, time, timedelta, tzinfo
 from functools import partial
 from pickle import dumps, loads, HIGHEST_PROTOCOL
 
-_msgpack_version = (0, 4, 0)
-_msgpack_version_str = '.'.join(map(str, _msgpack_version))
-
-try:
-    from msgpack import version as msgpack_version
-except ImportError:  # pragma: no cover
-    msgpack_version = (0,)
-
-if msgpack_version < _msgpack_version:  # pragma: no cover
-    raise ImportError("aiozmq.rpc requires msgpack-python package"
-                      " (version >= {})".format(_msgpack_version_str))
-
 from msgpack import ExtType, packb, unpackb
 
 
