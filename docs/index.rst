@@ -8,14 +8,6 @@ aiozmq
 
 ZeroMQ integration with asyncio (:pep:`3156`).
 
-.. raw:: html
-
-   <p style="height:22px">
-     <a href="https://travis-ci.org/aio-libs/aiozmq" >
-       <img src="https://travis-ci.org/aio-libs/aiozmq.svg?branch=master"/>
-     </a>
-   </p>
-
 .. _GitHub: https://github.com/aio-libs/aiozmq
 
 
