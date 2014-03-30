@@ -133,3 +133,13 @@ class PolicyTests(unittest.TestCase):
 
         loop.close()
         new_loop.close()
+
+    def test_get_child_watcher_to_override_existing_one(self):
+        watcher = asyncio.FastChildWatcher()
+
+        # initializes default watcher as side-effect
+        self.policy.get_child_watcher()
+
+        self.policy.set_child_watcher(watcher)
+        self.assertIs(self.policy._watcher, watcher)
+        self.assertIs(watcher, self.policy.get_child_watcher())
