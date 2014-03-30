@@ -11,7 +11,7 @@ __all__ = ('ZmqSelector', 'ZmqEventLoop', 'ZmqEventLoopPolicy',
            'ZmqTransport', 'ZmqProtocol',
            'version_info', 'version')
 
-__version__ = '0.1.0b6'
+__version__ = '0.1.0'
 
 version = __version__ + ' , Python ' + sys.version
 
