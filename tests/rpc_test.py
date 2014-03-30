@@ -14,6 +14,9 @@ class MyException(Exception):
 
 class MyHandler(aiozmq.rpc.AttrHandler):
 
+    def __init__(self, loop):
+        self.loop = loop
+
     @aiozmq.rpc.method
     def func(self, arg):
         return arg + 1
@@ -43,8 +46,9 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         raise MyException('additional', 'data')
 
     @aiozmq.rpc.method
+    @asyncio.coroutine
     def slow_call(self):
-        time.sleep(0.2)
+        yield from asyncio.sleep(5, loop=self.loop)
 
 
 class RpcTests(unittest.TestCase):
@@ -65,18 +69,18 @@ class RpcTests(unittest.TestCase):
         server.close()
         self.loop.run_until_complete(server.wait_closed())
 
-    def make_rpc_pair(self, *, error_table=None):
+    def make_rpc_pair(self, *, error_table=None, timeout=None):
         port = find_unused_port()
 
         @asyncio.coroutine
         def create():
             server = yield from aiozmq.rpc.serve_rpc(
-                MyHandler(),
+                MyHandler(self.loop),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
             client = yield from aiozmq.rpc.connect_rpc(
                 connect='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop, error_table=error_table)
+                loop=self.loop, error_table=error_table, timeout=timeout)
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())
@@ -204,7 +208,7 @@ class RpcTests(unittest.TestCase):
         @asyncio.coroutine
         def create():
             server = yield from aiozmq.rpc.serve_rpc(
-                MyHandler(),
+                MyHandler(self.loop),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=None)
             client = yield from aiozmq.rpc.connect_rpc(
@@ -238,15 +242,43 @@ class RpcTests(unittest.TestCase):
         with self.assertRaises(aiozmq.rpc.ServiceClosedError):
             server.transport
 
-    def xtest_client_timeout(self):
+    def test_client_timeout(self):
         client, server = self.make_rpc_pair()
 
         @asyncio.coroutine
         def communicate():
             with self.assertRaises(asyncio.TimeoutError):
-                with client.with_timeout(0.1) as rpc:
-                    yield from rpc.slow_call()
-                yield from client.with_timeout(0.1).slow_call()
+                t0 = time.monotonic()
+                with client.with_timeout(0.1) as timedout:
+                    yield from timedout.call.slow_call()
+                t1 = time.monotonic()
+                self.assertTrue(0.08 <= t1-t0 <= 0.12, t1-t0)
+
+            t0 = time.monotonic()
+            with self.assertRaises(asyncio.TimeoutError):
+                yield from client.with_timeout(0.1).call.slow_call()
+            t1 = time.monotonic()
+            self.assertTrue(0.08 <= t1-t0 <= 0.12, t1-t0)
+
+        self.loop.run_until_complete(communicate())
+
+    def test_client_override_global_timeout(self):
+        client, server = self.make_rpc_pair(timeout=10)
+
+        @asyncio.coroutine
+        def communicate():
+            with self.assertRaises(asyncio.TimeoutError):
+                t0 = time.monotonic()
+                with client.with_timeout(0.1) as timedout:
+                    yield from timedout.call.slow_call()
+                t1 = time.monotonic()
+                self.assertTrue(0.08 <= t1-t0 <= 0.12, t1-t0)
+
+            t0 = time.monotonic()
+            with self.assertRaises(asyncio.TimeoutError):
+                yield from client.with_timeout(0.1).call.slow_call()
+            t1 = time.monotonic()
+            self.assertTrue(0.08 <= t1-t0 <= 0.12, t1-t0)
 
         self.loop.run_until_complete(communicate())
 

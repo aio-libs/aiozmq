@@ -39,7 +39,7 @@ __all__ = [
 
 @asyncio.coroutine
 def connect_rpc(*, connect=None, bind=None, loop=None,
-                error_table=None, translation_table=None, timeout=10):
+                error_table=None, translation_table=None, timeout=None):
     """A coroutine that creates and connects/binds RPC client.
 
     Return value is a client instance.
@@ -106,6 +106,10 @@ class _ClientProtocol(_BaseProtocol):
             logger.critical("Unknown answer id: %d (%d %d %f %d) -> %s",
                             req_id, pid, rnd, timestamp, is_error, answer)
             return
+        if call.cancelled():
+            logger.info("The future for %d has been cancelled, "
+                        "skip the received result.", req_id)
+            return
         if is_error:
             call.set_exception(self._translate_error(*answer))
         else:
@@ -155,6 +159,12 @@ class RPCClient(Service):
     def with_timeout(self, timeout):
         """Return a new RPCClient instance with overriden timeout"""
         return self.__class__(self._loop, self._proto, timeout=timeout)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        return
 
 
 class _ServerProtocol(_BaseProtocol, _MethodDispatcher):
