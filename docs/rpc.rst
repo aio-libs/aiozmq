@@ -109,7 +109,7 @@ The basic usage is::
        *timeout* is not *None* and remote call takes longer than
        *timeout* seconds then :exc:`asyncio.TimeoutError` will be raised
        at client side. If the server will return an answer after timeout
-       has been raised that value ignored.
+       has been raised that answer **is ignored**.
 
        .. seealso:: :meth:`RPCClient.with_timeout` method.
 
@@ -833,7 +833,7 @@ Clases
          *timeout* is not *None* and remote call takes longer than
          *timeout* seconds then :exc:`asyncio.TimeoutError` will be raised
          at client side. If the server will return an answer after timeout
-         has been raised that value ignored.
+         has been raised that answer **is ignored**.
 
          .. seealso:: :func:`connect_rpc` coroutine.
 
