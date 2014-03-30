@@ -3,7 +3,9 @@ import asyncio
 import aiozmq
 import aiozmq.rpc
 
+from unittest import mock
 from aiozmq._test_utils import find_unused_port
+from asyncio.test_utils import run_briefly
 
 
 class MyHandler(aiozmq.rpc.AttrHandler):
@@ -29,6 +31,11 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     @aiozmq.rpc.method
     def func_raise_error(self):
         raise RuntimeError
+
+    @aiozmq.rpc.method
+    def suspicious(self, arg: int):
+        self.queue.put_nowait(arg + 1)
+        return 3
 
 
 class PubSubTests(unittest.TestCase):
@@ -278,3 +285,42 @@ class PubSubTests(unittest.TestCase):
             self.assertEqual(2, ret)
 
         loop.run_until_complete(communicate())
+
+    def test_serve_bad_subscription(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def create():
+            with self.assertRaises(TypeError):
+                yield from aiozmq.rpc.serve_pubsub(
+                    {},
+                    bind='tcp://127.0.0.1:{}'.format(port),
+                    loop=self.loop,
+                    subscribe=123)
+
+        self.loop.run_until_complete(create())
+
+    def test_publish_to_invalid_topic(self):
+        client, server = self.make_pubsub_pair('')
+
+        @asyncio.coroutine
+        def communicate():
+            with self.assertRaises(TypeError):
+                yield from client.publish(123).coro(123)
+
+        self.loop.run_until_complete(communicate())
+
+    @mock.patch("aiozmq.rpc.pubsub.logger")
+    def test_warning_if_remote_return_not_None(self, m_log):
+        client, server = self.make_pubsub_pair('topic')
+
+        @asyncio.coroutine
+        def communicate():
+            yield from client.publish('topic').suspicious(1)
+            ret = yield from self.queue.get()
+            self.assertEqual(2, ret)
+
+        self.loop.run_until_complete(communicate())
+        run_briefly(self.loop)
+        m_log.warning.assert_called_with('PubSub handler %r returned not None',
+                                         'suspicious')

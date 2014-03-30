@@ -41,7 +41,7 @@ def serve_pubsub(handler, *, subscribe=None, connect=None, bind=None,
             subscribe = [subscribe]
         else:
             if not isinstance(subscribe, Iterable):
-                raise ValueError('bind should be str, bytes or iterable')
+                raise TypeError('bind should be str, bytes or iterable')
         for topic in subscribe:
             serv.subscribe(topic)
     return serv
@@ -171,7 +171,7 @@ class _ServerProtocol(_BaseServerProtocol):
     def process_call_result(self, fut, *, name):
         try:
             if fut.result() is not None:
-                logger.warn("PubSub handler %r returned not None", name)
+                logger.warning("PubSub handler %r returned not None", name)
         except Exception as exc:
             self.loop.call_exception_handler({
                 'message': 'Call to {!r} caused error: {!r}'.format(name, exc),

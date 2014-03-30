@@ -357,13 +357,15 @@ The basic usage is::
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
 
-    :return: :class:`PubSubService` instance.
+   :return: :class:`PubSubService` instance.
+   :raises: :exc:`OSError` on system error.
+   :raises: :exc:`TypeError` if arguments have inappropriate type
 
-    .. seealso::
+   .. seealso::
 
-       Please take a look on
-       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
-       values for *connect* and *bind* parameters.
+      Please take a look on
+      :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
+      values for *connect* and *bind* parameters.
 
 
 .. _aiozmq-rpc-exception-translation:
