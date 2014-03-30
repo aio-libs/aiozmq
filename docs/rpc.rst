@@ -88,7 +88,8 @@ The basic usage is::
 
 
 .. function:: connect_rpc(*, connect=None, bind=None, loop=None, \
-                          error_table=None, translation_table=None)
+                          error_table=None, timeout=None, \
+                          translation_table=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds
     *RPC* client.
@@ -103,6 +104,14 @@ The basic usage is::
     :param dict error_table: an optional table for custom exception translators.
 
        .. seealso:: :ref:`aiozmq-rpc-exception-translation`
+
+    :param float timeout: an optional timeout for RPC calls. If
+       *timeout* is not *None* and remote call takes longer than
+       *timeout* seconds then :exc:`asyncio.TimeoutError` will be raised
+       at client side. If the server will return an answer after timeout
+       has been raised that value ignored.
+
+       .. seealso:: :meth:`RPCClient.with_timeout` method.
 
     :param dict translation_table:
        an optional table for custom value translators.
@@ -774,6 +783,7 @@ Clases
       .. seealso::
          :ref:`aiozmq-rpc-signature-validation`
 
+
 .. class:: RPCClient
 
    Class that returned by :func:`connect_rpc` call. Inherited from
@@ -806,6 +816,27 @@ Clases
               yield from client.call.raise_value_error()
           except ValueError as exc:
               process_error(exc)
+
+   .. method:: with_timeout(timeout)
+
+      Override default timeout for client. Can be used in two forms::
+
+          yield from client.with_timeout(1.5).call.func()
+
+      and::
+
+          with client.with_timeout(1.5) as new_client:
+              yield from new_client.call.func1()
+              yield from new_client.call.func2()
+
+      :param float timeout: a timeout for RPC calls. If
+         *timeout* is not *None* and remote call takes longer than
+         *timeout* seconds then :exc:`asyncio.TimeoutError` will be raised
+         at client side. If the server will return an answer after timeout
+         has been raised that value ignored.
+
+         .. seealso:: :func:`connect_rpc` coroutine.
+
 
    .. seealso::
       :ref:`aiozmq-rpc-exception-translation` and
