@@ -204,6 +204,8 @@ class RpcTests(unittest.TestCase):
         port = find_unused_port()
 
         asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
+        self.addCleanup(asyncio.set_event_loop_policy, None)
+        self.addCleanup(asyncio.set_event_loop, None)
 
         @asyncio.coroutine
         def create():

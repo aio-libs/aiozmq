@@ -3,6 +3,8 @@ import asyncio
 import aiozmq
 import aiozmq.rpc
 
+from aiozmq._test_utils import find_unused_port
+
 
 class MyHandler(aiozmq.rpc.AttrHandler):
 
@@ -233,3 +235,46 @@ class PubSubTests(unittest.TestCase):
             self.assertRaises(TypeError, server.unsubscribe, 123)
 
         self.loop.run_until_complete(go())
+
+    def test_default_event_loop(self):
+        port = find_unused_port()
+
+        asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
+        self.addCleanup(asyncio.set_event_loop_policy, None)
+        self.addCleanup(asyncio.set_event_loop, None)
+        queue = asyncio.Queue()
+
+        @asyncio.coroutine
+        def create():
+            server = yield from aiozmq.rpc.serve_pubsub(
+                MyHandler(queue),
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=None,
+                subscribe='topic')
+            client = yield from aiozmq.rpc.connect_pubsub(
+                connect='tcp://127.0.0.1:{}'.format(port),
+                loop=None)
+            return client, server
+
+        self.loop = loop = asyncio.get_event_loop()
+        self.client, self.server = loop.run_until_complete(create())
+
+        @asyncio.coroutine
+        def communicate():
+            for i in range(3):
+                try:
+                    yield from self.client.publish('topic').start()
+                    ret = yield from asyncio.wait_for(queue.get(),
+                                                      0.1)
+                    self.assertEqual(ret, 'started')
+                    break
+                except asyncio.TimeoutError:
+                    self.assertLess(i, 3)
+            else:
+                self.fail('Cannot connect')
+
+            yield from self.client.publish('topic').func(1)
+            ret = yield from queue.get()
+            self.assertEqual(2, ret)
+
+        loop.run_until_complete(communicate())
