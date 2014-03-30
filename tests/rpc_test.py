@@ -4,6 +4,10 @@ import aiozmq
 import aiozmq.rpc
 import datetime
 import time
+from unittest import mock
+import zmq
+import msgpack
+import struct
 
 from aiozmq._test_utils import find_unused_port
 
@@ -49,6 +53,39 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     @asyncio.coroutine
     def slow_call(self):
         yield from asyncio.sleep(5, loop=self.loop)
+
+
+class Protocol(aiozmq.ZmqProtocol):
+
+    def __init__(self, loop):
+        self.transport = None
+        self.connected = asyncio.Future(loop=loop)
+        self.closed = asyncio.Future(loop=loop)
+        self.state = 'INITIAL'
+        self.received = asyncio.Queue(loop=loop)
+
+    def connection_made(self, transport):
+        self.transport = transport
+        assert self.state == 'INITIAL', self.state
+        self.state = 'CONNECTED'
+        self.connected.set_result(None)
+
+    def connection_lost(self, exc):
+        assert self.state == 'CONNECTED', self.state
+        self.state = 'CLOSED'
+        self.closed.set_result(None)
+        self.transport = None
+
+    def pause_writing(self):
+        pass
+
+    def resume_writing(self):
+        pass
+
+    def msg_received(self, data):
+        assert isinstance(data, tuple), data
+        assert self.state == 'CONNECTED', self.state
+        self.received.put_nowait(data)
 
 
 class RpcTests(unittest.TestCase):
@@ -293,6 +330,95 @@ class RpcTests(unittest.TestCase):
                     "Bad Handler",
                     bind='tcp://*:*',
                     loop=self.loop)
+
+        self.loop.run_until_complete(go())
+
+    @mock.patch("aiozmq.rpc.rpc.logger")
+    def test_unknown_format(self, m_log):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            server = yield from aiozmq.rpc.serve_rpc(
+                MyHandler(self.loop),
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+            ## client = yield from aiozmq.rpc.connect_rpc(
+            ##     connect='tcp://127.0.0.1:{}'.format(port),
+            ##     loop=self.loop, error_table=error_table, timeout=timeout)
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop), zmq.DEALER,
+                connect='tcp://127.0.0.1:{}'.format(port))
+
+            tr.write([b'invalid', b'structure'])
+
+            yield from asyncio.sleep(0.001, loop=self.loop)
+
+            m_log.critical.assert_called_with(
+                'Cannot unpack %r',
+                (mock.ANY, b'invalid', b'structure'),
+                exc_info=mock.ANY)
+            server.close()
+
+        self.loop.run_until_complete(go())
+
+    @mock.patch("aiozmq.rpc.rpc.logger")
+    def test_mailformed_args(self, m_log):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            server = yield from aiozmq.rpc.serve_rpc(
+                MyHandler(self.loop),
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+            ## client = yield from aiozmq.rpc.connect_rpc(
+            ##     connect='tcp://127.0.0.1:{}'.format(port),
+            ##     loop=self.loop, error_table=error_table, timeout=timeout)
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop), zmq.DEALER,
+                connect='tcp://127.0.0.1:{}'.format(port))
+
+            tr.write([struct.pack('=HHLd', 1, 2, 3, 4),
+                      b'bad args', b'bad_kwargs'])
+
+            yield from asyncio.sleep(0.001, loop=self.loop)
+
+            m_log.critical.assert_called_with(
+                'Cannot unpack %r',
+                mock.ANY,
+                exc_info=mock.ANY)
+            server.close()
+
+        self.loop.run_until_complete(go())
+
+    @mock.patch("aiozmq.rpc.rpc.logger")
+    def test_mailformed_kwargs(self, m_log):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            server = yield from aiozmq.rpc.serve_rpc(
+                MyHandler(self.loop),
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+            ## client = yield from aiozmq.rpc.connect_rpc(
+            ##     connect='tcp://127.0.0.1:{}'.format(port),
+            ##     loop=self.loop, error_table=error_table, timeout=timeout)
+            tr, pr = yield from self.loop.create_zmq_connection(
+                lambda: Protocol(self.loop), zmq.DEALER,
+                connect='tcp://127.0.0.1:{}'.format(port))
+
+            tr.write([struct.pack('=HHLd', 1, 2, 3, 4),
+                      msgpack.packb((1, 2)), b'bad_kwargs'])
+
+            yield from asyncio.sleep(0.001, loop=self.loop)
+
+            m_log.critical.assert_called_with(
+                'Cannot unpack %r',
+                mock.ANY,
+                exc_info=mock.ANY)
+            server.close()
 
         self.loop.run_until_complete(go())
 

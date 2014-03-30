@@ -3,6 +3,9 @@ import asyncio
 import aiozmq
 import aiozmq.rpc
 
+from unittest import mock
+from asyncio.test_utils import run_briefly
+
 
 class MyHandler(aiozmq.rpc.AttrHandler):
 
@@ -37,6 +40,11 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     def return_value(self, arg):
         return arg
         yield
+
+    @aiozmq.rpc.method
+    def suspicious(self, arg: int):
+        self.queue.put_nowait(arg)
+        return 3
 
 
 class PipelineTests(unittest.TestCase):
@@ -175,3 +183,18 @@ class PipelineTests(unittest.TestCase):
 
         self.loop = loop = asyncio.get_event_loop()
         self.client, self.server = loop.run_until_complete(create())
+
+    @mock.patch("aiozmq.rpc.pipeline.logger")
+    def test_warning_if_remote_return_not_None(self, m_log):
+        client, server = self.make_pipeline_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            yield from client.notify.suspicious(1)
+            ret = yield from self.queue.get()
+            self.assertEqual(1, ret)
+
+        self.loop.run_until_complete(communicate())
+        run_briefly(self.loop)
+        m_log.warning.assert_called_with(
+            'Pipeline handler %r returned not None', 'suspicious')

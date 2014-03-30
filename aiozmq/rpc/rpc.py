@@ -177,12 +177,15 @@ class _ServerProtocol(_BaseServerProtocol):
                                             random.randrange(0x10000))
 
     def msg_received(self, data):
-        peer, header, bname, bargs, bkwargs = data
-        pid, rnd, req_id, timestamp = self.REQ.unpack(header)
+        try:
+            peer, header, bname, bargs, bkwargs = data
+            pid, rnd, req_id, timestamp = self.REQ.unpack(header)
 
-        # TODO: send exception back to transport if lookup is failed
-        args = self.packer.unpackb(bargs)
-        kwargs = self.packer.unpackb(bkwargs)
+            args = self.packer.unpackb(bargs)
+            kwargs = self.packer.unpackb(bkwargs)
+        except Exception as exc:
+            logger.critical("Cannot unpack %r", data, exc_info=sys.exc_info())
+            return
         try:
             func = self.dispatch(bname.decode('utf-8'))
             args, kwargs, ret_ann = self._check_func_arguments(

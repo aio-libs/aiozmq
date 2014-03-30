@@ -105,7 +105,7 @@ class _ServerProtocol(_BaseServerProtocol):
     def process_call_result(self, fut, *, name):
         try:
             if fut.result() is not None:
-                logger.warn("Pipeline handler %r returned not None", name)
+                logger.warning("Pipeline handler %r returned not None", name)
         except Exception as exc:
             self.loop.call_exception_handler({
                 'message': 'Call to {!r} caused error: {!r}'.format(name, exc),
