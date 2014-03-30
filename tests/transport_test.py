@@ -21,7 +21,8 @@ class TransportTests(unittest.TestCase):
         self.sock = mock.Mock()
         self.proto = test_utils.make_test_protocol(aiozmq.ZmqProtocol)
         self.tr = _ZmqTransportImpl(self.loop, zmq.SUB, self.sock, self.proto)
-        self.fatal_error = self.tr._fatal_error = mock.Mock()
+        self.exc_handler = mock.Mock()
+        self.loop.set_exception_handler(self.exc_handler)
 
     def test_empty_write(self):
         self.tr.write([b''])
@@ -29,7 +30,7 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.proto.pause_writing.called)
         self.assertFalse(self.tr._buffer)
         self.assertEqual(0, self.tr._buffer_size)
-        self.assertFalse(self.fatal_error.called)
+        self.assertFalse(self.exc_handler.called)
         self.assertNotIn(self.sock, self.loop.writers)
 
     def test_write(self):
@@ -38,7 +39,7 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.proto.pause_writing.called)
         self.assertFalse(self.tr._buffer)
         self.assertEqual(0, self.tr._buffer_size)
-        self.assertFalse(self.fatal_error.called)
+        self.assertFalse(self.exc_handler.called)
         self.assertNotIn(self.sock, self.loop.writers)
 
     def test_partial_write(self):
@@ -48,7 +49,7 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.proto.pause_writing.called)
         self.assertEqual([(b'a', b'b')], list(self.tr._buffer))
         self.assertEqual(2, self.tr._buffer_size)
-        self.assertFalse(self.fatal_error.called)
+        self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
 
     def test_partial_double_write(self):
@@ -60,7 +61,7 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.proto.pause_writing.called)
         self.assertEqual([(b'a', b'b'), (b'c',)], list(self.tr._buffer))
         self.assertEqual(3, self.tr._buffer_size)
-        self.assertFalse(self.fatal_error.called)
+        self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
 
     def test__write_ready(self):
@@ -76,7 +77,7 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.proto.pause_writing.called)
         self.assertEqual([(b'c',)], list(self.tr._buffer))
         self.assertEqual(1, self.tr._buffer_size)
-        self.assertFalse(self.fatal_error.called)
+        self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
 
     def test__write_ready_sent_whole_buffer(self):
@@ -84,15 +85,47 @@ class TransportTests(unittest.TestCase):
         self.tr._buffer_size = 2
         self.loop.add_writer(self.sock, self.tr._write_ready)
 
-        self.tr._write_ready()
-
         self.sock.send_multipart.mock_calls = [
             mock.call((b'a', b'b'), zmq.DONTWAIT)]
+        self.tr._write_ready()
+
         self.assertFalse(self.proto.pause_writing.called)
         self.assertFalse(self.tr._buffer)
         self.assertEqual(0, self.tr._buffer_size)
-        self.assertFalse(self.fatal_error.called)
+        self.assertFalse(self.exc_handler.called)
         self.assertEqual(1, self.loop.remove_writer_count[self.sock])
+
+    def test__write_ready_raises_ZMQError(self):
+        self.tr._buffer.append((b'a', b'b'))
+        self.tr._buffer_size = 2
+        self.loop.add_writer(self.sock, self.tr._write_ready)
+
+        self.sock.send_multipart.side_effect = zmq.ZMQError(errno.ENOTSUP,
+                                                            'not supported')
+        self.tr._write_ready()
+        self.assertFalse(self.proto.pause_writing.called)
+        self.assertFalse(self.tr._buffer)
+        self.assertEqual(0, self.tr._buffer_size)
+        self.assertTrue(self.exc_handler.called)
+        self.assertEqual(1, self.loop.remove_writer_count[self.sock])
+        self.assertTrue(self.tr._closing)
+        self.assertEqual(1, self.loop.remove_reader_count[self.sock])
+
+    def test__write_ready_raises_EAGAIN(self):
+        self.tr._buffer.append((b'a', b'b'))
+        self.tr._buffer_size = 2
+        self.loop.add_writer(self.sock, self.tr._write_ready)
+
+        self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN,
+                                                            'try again')
+        self.tr._write_ready()
+        self.assertFalse(self.proto.pause_writing.called)
+        self.assertEqual([(b'a', b'b',)], list(self.tr._buffer))
+        self.assertEqual(2, self.tr._buffer_size)
+        self.assertFalse(self.exc_handler.called)
+        self.loop.assert_writer(self.sock, self.tr._write_ready)
+        self.assertFalse(self.tr._closing)
+        self.loop.assert_reader(self.sock, self.tr._read_ready)
 
     def test_close_with_empty_buffer(self):
         self.tr.close()
@@ -285,7 +318,7 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.proto.pause_writing.called)
         self.assertEqual([(b'a', b'b')], list(self.tr._buffer))
         self.assertEqual(2, self.tr._buffer_size)
-        self.assertFalse(self.fatal_error.called)
+        self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
 
     def test_write_EINTR(self):
@@ -296,7 +329,7 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.proto.pause_writing.called)
         self.assertEqual([(b'a', b'b')], list(self.tr._buffer))
         self.assertEqual(2, self.tr._buffer_size)
-        self.assertFalse(self.fatal_error.called)
+        self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
 
     def test_write_common_error(self):
@@ -308,7 +341,8 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.tr._buffer)
         self.assertEqual(0, self.tr._buffer_size)
         self.assertNotIn(self.sock, self.loop.writers)
-        check_errno(errno.ENOTSUP, self.fatal_error.call_args[0][0])
+        check_errno(errno.ENOTSUP,
+                    self.exc_handler.call_args[0][1]['exception'])
 
     def test_subscribe_invalid_socket_type(self):
         self.tr._zmq_type = zmq.PUB

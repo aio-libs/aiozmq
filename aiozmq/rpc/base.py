@@ -45,6 +45,8 @@ class AbstractHandler(metaclass=abc.ABCMeta):
 
     @classmethod
     def __subclasshook__(cls, C):
+        if issubclass(C, (str, bytes)):
+            return False
         if cls is AbstractHandler:
             if any("__getitem__" in B.__dict__ for B in C.__mro__):
                 return True

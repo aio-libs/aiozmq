@@ -282,6 +282,18 @@ class RpcTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
 
+    def test_type_of_handler(self):
+
+        @asyncio.coroutine
+        def go():
+            with self.assertRaises(TypeError):
+                yield from aiozmq.rpc.serve_rpc(
+                    "Bad Handler",
+                    bind='tcp://*:*',
+                    loop=self.loop)
+
+        self.loop.run_until_complete(go())
+
 
 class AbstractHandlerTests(unittest.TestCase):
 
@@ -300,3 +312,5 @@ class AbstractHandlerTests(unittest.TestCase):
         self.assertIsInstance({}, aiozmq.rpc.AbstractHandler)
         self.assertFalse(issubclass(object, aiozmq.rpc.AbstractHandler))
         self.assertNotIsInstance(object(), aiozmq.rpc.AbstractHandler)
+        self.assertNotIsInstance('string', aiozmq.rpc.AbstractHandler)
+        self.assertNotIsInstance(b'bytes', aiozmq.rpc.AbstractHandler)

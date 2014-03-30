@@ -220,13 +220,10 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
                 self._zmq_sock.send_multipart(self._buffer[0], zmq.DONTWAIT)
             except zmq.ZMQError as exc:
                 if exc.errno in (errno.EAGAIN, errno.EINTR):
-                    pass
+                    return
                 else:
                     raise OSError(exc.errno, exc.strerror) from exc
         except Exception as exc:
-            self._loop.remove_writer(self._zmq_sock)
-            self._buffer.clear()
-            self._buffer_size = 0
             self._fatal_error(exc,
                               'Fatal write error on zmq socket transport')
         else:
