@@ -8,14 +8,12 @@ from aiozmq.log import logger
 from .base import (
     NotFoundError,
     ParametersError,
-    AbstractHandler,
     Service,
     _BaseProtocol,
+    _BaseServerProtocol,
     )
 from .util import (
     _MethodCall,
-    _MethodDispatcher,
-    _check_func_arguments,
     )
 
 
@@ -27,7 +25,7 @@ def connect_pipeline(*, connect=None, bind=None, loop=None,
         loop = asyncio.get_event_loop()
 
     transp, proto = yield from loop.create_zmq_connection(
-        lambda: _ClientProtocol(loop, translation_table),
+        lambda: _ClientProtocol(loop, translation_table=translation_table),
         zmq.PUSH, connect=connect, bind=bind)
     return PipelineClient(loop, proto)
 
@@ -40,7 +38,8 @@ def serve_pipeline(handler, *, connect=None, bind=None, loop=None,
         loop = asyncio.get_event_loop()
 
     trans, proto = yield from loop.create_zmq_connection(
-        lambda: _ServerProtocol(loop, handler, translation_table),
+        lambda: _ServerProtocol(loop, handler,
+                                translation_table=translation_table),
         zmq.PULL, connect=connect, bind=bind)
     return Service(loop, proto)
 
@@ -72,13 +71,7 @@ class PipelineClient(Service):
         return _MethodCall(self._proto)
 
 
-class _ServerProtocol(_BaseProtocol, _MethodDispatcher):
-
-    def __init__(self, loop, handler, translation_table=None):
-        super().__init__(loop, translation_table=translation_table)
-        if not isinstance(handler, AbstractHandler):
-            raise TypeError('handler should implement AbstractHandler ABC')
-        self.handler = handler
+class _ServerProtocol(_BaseServerProtocol):
 
     def msg_received(self, data):
         bname, bargs, bkwargs = data
@@ -88,7 +81,8 @@ class _ServerProtocol(_BaseProtocol, _MethodDispatcher):
         try:
             name = bname.decode('utf-8')
             func = self.dispatch(name)
-            args, kwargs, ret_ann = _check_func_arguments(func, args, kwargs)
+            args, kwargs, ret_ann = self._check_func_arguments(
+                func, args, kwargs)
         except (NotFoundError, ParametersError) as exc:
             fut = asyncio.Future(loop=self.loop)
             fut.add_done_callback(partial(self.process_call_result,

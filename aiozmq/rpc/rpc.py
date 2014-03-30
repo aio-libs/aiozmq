@@ -19,15 +19,13 @@ from .base import (
     GenericError,
     NotFoundError,
     ParametersError,
-    AbstractHandler,
     Service,
     _BaseProtocol,
+    _BaseServerProtocol,
     )
 from .util import (
     _MethodCall,
-    _MethodDispatcher,
     _fill_error_table,
-    _check_func_arguments,
     )
 
 
@@ -67,7 +65,8 @@ def serve_rpc(handler, *, connect=None, bind=None, loop=None,
         loop = asyncio.get_event_loop()
 
     transp, proto = yield from loop.create_zmq_connection(
-        lambda: _ServerProtocol(loop, handler, translation_table),
+        lambda: _ServerProtocol(loop, handler,
+                                translation_table=translation_table),
         zmq.ROUTER, connect=connect, bind=bind)
     return Service(loop, proto)
 
@@ -167,18 +166,14 @@ class RPCClient(Service):
         return
 
 
-class _ServerProtocol(_BaseProtocol, _MethodDispatcher):
+class _ServerProtocol(_BaseServerProtocol):
 
     REQ = struct.Struct('=HHLd')
     RESP_PREFIX = struct.Struct('=HH')
     RESP_SUFFIX = struct.Struct('=Ld?')
 
-    def __init__(self, loop, handler, translation_table=None):
-        super().__init__(loop, translation_table)
-        if not isinstance(handler, AbstractHandler):
-            raise TypeError('handler should implement AbstractHandler ABC')
-
-        self.handler = handler
+    def __init__(self, loop, handler, *, translation_table=None):
+        super().__init__(loop, handler, translation_table=translation_table)
         self.prefix = self.RESP_PREFIX.pack(os.getpid() % 0x10000,
                                             random.randrange(0x10000))
 
@@ -191,7 +186,8 @@ class _ServerProtocol(_BaseProtocol, _MethodDispatcher):
         kwargs = self.packer.unpackb(bkwargs)
         try:
             func = self.dispatch(bname.decode('utf-8'))
-            args, kwargs, ret_ann = _check_func_arguments(func, args, kwargs)
+            args, kwargs, ret_ann = self._check_func_arguments(
+                func, args, kwargs)
         except (NotFoundError, ParametersError) as exc:
             fut = asyncio.Future(loop=self.loop)
             fut.add_done_callback(partial(self.process_call_result,

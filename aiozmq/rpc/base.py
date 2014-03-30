@@ -3,6 +3,7 @@ import asyncio
 import inspect
 
 from aiozmq import interface
+from types import MethodType
 
 from .packer import _Packer
 
@@ -122,7 +123,7 @@ class Service(asyncio.AbstractServer):
 
 class _BaseProtocol(interface.ZmqProtocol):
 
-    def __init__(self, loop, translation_table=None):
+    def __init__(self, loop, *, translation_table=None):
         self.loop = loop
         self.transport = None
         self.done_waiters = []
@@ -135,3 +136,68 @@ class _BaseProtocol(interface.ZmqProtocol):
         self.transport = None
         for waiter in self.done_waiters:
             waiter.set_result(None)
+
+
+class _BaseServerProtocol(_BaseProtocol):
+
+    def __init__(self, loop, handler, *, translation_table=None):
+        super().__init__(loop, translation_table=translation_table)
+        self.handler = handler
+        if not isinstance(handler, AbstractHandler):
+            raise TypeError('handler should implement AbstractHandler ABC')
+
+    def dispatch(self, name):
+        if not name:
+            raise NotFoundError(name)
+        namespaces, sep, method = name.rpartition('.')
+        handler = self.handler
+        if namespaces:
+            for part in namespaces.split('.'):
+                try:
+                    handler = handler[part]
+                except KeyError:
+                    raise NotFoundError(name)
+                else:
+                    if not isinstance(handler, AbstractHandler):
+                        raise NotFoundError(name)
+
+        try:
+            func = handler[method]
+        except KeyError:
+            raise NotFoundError(name)
+        else:
+            if isinstance(func, MethodType):
+                holder = func.__func__
+            else:
+                holder = func
+            if not hasattr(holder, '__rpc__'):
+                raise NotFoundError(name)
+            return func
+
+    def _check_func_arguments(self, func, args, kwargs):
+        """Utility function for validating function arguments
+
+        Returns validated (args, kwargs, return annotation) tuple
+        """
+        try:
+            sig = inspect.signature(func)
+            bargs = sig.bind(*args, **kwargs)
+        except TypeError as exc:
+            raise ParametersError(repr(exc)) from exc
+        else:
+            arguments = bargs.arguments
+            for name, param in sig.parameters.items():
+                if param.annotation is param.empty:
+                    continue
+                val = arguments.get(name, param.default)
+                # NOTE: default value always being passed through annotation
+                #       is it realy neccessary?
+                try:
+                    arguments[name] = param.annotation(val)
+                except (TypeError, ValueError) as exc:
+                    raise ParametersError(
+                        'Invalid value for argument {!r}: {!r}'
+                        .format(name, exc)) from exc
+            if sig.return_annotation is not sig.empty:
+                return bargs.args, bargs.kwargs, sig.return_annotation
+            return bargs.args, bargs.kwargs, None

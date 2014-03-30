@@ -7,13 +7,9 @@ from ..log import logger
 from .base import (
     NotFoundError,
     ParametersError,
-    AbstractHandler,
     Service,
     _BaseProtocol,
-    )
-from .util import (
-    _MethodDispatcher,
-    _check_func_arguments,
+    _BaseServerProtocol,
     )
 
 
@@ -141,13 +137,7 @@ class _MethodCall:
                                 args, kwargs)
 
 
-class _ServerProtocol(_BaseProtocol, _MethodDispatcher):
-
-    def __init__(self, loop, handler, translation_table=None):
-        super().__init__(loop, translation_table=translation_table)
-        self.handler = handler
-        if not isinstance(handler, AbstractHandler):
-            raise TypeError('handler should implement AbstractHandler ABC')
+class _ServerProtocol(_BaseServerProtocol):
 
     def msg_received(self, data):
         btopic, bname, bargs, bkwargs = data
@@ -157,7 +147,8 @@ class _ServerProtocol(_BaseProtocol, _MethodDispatcher):
         try:
             name = bname.decode('utf-8')
             func = self.dispatch(name)
-            args, kwargs, ret_ann = _check_func_arguments(func, args, kwargs)
+            args, kwargs, ret_ann = self._check_func_arguments(
+                func, args, kwargs)
         except (NotFoundError, ParametersError) as exc:
             fut = asyncio.Future(loop=self.loop)
             fut.add_done_callback(partial(self.process_call_result,
