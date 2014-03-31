@@ -4,7 +4,7 @@ import aiozmq
 import aiozmq.rpc
 
 from unittest import mock
-from aiozmq._test_utils import find_unused_port
+from aiozmq._test_util import find_unused_port
 from asyncio.test_utils import run_briefly
 
 
