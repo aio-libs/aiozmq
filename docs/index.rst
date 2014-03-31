@@ -15,9 +15,9 @@ Features
 --------
 
 - Implements :mod:`asyncio` event loop for :term:`ZeroMQ` sockets via
-  :class:`~aiozmq.ZmqEventLoop`
+  :class:`~aiozmq.ZmqEventLoop`.
 - Implements installable policy for ZerMQ event loop (see
-  :ref:`install-aiozmq-policy`), **required for ZeroMQ sockets layer.
+  :ref:`install-aiozmq-policy`), **required** for ZeroMQ sockets layer.
 - Provides :class:`~aiozmq.ZmqTransport` and :class:`~aiozmq.ZmqProtocol`
 - Provides RPC :ref:`aiozmq-rpc-rpc` :ref:`aiozmq-rpc-pushpull` and
   :ref:`aiozmq-rpc-pubsub` patterns for *remote calls*.
@@ -62,7 +62,8 @@ Dependencies
 ------------
 
 - Python 3.3 and :term:`asyncio` or Python 3.4+
-- :term:`pyzmq`
+- :term:`ZeroMQ` 3.2+
+- :term:`pyzmq` 13.1+ (did not test with earlier versions)
 - aiozmq.rpc requires :term:`msgpack` and :term:`trafaret`
 
 Authors and License
