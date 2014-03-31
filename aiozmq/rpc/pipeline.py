@@ -85,24 +85,20 @@ class _ServerProtocol(_BaseServerProtocol):
                 func, args, kwargs)
         except (NotFoundError, ParametersError) as exc:
             fut = asyncio.Future(loop=self.loop)
-            fut.add_done_callback(partial(self.process_call_result,
-                                          name=name))
             fut.set_exception(exc)
         else:
             if asyncio.iscoroutinefunction(func):
                 fut = asyncio.async(func(*args, **kwargs), loop=self.loop)
-                fut.add_done_callback(partial(self.process_call_result,
-                                              name=name))
             else:
                 fut = asyncio.Future(loop=self.loop)
-                fut.add_done_callback(partial(self.process_call_result,
-                                              name=name))
                 try:
                     fut.set_result(func(*args, **kwargs))
                 except Exception as exc:
                     fut.set_exception(exc)
+        fut.add_done_callback(partial(self.process_call_result,
+                                      name=name, args=args, kwargs=kwargs))
 
-    def process_call_result(self, fut, *, name):
+    def process_call_result(self, fut, *, name, args, kwargs):
         try:
             if fut.result() is not None:
                 logger.warning("Pipeline handler %r returned not None", name)
