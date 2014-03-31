@@ -33,7 +33,7 @@ class ParametersError(Error, ValueError):
     be validated against their annotations."""
 
 
-class ServiceClosedError(Exception):
+class ServiceClosedError(Error):
     """RPC Service has been closed."""
 
 
