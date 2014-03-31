@@ -11,22 +11,22 @@
 Intro
 -----
 
-While :ref:`core API <aiozmq-core>` provides core support for
-:term:`ZeroMQ` transports an :term:`End User <enduser>` usually needs for
+While :ref:`core API <aiozmq-core>` provides a core support for
+:term:`ZeroMQ` transports, the :term:`End User <enduser>` may need
 some high-level API.
 
 Thus we have the *aiozmq.rpc* module for Remote Procedure Calls.
 
 The main goal of the module is to provide *easy-to-use interface* for
-calling some method from remote process (that processes may be
-have runned on other host).
+calling some method from the remote process (which can be
+running on the other host).
 
-:term:`ZeroMQ` itself gives handy sockets but says nothing about RPC.
+:term:`ZeroMQ` itself gives some handy sockets but says nothing about RPC.
 
-In other hand this module provides *human* API but it is not
+On the other hand, this module provides *human* API, but it is not
 compatible with *other implementations*.
 
-If you need to support custor protocol over :term:`ZeroMQ` layer
+If you need to support a custom protocol over :term:`ZeroMQ` layer,
 please feel free to build your own implementation on top of the
 :ref:`core primitives <aiozmq-core>`.
 
@@ -46,19 +46,19 @@ The :mod:`aiozmq.rpc` supports three pairs of communications:
 Request-Reply
 -------------
 
-This is **Remote Procedure Call** pattern itself. Client calls remote
-function on server and waits for returned value. If remote function
-raises exception that exception instance raises on client side also.
+This is a **Remote Procedure Call** pattern itself. Client calls a remote
+function on server and waits for the returned value. If the remote function
+raises an exception, that exception instance also raises on the client side.
 
 Let's assume we have *N* clients bound to *M* servers.  Any client can
-connect to several servers and any server can listen multiple
+connect to several servers and any server can listen to multiple
 *endpoints*.
 
-When client sends a message the message will be delivered to any server
+When client sends a message, the message will be delivered to any server
 that is ready (doesn't processes another message).
 
-When server sends reply with result of remote call back the result is
-routed to client that sent the request.
+When the server sends a reply with the result of the remote call back, the result is
+routed to the client that has sent the request originally.
 
 This pair uses *DEALER*/*ROUTER* :term:`ZeroMQ` sockets.
 
@@ -160,18 +160,18 @@ The basic usage is::
 Push-Pull
 ---------
 
-This is **Notify** aka **Pipeline** pattern. Client calls remote function
-on server and **doesn't** wait for result. If a *remote function call*
-raises an exception the exception is only **logged** at server side.  Client
+This is a **Notify** aka **Pipeline** pattern. Client calls a remote function
+on the server and **doesn't** wait for the result. If a *remote function call*
+raises an exception, this exception is only **logged** at the server side.  Client
 **cannot** get any information about *processing the remote call on server*.
 
 Thus this is **one-way** communication: **fire and forget**.
 
-Let's assume we have *N* clients bound to *M* servers.  Any client can
-connect to several servers and any server can listen multiple
+Let's assume that we have *N* clients bound to *M* servers.  Any client can
+connect to several servers and any server can listen to multiple
 *endpoints*.
 
-When client sends a message the message will be delivered to any server
+When client sends a message, the message is delivered to any server
 that is *ready* (doesn't processes another message).
 
 That's all.
@@ -267,16 +267,16 @@ Publish-Subscribe
 This is **PubSub** pattern. It's very close to :ref:`aiozmq-rpc-pubsub`
 but has some difference:
 
-  * server *subscribes* to *topics* to recive messages from only that
+  * server *subscribes* to *topics* in order to receive messages only from that
     *topics*.
   * client sends a message to concrete *topic*.
 
 Let's assume we have *N* clients bound to *M* servers.  Any client can
-connect to several servers and any server can listen multiple
+connect to several servers and any server can listen to multiple
 *endpoints*.
 
-When client sends a message to *topic* the message will be delivered
-to only servers that has been subscibed to this *topic*.
+When client sends a message to *topic*, the message will be delivered
+to servers that only has been subscribed to this *topic*.
 
 This pair uses *PUB*/*SUB* :term:`ZeroMQ` sockets.
 
@@ -373,8 +373,8 @@ The basic usage is::
 Exception translation at client side
 ----------------------------------------
 
-If remote server method raises an exception that error is passed
-back to client and raised on client side, as follows::
+If a remote server method raises an exception, that exception is passed
+back to the client and raises on the client side, as follows::
 
     try:
         yield from client.call.func_raises_value_error()
@@ -425,11 +425,11 @@ that's up to you.
 Signature validation
 ------------------------
 
-The library supports **optional** validation of remote call signatures.
+The library supports **optional** validation of the remote call signatures.
 
 If validation fails then :exc:`ParameterError` raises on client side.
 
-All validations are done on RPC server side, than errors translated
+All validations are done on RPC server side, then errors are translated
 back to client.
 
 Let's take a look on example of user-defined RPC handler::
@@ -443,26 +443,26 @@ Let's take a look on example of user-defined RPC handler::
 *Parameter* *arg1* and *return value* has :term:`annotaions <annotaion>`,
 *int* and *float* correspondingly.
 
-At call time if *parameter* has an :term:`annotaion` then *actual
-value* passed to RPC method is calculated as ``actual_value =
-annotation(value)``. If there is no annotaion for parameter the value
+At the call time, if *parameter* has an :term:`annotaion`, then *actual
+value* passed and RPC method is calculated as ``actual_value =
+annotation(value)``. If there is no annotaion for parameter, the value
 is passed as-is.
 
 Annotaion should be any :term:`callable` that accepts a value as single argument
 and returns *actual value*.
 
-If annotation call raises exception that exception throws to client
+If annotation call raises exceptionб that exception is sent to the client
 wrapped in :exc:`ParameterError`.
 
 Value, returned by RPC call, can be checked by optional *return annotation*.
 
-Thus :class:`int` can be good annotation: it raises :exc:`TypeError`
+Thus :class:`int` can be a good annotation: it raises :exc:`TypeError`
 if *arg1* cannot be converted to *int*.
 
-Usually you need for more complex check, say parameter can be *int* or
+Usually you need more complex check, say parameter can be *int* or
 *None*.
 
-You always can write custom validator::
+You always can write a custom validator::
 
    def int_or_none(val):
       if isinstance(val, int) or val is None:
@@ -503,7 +503,7 @@ client to server and back.
 You can think about :term:`msgpack` as: this is a-like JSON but fast
 and compact.
 
-Every object that can be passed to :func:`json.dump` can be passed to
+Every object that can be passed to :func:`json.dump`, can be passed to
 :func:`msgpack.dump` also. The same for unpacking.
 
 The only difference is: *aiozmq.rpc* converts all :class:`lists
@@ -526,8 +526,8 @@ arguments.  :class:`datetime.datetime` is a good example.
 from :mod:`datetime` *from-the-box*
 (:ref:`predefined translators <aiozmq-rpc-predifined-translators>`).
 
-If you need to transfer a custom object via RPC you should to register
-**translator** at both server and client side.  Say, you need to pass
+If you need to transfer a custom object via RPC you should register
+**translator** at both server and client side.  Say, you need to pass the 
 instances of your custom class ``Point`` via RPC. There is an
 example::
 
@@ -568,7 +568,7 @@ example::
         ret = yield from client.call.remote(Point(1, 2))
         assert ret == Point(1, 2)
 
-You should to create a *translation table* and pass it to both
+You should create a *translation table* and pass it to both
 :func:`connect_rpc` and :func:`serve_rpc`. That's all, server and
 client now have all information about passing your ``Point`` via the
 wire.
@@ -656,7 +656,7 @@ Exceptions
 .. exception:: GenericError
 
    Subclass of :exc:`Error`, raised when a remote call produces
-   exception which cannot be translated.
+   exception that cannot be translated.
 
    .. attribute:: exc_type
 
@@ -718,8 +718,8 @@ Clases
 
    The base class for all RPC handlers.
 
-   Every handler should to be *AbstractHandler* by direct inheritance
-   or indirect subclassing (method *__getitem__* should be defined.
+   Every handler should be *AbstractHandler* by direct inheritance
+   or indirect subclassing (method *__getitem__* should be defined).
 
    Therefore :class:`AttrHandler` and :class:`dict` are both good
    citizens.

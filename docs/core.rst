@@ -30,7 +30,7 @@ you can get event loop instance from main thread by
 
     loop = asyncio.get_event_loop()
 
-If you need to execute event loop in own (non-main) thread you have to
+If you need to execute event loop in your own (not main) thread you have to
 setup it first::
 
      import threading
