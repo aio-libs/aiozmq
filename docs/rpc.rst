@@ -12,7 +12,7 @@ Intro
 -----
 
 While :ref:`core API <aiozmq-core>` provides core support for
-:term:`ZeroMQ` transports an :term:`End User <enduser>` usually needs for
+:term:`ZeroMQ` transports, the :term:`End User <enduser>` may need
 some high-level API.
 
 Thus we have the *aiozmq.rpc* module for Remote Procedure Calls.
