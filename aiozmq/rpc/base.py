@@ -181,7 +181,7 @@ class _BaseServerProtocol(_BaseProtocol):
                 raise NotFoundError(name)
             return func
 
-    def _check_func_arguments(self, func, args, kwargs):
+    def check_args(self, func, args, kwargs):
         """Utility function for validating function arguments
 
         Returns validated (args, kwargs, return annotation) tuple
