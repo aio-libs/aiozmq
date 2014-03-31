@@ -8,7 +8,7 @@ from aiozmq import interface
 from types import MethodType
 
 from .packer import _Packer
-from aiozmq.log import logger
+from .log import logger
 
 
 class Error(Exception):

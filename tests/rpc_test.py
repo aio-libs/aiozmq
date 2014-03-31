@@ -10,6 +10,7 @@ import msgpack
 import struct
 
 from aiozmq._test_util import find_unused_port
+from aiozmq.rpc.log import logger
 
 
 class MyException(Exception):
@@ -553,3 +554,9 @@ class AbstractHandlerTests(unittest.TestCase):
         self.assertNotIsInstance(object(), aiozmq.rpc.AbstractHandler)
         self.assertNotIsInstance('string', aiozmq.rpc.AbstractHandler)
         self.assertNotIsInstance(b'bytes', aiozmq.rpc.AbstractHandler)
+
+
+class TestLogger(unittest.TestCase):
+
+    def test_logger_name(self):
+        self.assertEqual('aiozmq.rpc', logger.name)

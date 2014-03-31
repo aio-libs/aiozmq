@@ -3,7 +3,7 @@ import zmq
 
 from functools import partial
 
-from aiozmq.log import logger
+from .log import logger
 
 from .base import (
     NotFoundError,

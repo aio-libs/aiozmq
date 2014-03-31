@@ -3,7 +3,7 @@ import zmq
 from functools import partial
 from collections import Iterable
 
-from ..log import logger
+from .log import logger
 from .base import (
     NotFoundError,
     ParametersError,

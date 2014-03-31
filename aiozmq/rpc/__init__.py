@@ -37,6 +37,7 @@ from .pubsub import (
     serve_pubsub,
     )
 
+from .log import logger
 
 __all__ = [
     'method',
@@ -46,6 +47,7 @@ __all__ = [
     'serve_pipeline',
     'connect_pubsub',
     'serve_pubsub',
+    'logger',
     'Error',
     'GenericError',
     'NotFoundError',

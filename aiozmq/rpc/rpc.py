@@ -13,7 +13,7 @@ import zmq
 from collections import ChainMap
 from functools import partial
 
-from aiozmq.log import logger
+from .log import logger
 
 from .base import (
     GenericError,

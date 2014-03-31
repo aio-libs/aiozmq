@@ -127,8 +127,8 @@ The basic usage is::
        values to *connect* and *bind* parameters.
 
 
-.. function:: serve_rpc(handler, *, connect=None, bind=None, loop=None, \
-                        translation_table=None)
+.. function:: serve_rpc(handler, *, bind=None, connect=None, loop=None, \
+                        log_exceptions=False, translation_table=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds *RPC*
     server instance.
@@ -141,6 +141,11 @@ The basic usage is::
        an object which processes incoming RPC calls.
 
       Usually you like to pass :class:`AttrHandler` instance.
+
+    :param dict log_exceptions:
+       log exceptions from remote calls if *True*
+
+       .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
 
     :param dict translation_table:
        an optional table for custom value translators.
@@ -232,7 +237,7 @@ The basic usage is::
 
 
 .. function:: serve_pipeline(handler, *, connect=None, bind=None, loop=None, \
-                        translation_table=None)
+                        log_exceptions=False, translation_table=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds *pipeline*
     server instance.
@@ -245,6 +250,11 @@ The basic usage is::
        an object which processes incoming *pipeline* calls.
 
       Usually you like to pass :class:`AttrHandler` instance.
+
+    :param dict log_exceptions:
+       log exceptions from remote calls if *True*
+
+       .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
 
     :param dict translation_table:
        an optional table for custom value translators.
@@ -332,7 +342,7 @@ The basic usage is::
 
 
 .. function:: serve_pubsub(handler, *, connect=None, bind=None, subscribe=None,\
-              loop=None, translation_table=None)
+              loop=None, log_exceptions=False, translation_table=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds *pubsub*
     server instance.
@@ -345,6 +355,11 @@ The basic usage is::
        an object which processes incoming *pipeline* calls.
 
       Usually you like to pass :class:`AttrHandler` instance.
+
+    :param dict log_exceptions:
+       log exceptions from remote calls if *True*
+
+       .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
 
    :param subscribe: subscription specification.
 
@@ -528,7 +543,7 @@ from :mod:`datetime` *from-the-box*
 (:ref:`predefined translators <aiozmq-rpc-predifined-translators>`).
 
 If you need to transfer a custom object via RPC you should register
-**translator** at both server and client side.  Say, you need to pass the 
+**translator** at both server and client side.  Say, you need to pass the
 instances of your custom class ``Point`` via RPC. There is an
 example::
 
@@ -645,6 +660,28 @@ Table of predefined translators:
    Pickling in this particular case is **safe** because all datetime
    classes are terminals and doesn't have a links to foreign class
    instances.
+
+
+.. _aiozmq-rpc-log-exceptions:
+
+Logging exceptions from remote calls at server side
+---------------------------------------------------
+
+By default :mod:`aiozmq.rpc` does no logging if remote call raises an exception.
+
+That behavoir can be changed by passing ``log_exceptions=True`` to rpc
+servers: :func:`serve_rpc`, :func:`serve_pipeline` and
+:func:`serve_pubsub`.
+
+If, say, you make PubSub server as::
+
+   server =  yield from rpc.serve_pubsub(handler,
+                                         subscribe='topic',
+                                         bind='tcp://127.0.0.1:5555',
+                                         log_exceptions=True)
+
+then exceptions raised from *handler* remote calls will be logged by
+standard :attr:`aiozmq.rpc.logger`.
 
 
 Exceptions
@@ -909,3 +946,17 @@ Clases
 
    .. seealso::
       :ref:`aiozmq-rpc-signature-validation`
+
+
+
+Logger
+------
+
+.. data:: logger
+
+   An instance of :class:`logging.Logger` with *name* ``aiozmq.rpc``.
+
+   The library sends log messages (:ref:`aiozmq-rpc-log-exceptions`
+   for example) to this logger. You can configure your own
+   :ref:`handlers <handler>` to fiter, save or what-you-wish the log
+   events from the library.
