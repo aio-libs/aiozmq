@@ -31,7 +31,7 @@ you can get event loop instance from main thread by
     loop = asyncio.get_event_loop()
 
 If you need to execute event loop in your own (not main) thread you have to
-setup it first::
+set it up first::
 
      import threading
 
@@ -70,7 +70,7 @@ transports created by event loop shares the same context.
         Create a ZeroMQ connection.
 
         If you don't use *bind* or *connect* params you can do it
-        later by :meth:`ZmqTransport.bind` and `ZmqTransport.connect`
+        later by :meth:`ZmqTransport.bind` and :meth:`ZmqTransport.connect`
         calls.
 
         :param callable protocol_factory: a factory that instantiates
@@ -86,7 +86,7 @@ transports created by event loop shares the same context.
           :meth:`ZmqTransport.bind` for accepting connections from
           specified endpoint.
 
-          Other side should to use *connect* parameter to connect to this
+          Other side should use *connect* parameter to connect to this
           transport.
         :type bind: str or iterable of strings
 
@@ -96,16 +96,17 @@ transports created by event loop shares the same context.
           :meth:`ZmqTransport.connect` for connecting transport to
           specified endpoint.
 
-          Other side should to use bind parameter to wait for incoming
+          Other side should use bind parameter to wait for incoming
           connections.
         :type connect: str or iterable of strings
 
-        :param zmq.Socket zmq_sock: a preexisting zmq socket with that
+        :param zmq.Socket zmq_sock: a preexisting zmq socket that
                                     will be passed to returned
                                     transport.
 
         :return: a pair of ``(transport, protocol)``
           where transport supports :class:`~ZmqTransport` interface.
+        :rtype: :class:`tuple`
 
 
 ZmqTransport
@@ -116,12 +117,13 @@ ZmqTransport
    Transport for :term:`ZeroMQ` connections. Implements
    :class:`asyncio.BaseTransport` interface.
 
-   End user should never create :class:`~ZmqTransport` objects,
+   End user should never create :class:`~ZmqTransport` objects directly,
    he gets it by ``yield from loop.create_zmq_connection()`` call.
 
    .. method:: get_extra_info(key, default=None)
 
-      Return optional transport information if name is present else default.
+      Return optional transport information if name is present
+      otherwise return *default*.
 
       :class:`ZmqTransport` supports the only valid *key*:
       ``"zmq_socket"``.  The value is :class:`zmq.Socket` instance.
@@ -168,7 +170,7 @@ ZmqTransport
       :return: option value
 
       :raise OSError:
-         if call to ZeroMQ is not successful.
+         if call to ZeroMQ was unsuccessful.
 
    .. method:: setsockopt(option, value)
 
@@ -226,8 +228,8 @@ ZmqTransport
 
       :return: bound endpoint, unwinding wildcards if needed.
       :rtype: :class:`str`
-      :raises: :class:`OSError` on error from ZeroMQ layer
-      :raises: :class:`TypeError` if *endpoint* is not a :class:`str`
+      :raise OSError: on error from ZeroMQ layer
+      :raise TypeError: if *endpoint* is not a :class:`str`
 
    .. method:: unbind(endpoint)
 
@@ -239,8 +241,8 @@ ZmqTransport
          :term:`ZeroMQ` requires.
 
       :return: *None*
-      :raises: :class:`OSError` on error from ZeroMQ layer
-      :raises: :class:`TypeError` if *endpoint* is not a :class:`str`
+      :raise OSError: on error from ZeroMQ layer
+      :raise TypeError: if *endpoint* is not a :class:`str`
 
    .. method:: bindings()
 
@@ -248,11 +250,11 @@ ZmqTransport
 
       .. note::
 
-         Returned endpoints includes only ones that has been bound via
+         Returned endpoints include only ones that has been bound via
          :meth:`ZmqTransport.bind` or
-         :meth:`ZmqEventLoop.create_zmq_connection` calls and does not
-         includes bindingss that has been done on *zmq_sock* before
-         :meth:`ZmqEventLoop.create_zmq_connection` has been called.
+         :meth:`ZmqEventLoop.create_zmq_connection` calls and do not
+         include bindings that have been done on *zmq_sock* before
+         :meth:`ZmqEventLoop.create_zmq_connection` call.
 
    .. method:: connect(endpoint)
 
@@ -272,9 +274,9 @@ ZmqTransport
       :return: endpoint
       :rtype: :class:`str`
 
-      :raises: :class:`ValueError` if the endpoint is a tcp DNS address.
-      :raises: :class:`OSError` on error from ZeroMQ layer
-      :raises: :class:`TypeError` if *endpoint* is not a :class:`str`
+      :raise ValueError: if the endpoint is a tcp DNS address.
+      :raise OSError: on error from ZeroMQ layer
+      :raise TypeError: if *endpoint* is not a :class:`str`
 
 
    .. method:: disconnect(endpoint)
@@ -287,8 +289,8 @@ ZmqTransport
          :term:`ZeroMQ` requires.
 
       :return: *None*
-      :raises: :class:`OSError` on error from ZeroMQ layer
-      :raises: :class:`TypeError` if *endpoint* is not a :class:`str`
+      :raise OSError: on error from ZeroMQ layer
+      :raise TypeError: if *endpoint* is not a :class:`str`
 
    .. method:: connections()
 
@@ -297,18 +299,18 @@ ZmqTransport
 
       .. note::
 
-         Returned endpoints includes only ones that has been connected
+         Returned endpoints include only ones that has been connected
          via :meth:`ZmqTransport.connect` or
-         :meth:`ZmqEventLoop.create_zmq_connection` calls and does not
-         includes connections that has been done to *zmq_sock* before
-         :meth:`ZmqEventLoop.create_zmq_connection` has been called.
+         :meth:`ZmqEventLoop.create_zmq_connection` calls and do not
+         include connections that have been done to *zmq_sock* before
+         :meth:`ZmqEventLoop.create_zmq_connection` call.
 
    .. method:: subscribe(value)
 
       Establish a new message filter on *SUB* transport.
 
       Newly created *SUB* transports filters out all incoming
-      messages, therefore you should to call this method to
+      messages, therefore you should call this method to
       establish an initial message filter.
 
       An empty (``b''``) *value* subscribes to all incoming messages. A
@@ -317,8 +319,9 @@ ZmqTransport
       *SUB* transport, in which case a message shall be accepted if it
       matches at least one filter.
 
-      :param bytes value: a filter value to add for *SUB* filters.
+      :param bytes value: a filter value to add to *SUB* filters.
       :raise NotImplementedError: the transport is not *SUB*.
+      :raise TypeError: when *value* is not bytes.
 
 
       .. _aiozmq-transport-subscribe-warning:
@@ -344,9 +347,10 @@ ZmqTransport
       happens, see :ref:`difference between aiozmq and ZeroMQ raw
       sockets <aiozmq-transport-subscribe-warning>` for details).
 
-      :param bytes value: a filter value to add for *SUB* filters.
+      :param bytes value: a filter value to add to *SUB* filters.
 
       :raise NotImplementedError: the transport is not *SUB*.
+      :raise TypeError: when *value* is not bytes.
 
    .. method:: subscriptions()
 
@@ -355,10 +359,10 @@ ZmqTransport
 
       .. note::
 
-         Returned subscriptions includes only ones that has
-         been subscribed via :meth:`ZmqTransport.subscribe` call and does not
-         includes subscribtions that has been done to zmq_sock before
-         create_zmq_connection has been called.
+         Returned subscriptions include only ones that has
+         been subscribed via :meth:`ZmqTransport.subscribe` call and do not
+         include subscribtions that have been done to zmq_sock before
+         :meth:`ZmqEventLoop.create_zmq_connection` call.
 
       :raise NotImplementedError: the transport is not *SUB*.
 
@@ -463,7 +467,7 @@ other threads by default have no event loop.
       new event loop and registers it.
 
       :return: Return an instance of :class:`ZmqEventLoop`.
-      :raise: :class:`RuntimeError` if there is no registered event loop
+      :raise RuntimeError: if there is no registered event loop
          for current thread.
 
    .. method:: new_event_loop()
@@ -482,7 +486,7 @@ other threads by default have no event loop.
       :meth:`asyncio.AbstractChildWatcher.attach_loop` on the child watcher.
 
       :param loop: an :class:`asyncio.AbstractEventLoop` instance or *None*
-      :raise: :class:`TypeError` if loop is not instance of
+      :raise TypeError: if loop is not instance of
          :class:`asyncio.AbstractEventLoop`
 
    .. method:: get_child_watcher()
@@ -500,7 +504,7 @@ other threads by default have no event loop.
 
       :param watcher: an :class:`asyncio.AbstractChildWatcher`
          instance or *None*
-      :raise: :class:`TypeError` if watcher is not instance of
+      :raise TypeError: if watcher is not instance of
          :class:`asyncio.AbstractChildWatcher`
 
 Exception policy
@@ -512,7 +516,7 @@ Every call to :class:`zmq.Socket` method can raise
 into :class:`OSError` (or descendat) with errno and strerror borrowed
 from underlying ZMQError values.
 
-The reason for translation is: Python 3.3 implements :pep:`3151`
+The reason for translation is that Python 3.3 implements :pep:`3151`
 **--- Reworking the OS and IO Exception Hierarchy** which gets rid of
 exceptions zoo and uses :class:`OSError` and descendants for all
 exceptions generated by system function calls.
@@ -525,7 +529,7 @@ exceptions generated by system function calls.
            raise OSError(exc.errno, exc.strerror)
 
 Also public methods of :mod:`aiozmq` will never raise
-:exc:`InterruptedError` (aka *EINTR*), they are process interruption
+:exc:`InterruptedError` (aka *EINTR*), they process interruption
 internally.
 
 Getting aiozmq version

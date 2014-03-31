@@ -36,9 +36,9 @@ The :mod:`aiozmq.rpc` supports three pairs of communications:
    * :ref:`aiozmq-rpc-pubsub`
 
 .. warning:: :mod:`aiozmq.rpc` module is **optional** and requires
-   :term:`msgpack`. You can install *msgpack-python* by::
+   :term:`msgpack`. You can install *msgpack-python* by executing::
 
-       pip3 install msgpack-python
+       pip3 install msgpack-python\>=0.4.0
 
 
 .. _aiozmq-rpc-rpc:
@@ -48,7 +48,7 @@ Request-Reply
 
 This is a **Remote Procedure Call** pattern itself. Client calls a remote
 function on server and waits for the returned value. If the remote function
-raises an exception, that exception instance also raises on the client side.
+raises an exception, that exception instance is also raised on the client side.
 
 Let's assume we have *N* clients bound to *M* servers.  Any client can
 connect to several servers and any server can listen to multiple
@@ -142,7 +142,7 @@ The basic usage is::
 
       Usually you like to pass :class:`AttrHandler` instance.
 
-    :param dict log_exceptions:
+    :param bool log_exceptions:
        log exceptions from remote calls if *True*
 
        .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
@@ -251,7 +251,7 @@ The basic usage is::
 
       Usually you like to pass :class:`AttrHandler` instance.
 
-    :param dict log_exceptions:
+    :param bool log_exceptions:
        log exceptions from remote calls if *True*
 
        .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
@@ -356,32 +356,32 @@ The basic usage is::
 
       Usually you like to pass :class:`AttrHandler` instance.
 
-    :param dict log_exceptions:
+    :param bool log_exceptions:
        log exceptions from remote calls if *True*
 
        .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
 
-   :param subscribe: subscription specification.
+    :param subscribe: subscription specification.
 
-      Subscribe server to *topics*.
+       Subscribe server to *topics*.
 
-      Allowed parameters are :class:`str`, :class:`bytes`, *iterable* of
-      *str* or *bytes*.
+       Allowed parameters are :class:`str`, :class:`bytes`, *iterable* of
+       *str* or *bytes*.
 
-   :param dict translation_table:
-       an optional table for custom value translators.
+    :param dict translation_table:
+        an optional table for custom value translators.
 
-       .. seealso:: :ref:`aiozmq-rpc-value-translators`
+        .. seealso:: :ref:`aiozmq-rpc-value-translators`
 
-   :return: :class:`PubSubService` instance.
-   :raises: :exc:`OSError` on system error.
-   :raises: :exc:`TypeError` if arguments have inappropriate type
+    :return: :class:`PubSubService` instance.
+    :raise OSError: on system error.
+    :raise TypeError: if arguments have inappropriate type
 
-   .. seealso::
+    .. seealso::
 
-      Please take a look on
-      :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
-      values for *connect* and *bind* parameters.
+       Please take a look on
+       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
+       values for *connect* and *bind* parameters.
 
 
 .. _aiozmq-rpc-exception-translation:
@@ -443,7 +443,7 @@ Signature validation
 
 The library supports **optional** validation of the remote call signatures.
 
-If validation fails then :exc:`ParameterError` raises on client side.
+If validation fails then :exc:`ParameterError` is raised on client side.
 
 All validations are done on RPC server side, then errors are translated
 back to client.
@@ -642,9 +642,9 @@ Table of predefined translators:
 +---------+-------------------------------+
 + 125     | :class:`datetime.time`        |
 +---------+-------------------------------+
-+ 126     | :class:`datetime.date`        |
++ 126     | :class:`datetime.datetime`    |
 +---------+-------------------------------+
-| 127     | :class:`datetime.datetime`    |
+| 127     | :class:`datetime.date`        |
 +---------+-------------------------------+
 
 .. note::
@@ -924,29 +924,6 @@ Clases
 
    .. seealso::
       :ref:`aiozmq-rpc-signature-validation`
-
-.. class:: PubSubClient
-
-   Class that returned by :func:`connect_pubsub` call. Inherited from
-   :class:`Service`.
-
-   For *pubsub* calls use :attr:`~RPCClient.publish` method.
-
-   .. method:: publish(topic)
-
-      The call that returns ephemeral object used to making
-      *publisher call*.
-
-      Construction like::
-
-          ret = yield from client.publish('topic').ns.method(1, b=2)
-
-      makes a remote call with arguments ``(1, b=2)`` and topic name
-      ``b'topic'``
-
-   .. seealso::
-      :ref:`aiozmq-rpc-signature-validation`
-
 
 
 Logger
