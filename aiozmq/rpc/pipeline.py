@@ -32,14 +32,15 @@ def connect_pipeline(*, connect=None, bind=None, loop=None,
 
 @asyncio.coroutine
 def serve_pipeline(handler, *, connect=None, bind=None, loop=None,
-                   translation_table=None):
+                   translation_table=None, log_exceptions=False):
     """A coroutine that creates and connects/binds Pipeline server instance."""
     if loop is None:
         loop = asyncio.get_event_loop()
 
     trans, proto = yield from loop.create_zmq_connection(
         lambda: _ServerProtocol(loop, handler,
-                                translation_table=translation_table),
+                                translation_table=translation_table,
+                                log_exceptions=log_exceptions),
         zmq.PULL, connect=connect, bind=bind)
     return Service(loop, proto)
 
@@ -102,7 +103,7 @@ class _ServerProtocol(_BaseServerProtocol):
         try:
             if fut.result() is not None:
                 logger.warning("Pipeline handler %r returned not None", name)
-        except Exception as exc:
+        except (NotFoundError, ParametersError) as exc:
             self.loop.call_exception_handler({
                 'message': 'Call to {!r} caused error: {!r}'.format(name, exc),
                 'exception': exc,
@@ -110,3 +111,5 @@ class _ServerProtocol(_BaseServerProtocol):
                 'protocol': self,
                 'transport': self.transport,
                 })
+        except Exception:
+            self.try_log(fut, name, args, kwargs)

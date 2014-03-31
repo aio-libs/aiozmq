@@ -26,11 +26,6 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     def add(self, arg: int=1):
         yield from self.queue.put(arg + 1)
 
-    @asyncio.coroutine
-    @aiozmq.rpc.method
-    def raise_error(self):
-        raise RuntimeError('catch me')
-
     @aiozmq.rpc.method
     def func_error(self):
         raise ValueError
@@ -71,14 +66,15 @@ class PipelineTests(unittest.TestCase):
     def exception_handler(self, loop, context):
         self.err_queue.put_nowait(context)
 
-    def make_pipeline_pair(self):
+    def make_pipeline_pair(self, log_exceptions=False):
 
         @asyncio.coroutine
         def create():
             server = yield from aiozmq.rpc.serve_pipeline(
                 MyHandler(self.queue),
                 bind='tcp://*:*',
-                loop=self.loop)
+                loop=self.loop,
+                log_exceptions=log_exceptions)
             connect = next(iter(server.transport.bindings()))
             client = yield from aiozmq.rpc.connect_pipeline(
                 connect=connect,
@@ -117,20 +113,6 @@ class PipelineTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
 
-    def test_raise_error(self):
-        client, server = self.make_pipeline_pair()
-
-        @asyncio.coroutine
-        def communicate():
-            yield from client.notify.raise_error()
-            ctx = yield from self.err_queue.get()
-            self.assertRegex(ctx['message'],
-                             "Call to 'raise_error'.*RuntimeError")
-            self.assertIn('exception', ctx)
-            self.assertIsInstance(ctx['exception'], RuntimeError)
-
-        self.loop.run_until_complete(communicate())
-
     def test_bad_handler(self):
         client, server = self.make_pipeline_pair()
 
@@ -154,17 +136,20 @@ class PipelineTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
 
-    def test_func_error(self):
-        client, server = self.make_pipeline_pair()
+    @mock.patch('aiozmq.rpc.base.logger')
+    def test_func_error(self, m_log):
+        client, server = self.make_pipeline_pair(log_exceptions=True)
 
         @asyncio.coroutine
         def communicate():
             yield from client.notify.func_error()
-            ctx = yield from self.err_queue.get()
-            self.assertRegex(ctx['message'],
-                             "Call to 'func_error'.*ValueError")
 
         self.loop.run_until_complete(communicate())
+
+        yield from asyncio.sleep(0.1, loop=self.loop)
+        m_log.exception.assert_called_with(
+            'An exception from method %r call has been occurred.\n'
+            'args = %s\nkwargs = %s\n', 'exc', '(1,)', '{}')
 
     def test_default_event_loop(self):
         asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())

@@ -223,7 +223,6 @@ class _ServerProtocol(_BaseServerProtocol):
         self.try_log(fut, name, args, kwargs)
         try:
             ret = fut.result()
-            # TODO: allow `ret` to be validated against None
             if return_annotation is not None:
                 ret = return_annotation(ret)
             prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
