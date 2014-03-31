@@ -168,7 +168,7 @@ class _ServerProtocol(_BaseServerProtocol):
         try:
             if fut.result() is not None:
                 logger.warning("PubSub handler %r returned not None", name)
-        except Exception as exc:
+        except (NotFoundError, ParametersError) as exc:
             self.loop.call_exception_handler({
                 'message': 'Call to {!r} caused error: {!r}'.format(name, exc),
                 'exception': exc,
@@ -176,3 +176,5 @@ class _ServerProtocol(_BaseServerProtocol):
                 'protocol': self,
                 'transport': self.transport,
                 })
+        except Exception:
+            self.try_log(fut, name, args, kwargs)

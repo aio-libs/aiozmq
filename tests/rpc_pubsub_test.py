@@ -62,7 +62,7 @@ class PubSubTests(unittest.TestCase):
     def exc_handler(self, loop, context):
         self.err_queue.put_nowait(context)
 
-    def make_pubsub_pair(self, subscribe=None):
+    def make_pubsub_pair(self, subscribe=None, log_exceptions=False):
 
         @asyncio.coroutine
         def create():
@@ -70,7 +70,8 @@ class PubSubTests(unittest.TestCase):
                 MyHandler(self.queue),
                 subscribe=subscribe,
                 bind='tcp://*:*',
-                loop=self.loop)
+                loop=self.loop,
+                log_exceptions=log_exceptions)
             connect = next(iter(server.transport.bindings()))
             client = yield from aiozmq.rpc.connect_pubsub(
                 connect=connect,
@@ -187,27 +188,29 @@ class PubSubTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
 
-    def test_func_raises_error(self):
-        client, server = self.make_pubsub_pair('my-topic')
+    @mock.patch('aiozmq.rpc.base.logger')
+    def test_func_raises_error(self, m_log):
+        client, server = self.make_pubsub_pair('my-topic', log_exceptions=True)
 
         @asyncio.coroutine
         def communicate():
             yield from client.publish('my-topic').func_raise_error()
-            ret = yield from self.err_queue.get()
-            self.assertRegex(ret['message'],
-                             "Call to 'func_raise_error'.*RuntimeError")
 
         self.loop.run_until_complete(communicate())
+
+        yield from asyncio.sleep(0.1, loop=self.loop)
+        m_log.exception.assert_called_with(
+            'An exception from method %r call has been occurred.\n'
+            'args = %s\nkwargs = %s\n', 'exc', '(1,)', '{}')
 
     def test_subscribe_to_bytes(self):
         client, server = self.make_pubsub_pair(b'my-topic')
 
         @asyncio.coroutine
         def communicate():
-            yield from client.publish(b'my-topic').func_raise_error()
-            ret = yield from self.err_queue.get()
-            self.assertRegex(ret['message'],
-                             "Call to 'func_raise_error'.*RuntimeError")
+            yield from client.publish(b'my-topic').func(1)
+            ret = yield from self.queue.get()
+            self.assertEqual(ret, 2)
 
         self.loop.run_until_complete(communicate())
 
