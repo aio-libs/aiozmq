@@ -18,15 +18,15 @@ some high-level API.
 Thus we have the *aiozmq.rpc* module for Remote Procedure Calls.
 
 The main goal of the module is to provide *easy-to-use interface* for
-calling some method from remote process (that processes may be
-have runned on other host).
+calling some method from the remote process (which can be
+running on the other host).
 
 :term:`ZeroMQ` itself gives handy sockets but says nothing about RPC.
 
-In other hand this module provides *human* API but it is not
+On the other hand, this module provides *human* API but it is not
 compatible with *other implementations*.
 
-If you need to support custor protocol over :term:`ZeroMQ` layer
+If you need to support a custom protocol over :term:`ZeroMQ` layer
 please feel free to build your own implementation on top of the
 :ref:`core primitives <aiozmq-core>`.
 
@@ -47,18 +47,18 @@ Request-Reply
 -------------
 
 This is **Remote Procedure Call** pattern itself. Client calls remote
-function on server and waits for returned value. If remote function
-raises exception that exception instance raises on client side also.
+function on server and waits for the returned value. If the remote function
+raises an exception, that exception instance also raises on client side.
 
 Let's assume we have *N* clients bound to *M* servers.  Any client can
 connect to several servers and any server can listen multiple
 *endpoints*.
 
-When client sends a message the message will be delivered to any server
+When client sends a message, the message will be delivered to any server
 that is ready (doesn't processes another message).
 
-When server sends reply with result of remote call back the result is
-routed to client that sent the request.
+When the server sends a reply with the result of the remote call back, the result is
+routed to the client that has sent the request originally.
 
 This pair uses *DEALER*/*ROUTER* :term:`ZeroMQ` sockets.
 
@@ -160,18 +160,18 @@ The basic usage is::
 Push-Pull
 ---------
 
-This is **Notify** aka **Pipeline** pattern. Client calls remote function
-on server and **doesn't** wait for result. If a *remote function call*
-raises an exception the exception is only **logged** at server side.  Client
+This is **Notify** aka **Pipeline** pattern. Client calls a remote function
+on the server and **doesn't** wait for the result. If a *remote function call*
+raises an exception, this exception is only **logged** at the server side.  Client
 **cannot** get any information about *processing the remote call on server*.
 
 Thus this is **one-way** communication: **fire and forget**.
 
-Let's assume we have *N* clients bound to *M* servers.  Any client can
-connect to several servers and any server can listen multiple
+Let's assume that we have *N* clients bound to *M* servers.  Any client can
+connect to several servers and any server can listen to multiple
 *endpoints*.
 
-When client sends a message the message will be delivered to any server
+When client sends a message, the message is delivered to any server
 that is *ready* (doesn't processes another message).
 
 That's all.
