@@ -5,6 +5,7 @@ CHANGES
 ^^^^^^^^^^^^^^^^^^
 
 Derive ServiceClosedError from aiozmq.rpc.Error, not Exception
+
 Implement logging from remote calls at server side (log_exceptions parameter).
 
 0.1.0 (2014-03-31)
