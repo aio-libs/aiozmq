@@ -198,18 +198,15 @@ class _ServerProtocol(_BaseServerProtocol):
         else:
             if asyncio.iscoroutinefunction(func):
                 fut = asyncio.async(func(*args, **kwargs), loop=self.loop)
-                fut.add_done_callback(partial(self.process_call_result,
-                                              req_id=req_id, peer=peer,
-                                              return_annotation=ret_ann))
             else:
                 fut = asyncio.Future(loop=self.loop)
-                fut.add_done_callback(partial(self.process_call_result,
-                                              req_id=req_id, peer=peer,
-                                              return_annotation=ret_ann))
                 try:
                     fut.set_result(func(*args, **kwargs))
                 except Exception as exc:
                     fut.set_exception(exc)
+            fut.add_done_callback(partial(self.process_call_result,
+                                          req_id=req_id, peer=peer,
+                                          return_annotation=ret_ann))
 
     def process_call_result(self, fut, *, req_id, peer,
                             return_annotation=None):
