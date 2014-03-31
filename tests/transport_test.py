@@ -8,10 +8,10 @@ import errno
 from collections import deque
 
 from asyncio import test_utils
-from aiozmq.events import _ZmqTransportImpl
+from aiozmq.core import _ZmqTransportImpl
 from unittest import mock
 
-from aiozmq._test_utils import check_errno
+from aiozmq._test_util import check_errno
 
 
 class TransportTests(unittest.TestCase):
