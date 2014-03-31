@@ -1,11 +1,14 @@
 import abc
 import asyncio
 import inspect
+import pprint
+import textwrap
 
 from aiozmq import interface
 from types import MethodType
 
 from .packer import _Packer
+from aiozmq.log import logger
 
 
 class Error(Exception):
@@ -142,11 +145,13 @@ class _BaseProtocol(interface.ZmqProtocol):
 
 class _BaseServerProtocol(_BaseProtocol):
 
-    def __init__(self, loop, handler, *, translation_table=None):
+    def __init__(self, loop, handler, *,
+                 translation_table=None, log_exceptions=False):
         super().__init__(loop, translation_table=translation_table)
-        self.handler = handler
         if not isinstance(handler, AbstractHandler):
             raise TypeError('handler should implement AbstractHandler ABC')
+        self.handler = handler
+        self.log_exceptions = log_exceptions
 
     def dispatch(self, name):
         if not name:
@@ -203,3 +208,15 @@ class _BaseServerProtocol(_BaseProtocol):
             if sig.return_annotation is not sig.empty:
                 return bargs.args, bargs.kwargs, sig.return_annotation
             return bargs.args, bargs.kwargs, None
+
+    def try_log(self, fut, name, args, kwargs):
+        try:
+            fut.result()
+        except Exception:
+            if self.log_exceptions:
+                logger.exception(textwrap.dedent("""\
+                    An exception from method %r call has been occurred.
+                    args = %s
+                    kwargs = %s
+                    """),
+                    name, pprint.pformat(args), pprint.pformat(kwargs))  # noqa

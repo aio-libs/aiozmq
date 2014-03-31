@@ -518,7 +518,7 @@ class RpcTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
 
-    @mock.patch('aiozmq.rpc.rpc.logger')
+    @mock.patch('aiozmq.rpc.base.logger')
     def test_log_exceptions(self, m_log):
         client, server = self.make_rpc_pair(log_exceptions=True)
 
@@ -530,7 +530,7 @@ class RpcTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
         m_log.exception.assert_called_with(
-            'An exception from method %s call has been occurred.\n'
+            'An exception from method %r call has been occurred.\n'
             'args = %s\nkwargs = %s\n', 'exc', '(1,)', '{}')
 
 

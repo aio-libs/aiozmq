@@ -2,10 +2,8 @@
 
 import asyncio
 import os
-import pprint
 import random
 import struct
-import textwrap
 import time
 import sys
 
@@ -176,10 +174,11 @@ class _ServerProtocol(_BaseServerProtocol):
 
     def __init__(self, loop, handler, *,
                  translation_table=None, log_exceptions=False):
-        super().__init__(loop, handler, translation_table=translation_table)
+        super().__init__(loop, handler,
+                         translation_table=translation_table,
+                         log_exceptions=log_exceptions)
         self.prefix = self.RESP_PREFIX.pack(os.getpid() % 0x10000,
                                             random.randrange(0x10000))
-        self._log_exceptions = log_exceptions
 
     def msg_received(self, data):
         try:
@@ -221,6 +220,7 @@ class _ServerProtocol(_BaseServerProtocol):
     def process_call_result(self, fut, *, req_id, peer, name,
                             args, kwargs,
                             return_annotation=None):
+        self.try_log(fut, name, args, kwargs)
         try:
             ret = fut.result()
             # TODO: allow `ret` to be validated against None
@@ -236,10 +236,3 @@ class _ServerProtocol(_BaseServerProtocol):
             exc_info = (exc_type.__module__ + '.' + exc_type.__name__,
                         exc.args)
             self.transport.write([peer, prefix, self.packer.packb(exc_info)])
-            if self._log_exceptions:
-                logger.exception(textwrap.dedent("""\
-                    An exception from method %s call has been occurred.
-                    args = %s
-                    kwargs = %s
-                    """),
-                    name, pprint.pformat(args), pprint.pformat(kwargs))  # noqa
