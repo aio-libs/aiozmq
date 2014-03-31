@@ -32,6 +32,9 @@ be installed (with pyzmq as dependency) by::
 
 Also probably you want to use :mod:`aiozmq.rpc`.
 
+
+.. _aiozmq-install-msgpack:
+
 RPC module is **optional** and requires :term:`msgpack`. You can
 install *msgpack-python* by::
 
@@ -109,15 +112,8 @@ After that you probably would like to use RPC::
 
     asyncio.get_event_loop().run_until_complete(go())
 
-.. note::
-
-   ``pip3 install aiozmq`` installs the only *pyzmq*
-   dependency. *msgpack-python* is optional library but if you want to
-   use :mod:`aiozmq.rpc` layer you should to install :term:`msgpack`
-   also::
-
-       pip3 install msgpack-python
-
+.. note:: To execute the example you need to :ref:`install
+   msgpack<aiozmq-install-msgpack>` first.
 
 Indices and tables
 ==================
