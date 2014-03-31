@@ -267,16 +267,16 @@ Publish-Subscribe
 This is **PubSub** pattern. It's very close to :ref:`aiozmq-rpc-pubsub`
 but has some difference:
 
-  * server *subscribes* to *topics* to recive messages from only that
+  * server *subscribes* to *topics* in order to receive messages only from that
     *topics*.
   * client sends a message to concrete *topic*.
 
 Let's assume we have *N* clients bound to *M* servers.  Any client can
-connect to several servers and any server can listen multiple
+connect to several servers and any server can listen to multiple
 *endpoints*.
 
-When client sends a message to *topic* the message will be delivered
-to only servers that has been subscibed to this *topic*.
+When client sends a message to *topic*, the message will be delivered
+to servers that only has been subscribed to this *topic*.
 
 This pair uses *PUB*/*SUB* :term:`ZeroMQ` sockets.
 
@@ -373,8 +373,8 @@ The basic usage is::
 Exception translation at client side
 ----------------------------------------
 
-If remote server method raises an exception that error is passed
-back to client and raised on client side, as follows::
+If a remote server method raises an exception, that exception is passed
+back to the client and raises on the client side, as follows::
 
     try:
         yield from client.call.func_raises_value_error()
