@@ -425,11 +425,11 @@ that's up to you.
 Signature validation
 ------------------------
 
-The library supports **optional** validation of remote call signatures.
+The library supports **optional** validation of the remote call signatures.
 
 If validation fails then :exc:`ParameterError` raises on client side.
 
-All validations are done on RPC server side, than errors translated
+All validations are done on RPC server side, then errors are translated
 back to client.
 
 Let's take a look on example of user-defined RPC handler::
@@ -443,26 +443,26 @@ Let's take a look on example of user-defined RPC handler::
 *Parameter* *arg1* and *return value* has :term:`annotaions <annotaion>`,
 *int* and *float* correspondingly.
 
-At call time if *parameter* has an :term:`annotaion` then *actual
-value* passed to RPC method is calculated as ``actual_value =
-annotation(value)``. If there is no annotaion for parameter the value
+At the call time, if *parameter* has an :term:`annotaion`, then *actual
+value* passed and RPC method is calculated as ``actual_value =
+annotation(value)``. If there is no annotaion for parameter, the value
 is passed as-is.
 
 Annotaion should be any :term:`callable` that accepts a value as single argument
 and returns *actual value*.
 
-If annotation call raises exception that exception throws to client
+If annotation call raises exceptionб that exception is sent to the client
 wrapped in :exc:`ParameterError`.
 
 Value, returned by RPC call, can be checked by optional *return annotation*.
 
-Thus :class:`int` can be good annotation: it raises :exc:`TypeError`
+Thus :class:`int` can be a good annotation: it raises :exc:`TypeError`
 if *arg1* cannot be converted to *int*.
 
-Usually you need for more complex check, say parameter can be *int* or
+Usually you need more complex check, say parameter can be *int* or
 *None*.
 
-You always can write custom validator::
+You always can write a custom validator::
 
    def int_or_none(val):
       if isinstance(val, int) or val is None:
@@ -503,7 +503,7 @@ client to server and back.
 You can think about :term:`msgpack` as: this is a-like JSON but fast
 and compact.
 
-Every object that can be passed to :func:`json.dump` can be passed to
+Every object that can be passed to :func:`json.dump`, can be passed to
 :func:`msgpack.dump` also. The same for unpacking.
 
 The only difference is: *aiozmq.rpc* converts all :class:`lists
@@ -526,8 +526,8 @@ arguments.  :class:`datetime.datetime` is a good example.
 from :mod:`datetime` *from-the-box*
 (:ref:`predefined translators <aiozmq-rpc-predifined-translators>`).
 
-If you need to transfer a custom object via RPC you should to register
-**translator** at both server and client side.  Say, you need to pass
+If you need to transfer a custom object via RPC you should register
+**translator** at both server and client side.  Say, you need to pass the 
 instances of your custom class ``Point`` via RPC. There is an
 example::
 
@@ -568,7 +568,7 @@ example::
         ret = yield from client.call.remote(Point(1, 2))
         assert ret == Point(1, 2)
 
-You should to create a *translation table* and pass it to both
+You should create a *translation table* and pass it to both
 :func:`connect_rpc` and :func:`serve_rpc`. That's all, server and
 client now have all information about passing your ``Point`` via the
 wire.
@@ -656,7 +656,7 @@ Exceptions
 .. exception:: GenericError
 
    Subclass of :exc:`Error`, raised when a remote call produces
-   exception which cannot be translated.
+   exception that cannot be translated.
 
    .. attribute:: exc_type
 
@@ -718,8 +718,8 @@ Clases
 
    The base class for all RPC handlers.
 
-   Every handler should to be *AbstractHandler* by direct inheritance
-   or indirect subclassing (method *__getitem__* should be defined.
+   Every handler should be *AbstractHandler* by direct inheritance
+   or indirect subclassing (method *__getitem__* should be defined).
 
    Therefore :class:`AttrHandler` and :class:`dict` are both good
    citizens.
