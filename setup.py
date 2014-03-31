@@ -17,7 +17,7 @@ else:
 
 tests_require = install_requires + ['msgpack']
 
-extras_require = {'rpc': ['trafaret>=0.5.0', 'msgpack-python>=0.4.1']}
+extras_require = {'rpc': ['msgpack-python>=0.4.1']}
 
 
 def read(f):
