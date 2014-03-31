@@ -106,7 +106,8 @@ class RpcTests(unittest.TestCase):
         server.close()
         self.loop.run_until_complete(server.wait_closed())
 
-    def make_rpc_pair(self, *, error_table=None, timeout=None):
+    def make_rpc_pair(self, *, error_table=None, timeout=None,
+                      log_exceptions=False):
         port = find_unused_port()
 
         @asyncio.coroutine
@@ -114,7 +115,8 @@ class RpcTests(unittest.TestCase):
             server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
                 bind='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop)
+                loop=self.loop,
+                log_exceptions=log_exceptions)
             client = yield from aiozmq.rpc.connect_rpc(
                 connect='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop, error_table=error_table, timeout=timeout)
@@ -515,6 +517,21 @@ class RpcTests(unittest.TestCase):
             yield from client.wait_closed()
 
         self.loop.run_until_complete(communicate())
+
+    @mock.patch('aiozmq.rpc.rpc.logger')
+    def test_log_exceptions(self, m_log):
+        client, server = self.make_rpc_pair(log_exceptions=True)
+
+        @asyncio.coroutine
+        def communicate():
+            with self.assertRaises(RuntimeError) as exc:
+                yield from client.call.exc(1)
+            self.assertEqual(('bad arg', 1), exc.exception.args)
+
+        self.loop.run_until_complete(communicate())
+        m_log.exception.assert_called_with(
+            'An exception from method %s call has been occurred.\n'
+            'args = %s\nkwargs = %s\n', 'exc', '(1,)', '{}')
 
 
 class AbstractHandlerTests(unittest.TestCase):
