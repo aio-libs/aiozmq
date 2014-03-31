@@ -1,0 +1,9 @@
+Acknowledgements
+----------------
+
+The list of contributors to *aiozmq*, at least of persons with real
+names but not nicks only.
+
+Alexey Popravka
+Anton Kasyanov
+Oleg Baranovskiy
