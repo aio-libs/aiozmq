@@ -353,6 +353,8 @@ class RpcTests(unittest.TestCase):
                 lambda: Protocol(self.loop), zmq.DEALER,
                 connect='tcp://127.0.0.1:{}'.format(port))
 
+            yield from asyncio.sleep(0.001, loop=self.loop)
+
             tr.write([b'invalid', b'structure'])
 
             yield from asyncio.sleep(0.001, loop=self.loop)
@@ -367,7 +369,7 @@ class RpcTests(unittest.TestCase):
         self.loop.run_until_complete(go())
 
     @mock.patch("aiozmq.rpc.rpc.logger")
-    def test_mailformed_args(self, m_log):
+    def test_malformed_args(self, m_log):
         port = find_unused_port()
 
         @asyncio.coroutine
@@ -395,7 +397,7 @@ class RpcTests(unittest.TestCase):
         self.loop.run_until_complete(go())
 
     @mock.patch("aiozmq.rpc.rpc.logger")
-    def test_mailformed_kwargs(self, m_log):
+    def test_malformed_kwargs(self, m_log):
         port = find_unused_port()
 
         @asyncio.coroutine
@@ -449,7 +451,7 @@ class RpcTests(unittest.TestCase):
         self.loop.run_until_complete(go())
 
     @mock.patch("aiozmq.rpc.rpc.logger")
-    def test_mailformed_anser_at_client(self, m_log):
+    def test_malformed_anser_at_client(self, m_log):
         port = find_unused_port()
 
         @asyncio.coroutine
