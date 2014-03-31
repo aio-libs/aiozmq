@@ -3,7 +3,6 @@ import os
 import random
 import signal
 import socket
-from test import support
 from time import sleep
 import unittest
 from unittest import mock
@@ -18,6 +17,7 @@ except ImportError:
 import zmq
 
 from aiozmq.selector import ZmqSelector, EVENT_READ, EVENT_WRITE, SelectorKey
+from aiozmq._test_util import requires_mac_ver
 
 
 if hasattr(socket, 'socketpair'):
@@ -25,7 +25,7 @@ if hasattr(socket, 'socketpair'):
 else:
     def socketpair(family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0):
         with socket.socket(family, type, proto) as l:
-            l.bind((support.HOST, 0))
+            l.bind(('127.0.0.1', 0))
             l.listen(3)
             c = socket.socket(family, type, proto)
             try:
@@ -447,7 +447,7 @@ class SelectorTests(unittest.TestCase):
         self.assertLess(time() - t, 2.5)
 
     # see issue #18963 for why it's skipped on older OS X versions
-    @support.requires_mac_ver(10, 5)
+    @requires_mac_ver(10, 5)
     @unittest.skipUnless(resource, "Test needs resource module")
     def test_above_fd_setsize(self):
         # A scalable implementation should have no problem with more than
