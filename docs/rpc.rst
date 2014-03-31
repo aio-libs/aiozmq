@@ -11,7 +11,7 @@
 Intro
 -----
 
-While :ref:`core API <aiozmq-core>` provides core support for
+While :ref:`core API <aiozmq-core>` provides a core support for
 :term:`ZeroMQ` transports, the :term:`End User <enduser>` may need
 some high-level API.
 
@@ -21,12 +21,12 @@ The main goal of the module is to provide *easy-to-use interface* for
 calling some method from the remote process (which can be
 running on the other host).
 
-:term:`ZeroMQ` itself gives handy sockets but says nothing about RPC.
+:term:`ZeroMQ` itself gives some handy sockets but says nothing about RPC.
 
-On the other hand, this module provides *human* API but it is not
+On the other hand, this module provides *human* API, but it is not
 compatible with *other implementations*.
 
-If you need to support a custom protocol over :term:`ZeroMQ` layer
+If you need to support a custom protocol over :term:`ZeroMQ` layer,
 please feel free to build your own implementation on top of the
 :ref:`core primitives <aiozmq-core>`.
 
@@ -46,12 +46,12 @@ The :mod:`aiozmq.rpc` supports three pairs of communications:
 Request-Reply
 -------------
 
-This is **Remote Procedure Call** pattern itself. Client calls remote
+This is a **Remote Procedure Call** pattern itself. Client calls a remote
 function on server and waits for the returned value. If the remote function
-raises an exception, that exception instance also raises on client side.
+raises an exception, that exception instance also raises on the client side.
 
 Let's assume we have *N* clients bound to *M* servers.  Any client can
-connect to several servers and any server can listen multiple
+connect to several servers and any server can listen to multiple
 *endpoints*.
 
 When client sends a message, the message will be delivered to any server
@@ -160,7 +160,7 @@ The basic usage is::
 Push-Pull
 ---------
 
-This is **Notify** aka **Pipeline** pattern. Client calls a remote function
+This is a **Notify** aka **Pipeline** pattern. Client calls a remote function
 on the server and **doesn't** wait for the result. If a *remote function call*
 raises an exception, this exception is only **logged** at the server side.  Client
 **cannot** get any information about *processing the remote call on server*.
