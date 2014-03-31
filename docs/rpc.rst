@@ -160,10 +160,11 @@ The basic usage is::
 Push-Pull
 ---------
 
-This is a **Notify** aka **Pipeline** pattern. Client calls a remote function
-on the server and **doesn't** wait for the result. If a *remote function call*
-raises an exception, this exception is only **logged** at the server side.  Client
-**cannot** get any information about *processing the remote call on server*.
+This is a **Notify** aka **Pipeline** pattern. Client calls a remote
+function on the server and **doesn't** wait for the result. If a
+*remote function call* raises an exception, this exception is only
+**logged** at the server side.  Client **cannot** get any information
+about *processing the remote call on server*.
 
 Thus this is **one-way** communication: **fire and forget**.
 
@@ -171,7 +172,7 @@ Let's assume that we have *N* clients bound to *M* servers.  Any client can
 connect to several servers and any server can listen to multiple
 *endpoints*.
 
-When client sends a message, the message is delivered to any server
+When client sends a message, the message will be delivered to any server
 that is *ready* (doesn't processes another message).
 
 That's all.
@@ -374,7 +375,7 @@ Exception translation at client side
 ----------------------------------------
 
 If a remote server method raises an exception, that exception is passed
-back to the client and raises on the client side, as follows::
+back to the client and raised on the client side, as follows::
 
     try:
         yield from client.call.func_raises_value_error()
@@ -451,7 +452,7 @@ is passed as-is.
 Annotaion should be any :term:`callable` that accepts a value as single argument
 and returns *actual value*.
 
-If annotation call raises exceptionб that exception is sent to the client
+If annotation call raises exception, that exception is sent to the client
 wrapped in :exc:`ParameterError`.
 
 Value, returned by RPC call, can be checked by optional *return annotation*.
