@@ -449,6 +449,9 @@ value* passed and RPC method is calculated as ``actual_value =
 annotation(value)``. If there is no annotaion for parameter, the value
 is passed as-is.
 
+.. versionchanged:: 0.1.2
+   Function default values are not passed to an :term:`annotaion`.
+
 Annotaion should be any :term:`callable` that accepts a value as single argument
 and returns *actual value*.
 
@@ -528,8 +531,8 @@ from :mod:`datetime` *from-the-box*
 (:ref:`predefined translators <aiozmq-rpc-predifined-translators>`).
 
 If you need to transfer a custom object via RPC you should register
-**translator** at both server and client side.  Say, you need to pass the 
-instances of your custom class ``Point`` via RPC. There is an
+**translator** at both server and client side.  Say, you need to pass
+the instances of your custom class ``Point`` via RPC. There is an
 example::
 
     import asyncio

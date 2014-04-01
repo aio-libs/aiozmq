@@ -1,7 +1,13 @@
 CHANGES
 -------
 
-0.1.0 (2014-03-31)
+0.1.2 (2014-04-01)
+^^^^^^^^^^^^^^^^^^
+
+Function default values are not passed to an annotaion.
+
+
+0.1.1 (2014-03-31)
 ^^^^^^^^^^^^^^^^^^
 
 Rename plural module names to single ones.
