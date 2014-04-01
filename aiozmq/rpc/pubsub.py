@@ -33,7 +33,8 @@ def serve_pubsub(handler, *, subscribe=None, connect=None, bind=None,
 
     transp, proto = yield from loop.create_zmq_connection(
         lambda: _ServerProtocol(loop, handler,
-                                translation_table=translation_table),
+                                translation_table=translation_table,
+                                log_exceptions=log_exceptions),
         zmq.SUB, connect=connect, bind=bind)
     serv = PubSubService(loop, proto)
     if subscribe is not None:
@@ -168,7 +169,6 @@ class _ServerProtocol(_BaseServerProtocol):
             if fut.result() is not None:
                 logger.warning("PubSub handler %r returned not None", name)
         except (NotFoundError, ParametersError) as exc:
-            print('0000000000000000000000')
             logger.exception("Call to %r caused error: %r", name, exc)
         except Exception:
             self.try_log(fut, name, args, kwargs)

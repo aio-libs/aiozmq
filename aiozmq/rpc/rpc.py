@@ -106,8 +106,8 @@ class _ClientProtocol(_BaseProtocol):
             logger.critical("Unknown answer id: %d (%d %d %f %d) -> %s",
                             req_id, pid, rnd, timestamp, is_error, answer)
         elif call.cancelled():
-            logger.info("The future for %d has been cancelled, "
-                        "skip the received result.", req_id)
+            logger.debug("The future for request #%08x has been cancelled, "
+                         "skip the received result.", req_id)
         else:
             if is_error:
                 call.set_exception(self._translate_error(*answer))

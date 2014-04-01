@@ -3,13 +3,14 @@ import asyncio
 import aiozmq
 import aiozmq.rpc
 import datetime
+import logging
 import time
 from unittest import mock
 import zmq
 import msgpack
 import struct
 
-from aiozmq._test_util import find_unused_port
+from aiozmq._test_util import find_unused_port, log_hook
 from aiozmq.rpc.log import logger
 
 
@@ -91,10 +92,22 @@ class Protocol(aiozmq.ZmqProtocol):
 
 class RpcTests(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(self):
+        logger = logging.getLogger()
+        self.log_level = logger.getEffectiveLevel()
+        logger.setLevel(logging.DEBUG)
+
+    @classmethod
+    def tearDownClass(self):
+        logger = logging.getLogger()
+        logger.setLevel(self.log_level)
+
     def setUp(self):
         self.loop = aiozmq.ZmqEventLoop()
         asyncio.set_event_loop(None)
         self.client = self.server = None
+        self.err_queue = asyncio.Queue(loop=self.loop)
 
     def tearDown(self):
         if self.client is not None:
@@ -284,29 +297,35 @@ class RpcTests(unittest.TestCase):
         with self.assertRaises(aiozmq.rpc.ServiceClosedError):
             server.transport
 
-    @mock.patch("aiozmq.rpc.rpc.logger")
-    def test_client_timeout(self, m_log):
+    def test_client_timeout(self):
         client, server = self.make_rpc_pair()
 
         @asyncio.coroutine
         def communicate():
-            with self.assertRaises(asyncio.TimeoutError):
+            with log_hook('aiozmq.rpc', self.err_queue):
+                with self.assertRaises(asyncio.TimeoutError):
+                    t0 = time.monotonic()
+                    with client.with_timeout(0.1) as timedout:
+                        yield from timedout.call.slow_call()
+                    t1 = time.monotonic()
+                    self.assertTrue(0.08 <= t1-t0 <= 0.12, t1-t0)
+
                 t0 = time.monotonic()
-                with client.with_timeout(0.1) as timedout:
-                    yield from timedout.call.slow_call()
+                with self.assertRaises(asyncio.TimeoutError):
+                    yield from client.with_timeout(0.1).call.slow_call()
                 t1 = time.monotonic()
                 self.assertTrue(0.08 <= t1-t0 <= 0.12, t1-t0)
 
-            t0 = time.monotonic()
-            with self.assertRaises(asyncio.TimeoutError):
-                yield from client.with_timeout(0.1).call.slow_call()
-            t1 = time.monotonic()
-            self.assertTrue(0.08 <= t1-t0 <= 0.12, t1-t0)
-
-            yield from asyncio.sleep(0.12, loop=self.loop)
-            m_log.info.assert_called_with(
-                'The future for %d has been cancelled, '
-                'skip the received result.', mock.ANY)
+                ret = yield from self.err_queue.get()
+                # TODO: make a test for several unexpected calls
+                # This test should to do that but result is a bit suspicious
+                # self.assertEqual(1, self.err_queue.qsize())
+                self.assertEqual(logging.DEBUG, ret.levelno)
+                self.assertEqual("The future for request #%08x "
+                                 "has been cancelled, "
+                                 "skip the received result.", ret.msg)
+                self.assertEqual((1,), ret.args)
+                self.assertIsNone(ret.exc_info)
 
         self.loop.run_until_complete(communicate())
 
@@ -342,8 +361,7 @@ class RpcTests(unittest.TestCase):
 
         self.loop.run_until_complete(go())
 
-    @mock.patch("aiozmq.rpc.rpc.logger")
-    def test_unknown_format_at_server(self, m_log):
+    def test_unknown_format_at_server(self):
         port = find_unused_port()
 
         @asyncio.coroutine
@@ -358,14 +376,16 @@ class RpcTests(unittest.TestCase):
 
             yield from asyncio.sleep(0.001, loop=self.loop)
 
-            tr.write([b'invalid', b'structure'])
+            with log_hook('aiozmq.rpc', self.err_queue):
+                tr.write([b'invalid', b'structure'])
 
-            yield from asyncio.sleep(0.001, loop=self.loop)
+                ret = yield from self.err_queue.get()
+                self.assertEqual(logging.CRITICAL, ret.levelno)
+                self.assertEqual("Cannot unpack %r", ret.msg)
+                self.assertEqual(((mock.ANY, b'invalid', b'structure'),),
+                                 ret.args)
+                self.assertIsNotNone(ret.exc_info)
 
-            m_log.critical.assert_called_with(
-                'Cannot unpack %r',
-                (mock.ANY, b'invalid', b'structure'),
-                exc_info=mock.ANY)
             self.assertTrue(pr.received.empty())
             server.close()
 

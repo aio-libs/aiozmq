@@ -227,10 +227,10 @@ def check_errno(errno, exc):
 class TestHandler(logging.Handler):
 
     def __init__(self, queue):
+        super().__init__()
         self.queue = queue
 
     def emit(self, record):
-        print ("AAAAAAAAAAAAAAAAAAAA")
         self.queue.put_nowait(record)
 
 
