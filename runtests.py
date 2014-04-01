@@ -111,8 +111,10 @@ def load_modules(basedir, suffix='.py', *, verbose=False):
         except Exception as err:
             print("Skipping '{}': {}".format(modname, err), file=sys.stderr)
             if verbose:
-                traceback.print_exc(err)
-
+                try:
+                    traceback.print_exc()
+                except Exception:
+                    pass
     return mods
 
 
