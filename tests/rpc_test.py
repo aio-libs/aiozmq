@@ -391,8 +391,7 @@ class RpcTests(unittest.TestCase):
 
         self.loop.run_until_complete(go())
 
-    @mock.patch("aiozmq.rpc.rpc.logger")
-    def test_malformed_args(self, m_log):
+    def test_malformed_args(self):
         port = find_unused_port()
 
         @asyncio.coroutine
@@ -405,17 +404,19 @@ class RpcTests(unittest.TestCase):
                 lambda: Protocol(self.loop), zmq.DEALER,
                 connect='tcp://127.0.0.1:{}'.format(port))
 
-            tr.write([struct.pack('=HHLd', 1, 2, 3, 4),
-                      b'bad args', b'bad_kwargs'])
-
             yield from asyncio.sleep(0.001, loop=self.loop)
 
-            m_log.critical.assert_called_with(
-                'Cannot unpack %r',
-                mock.ANY,
-                exc_info=mock.ANY)
-            self.assertTrue(pr.received.empty())
-            server.close()
+            with log_hook('aiozmq.rpc', self.err_queue):
+                tr.write([struct.pack('=HHLd', 1, 2, 3, 4),
+                          b'bad args', b'bad_kwargs'])
+
+                ret = yield from self.err_queue.get()
+                self.assertEqual(logging.CRITICAL, ret.levelno)
+                self.assertEqual("Cannot unpack %r", ret.msg)
+                self.assertEqual(((mock.ANY, mock.ANY,
+                                   b'bad args', b'bad_kwargs'),),
+                                   ret.args)
+                self.assertIsNotNone(ret.exc_info)
 
         self.loop.run_until_complete(go())
 
