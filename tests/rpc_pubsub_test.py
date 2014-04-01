@@ -152,17 +152,18 @@ class PubSubTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "PubSub method name is empty"):
             client.publish('topic')()
 
-    def test_not_found(self):
+    @mock.patch('aiozmq.rpc.pubsub.logger')
+    def test_not_found(self, m_log):
         client, server = self.make_pubsub_pair('my-topic')
 
         @asyncio.coroutine
         def communicate():
             yield from client.publish('my-topic').bad.method(1, 2)
-            ret = yield from self.err_queue.get()
-            self.assertRegex(ret['message'],
-                             "Call to 'bad.method'.*NotFoundError")
+            yield from asyncio.sleep(0.1, loop=self.loop)
 
         self.loop.run_until_complete(communicate())
+        m_log.exception.assert_called_with(
+            'Call to %r caused error: %r', 'bad.method', mock.ANY)
 
     def test_func(self):
         client, server = self.make_pubsub_pair('my-topic')
@@ -175,18 +176,19 @@ class PubSubTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
 
-    def test_func__arg_error(self):
+    @mock.patch('aiozmq.rpc.pubsub.logger')
+    def test_func__arg_error(self, m_log):
         client, server = self.make_pubsub_pair('my-topic')
 
         @asyncio.coroutine
         def communicate():
             yield from client.publish('my-topic').func('abc')
+            yield from asyncio.sleep(0.1, loop=self.loop)
             self.assertTrue(self.queue.empty())
-            ret = yield from self.err_queue.get()
-            self.assertRegex(ret['message'],
-                             "Call to 'func'.*ParametersError")
 
         self.loop.run_until_complete(communicate())
+        m_log.exception.assert_called_with(
+            'Call to %r caused error: %r', 'func', mock.ANY)
 
     @mock.patch('aiozmq.rpc.base.logger')
     def test_func_raises_error(self, m_log):
@@ -195,10 +197,10 @@ class PubSubTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             yield from client.publish('my-topic').func_raise_error()
+            yield from asyncio.sleep(0.1, loop=self.loop)
 
         self.loop.run_until_complete(communicate())
 
-        yield from asyncio.sleep(0.1, loop=self.loop)
         m_log.exception.assert_called_with(
             'An exception from method %r call has been occurred.\n'
             'args = %s\nkwargs = %s\n', 'exc', '(1,)', '{}')
