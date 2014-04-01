@@ -103,12 +103,6 @@ class _ServerProtocol(_BaseServerProtocol):
             if fut.result() is not None:
                 logger.warning("Pipeline handler %r returned not None", name)
         except (NotFoundError, ParametersError) as exc:
-            self.loop.call_exception_handler({
-                'message': 'Call to {!r} caused error: {!r}'.format(name, exc),
-                'exception': exc,
-                'future': fut,
-                'protocol': self,
-                'transport': self.transport,
-                })
+            logger.exception("Call to %r caused error: %r", name, exc)
         except Exception:
             self.try_log(fut, name, args, kwargs)

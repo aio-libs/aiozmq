@@ -113,17 +113,20 @@ class PipelineTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
 
-    def test_bad_handler(self):
+    @mock.patch('aiozmq.rpc.pipeline.logger')
+    def test_bad_handler(self, m_log):
         client, server = self.make_pipeline_pair()
 
         @asyncio.coroutine
         def communicate():
             yield from client.notify.bad_handler()
-            ctx = yield from self.err_queue.get()
-            self.assertRegex(ctx['message'],
-                             "Call to 'bad_handler'.*NotFoundError")
+            yield from asyncio.sleep(0.1, loop=self.loop)
 
         self.loop.run_until_complete(communicate())
+        m_log.exception.assert_called_with(
+            'Call to %r caused error: %r',
+            'bad_handler',
+            mock.ANY)
 
     def test_func(self):
         client, server = self.make_pipeline_pair()
@@ -143,13 +146,13 @@ class PipelineTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             yield from client.notify.func_error()
+            yield from asyncio.sleep(0.1, loop=self.loop)
 
         self.loop.run_until_complete(communicate())
 
-        yield from asyncio.sleep(0.1, loop=self.loop)
         m_log.exception.assert_called_with(
             'An exception from method %r call has been occurred.\n'
-            'args = %s\nkwargs = %s\n', 'exc', '(1,)', '{}')
+            'args = %s\nkwargs = %s\n', 'func_error', '()', '{}')
 
     def test_default_event_loop(self):
         asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
