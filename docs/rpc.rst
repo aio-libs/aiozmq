@@ -160,6 +160,9 @@ The basic usage is::
        :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
        values for *connect* and *bind* parameters.
 
+    .. versionchanged:: 0.2
+       Added *log_exceptions* parameter.
+
 .. _aiozmq-rpc-pushpull:
 
 Push-Pull
@@ -268,6 +271,9 @@ The basic usage is::
        Please take a look on
        :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
        values for *connect* and *bind* parameters.
+
+    .. versionchanged:: 0.2
+       Added *log_exceptions* parameter.
 
 
 .. _aiozmq-rpc-pubsub:
@@ -382,6 +388,9 @@ The basic usage is::
        Please take a look on
        :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
        values for *connect* and *bind* parameters.
+
+   .. versionchanged:: 0.2
+      Added *log_exceptions* parameter.
 
 
 .. _aiozmq-rpc-exception-translation:
