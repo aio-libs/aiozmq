@@ -193,12 +193,13 @@ class _BaseServerProtocol(_BaseProtocol):
             raise ParametersError(repr(exc)) from exc
         else:
             arguments = bargs.arguments
+            marker = object()
             for name, param in sig.parameters.items():
                 if param.annotation is param.empty:
                     continue
-                val = arguments.get(name, param.default)
-                # NOTE: default value always being passed through annotation
-                #       is it realy neccessary?
+                val = arguments.get(name, marker)
+                if val is marker:
+                    continue  # Skip default value
                 try:
                     arguments[name] = param.annotation(val)
                 except (TypeError, ValueError) as exc:
