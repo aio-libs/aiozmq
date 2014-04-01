@@ -21,10 +21,10 @@ import time
 import errno
 import unittest
 
-from aiozmq._test_utils import (find_unused_port,
-                                IPV6_ENABLED,
-                                requires_mac_ver,
-                                requires_freebsd_version)
+from aiozmq._test_util import (find_unused_port,
+                               IPV6_ENABLED,
+                               requires_mac_ver,
+                               requires_freebsd_version)
 
 
 import asyncio

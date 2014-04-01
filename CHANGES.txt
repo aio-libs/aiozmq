@@ -1,7 +1,12 @@
 CHANGES
 -------
 
-0.1.0 (XXXX-XX-XX)
+0.1.0 (2014-03-31)
+^^^^^^^^^^^^^^^^^^
+
+Rename plural module names to single ones.
+
+0.1.0 (2014-03-30)
 ^^^^^^^^^^^^^^^^^^
 
 Implement ZmqEventLoop with *create_zmq_connection* method which operates

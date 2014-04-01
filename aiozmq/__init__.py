@@ -3,7 +3,7 @@ import re
 import sys
 
 from .selector import ZmqSelector
-from .events import ZmqEventLoop, ZmqEventLoopPolicy
+from .core import ZmqEventLoop, ZmqEventLoopPolicy
 from .interface import ZmqTransport, ZmqProtocol
 
 
@@ -11,7 +11,7 @@ __all__ = ('ZmqSelector', 'ZmqEventLoop', 'ZmqEventLoopPolicy',
            'ZmqTransport', 'ZmqProtocol',
            'version_info', 'version')
 
-__version__ = '0.2.0a0'
+__version__ = '0.1.1'
 
 version = __version__ + ' , Python ' + sys.version
 
