@@ -4,7 +4,7 @@ import aiozmq
 import aiozmq.rpc
 
 from unittest import mock
-from aiozmq._test_util import find_unused_port
+from aiozmq._test_util import find_unused_port, log_hook
 from asyncio.test_utils import run_briefly
 
 
@@ -46,7 +46,6 @@ class PubSubTests(unittest.TestCase):
         self.client = self.server = None
         self.queue = asyncio.Queue(loop=self.loop)
         self.err_queue = asyncio.Queue(loop=self.loop)
-        self.loop.set_exception_handler(self.exc_handler)
 
     def tearDown(self):
         if self.client:
@@ -58,9 +57,6 @@ class PubSubTests(unittest.TestCase):
     def close(self, service):
         service.close()
         self.loop.run_until_complete(service.wait_closed())
-
-    def exc_handler(self, loop, context):
-        self.err_queue.put_nowait(context)
 
     def make_pubsub_pair(self, subscribe=None, log_exceptions=False):
 
@@ -152,18 +148,19 @@ class PubSubTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "PubSub method name is empty"):
             client.publish('topic')()
 
-    @mock.patch('aiozmq.rpc.pubsub.logger')
-    def test_not_found(self, m_log):
+    def test_not_found(self):
         client, server = self.make_pubsub_pair('my-topic')
 
         @asyncio.coroutine
         def communicate():
-            yield from client.publish('my-topic').bad.method(1, 2)
-            yield from asyncio.sleep(0.1, loop=self.loop)
+            print ('))))))))))))))))))))))))')
+            with log_hook('aiozmq.rpc', self.err_queue):
+                yield from client.publish('my-topic').bad.method(1, 2)
+
+                ret = yield from self.err_queue.get()
+                self.assertEqual(None, ret)
 
         self.loop.run_until_complete(communicate())
-        m_log.exception.assert_called_with(
-            'Call to %r caused error: %r', 'bad.method', mock.ANY)
 
     def test_func(self):
         client, server = self.make_pubsub_pair('my-topic')
