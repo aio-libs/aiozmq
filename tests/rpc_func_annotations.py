@@ -44,6 +44,10 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         return arg
         yield
 
+    @aiozmq.rpc.method
+    def has_default(self, arg: int=None):
+        return arg
+
 
 class FuncAnnotationsTests(unittest.TestCase):
 
@@ -183,5 +187,21 @@ class FuncAnnotationsTests(unittest.TestCase):
                 yield from client.call.bad_return('1.0')
             with self.assertRaises(TypeError):
                 yield from client.call.bad_return(None)
+
+        self.loop.run_until_complete(communicate())
+
+    def test_default_value_not_passed_to_annotation(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            ret = yield from client.call.has_default(1)
+            self.assertEqual(ret, 1)
+
+            ret = yield from client.call.has_default()
+            self.assertEqual(ret, None)
+
+            with self.assertRaises(ValueError):
+                yield from client.call.has_default(None)
 
         self.loop.run_until_complete(communicate())
