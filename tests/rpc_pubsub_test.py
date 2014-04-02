@@ -40,6 +40,17 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
 class PubSubTests(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(self):
+        logger = logging.getLogger()
+        self.log_level = logger.getEffectiveLevel()
+        logger.setLevel(logging.DEBUG)
+
+    @classmethod
+    def tearDownClass(self):
+        logger = logging.getLogger()
+        logger.setLevel(self.log_level)
+
     def setUp(self):
         self.loop = aiozmq.ZmqEventLoop()
         asyncio.set_event_loop(None)
