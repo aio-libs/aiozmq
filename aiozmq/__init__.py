@@ -1,21 +1,23 @@
 from collections import namedtuple
 import re
+import sys
 
 from .selector import ZmqSelector
-from .events import ZmqEventLoop, ZmqEventLoopPolicy
+from .core import ZmqEventLoop, ZmqEventLoopPolicy
 from .interface import ZmqTransport, ZmqProtocol
 
 
 __all__ = ('ZmqSelector', 'ZmqEventLoop', 'ZmqEventLoopPolicy',
            'ZmqTransport', 'ZmqProtocol',
-           '__version__', 'version_info', 'version')
+           'version_info', 'version')
 
-__version__ = '0.0.2a1'
+__version__ = '0.2.0a1'
 
-version = __version__
+version = __version__ + ' , Python ' + sys.version
 
 
-VersionInfo = namedtuple('VersionInfo', 'major minor micro releaselevel serial')
+VersionInfo = namedtuple('VersionInfo',
+                         'major minor micro releaselevel serial')
 
 
 def _parse_version(ver):
@@ -35,7 +37,6 @@ def _parse_version(ver):
         return VersionInfo(major, minor, micro, releaselevel, serial)
     except Exception:
         raise ImportError("Invalid package version {}".format(ver))
-
 
 
 version_info = _parse_version(__version__)

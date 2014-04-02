@@ -1,38 +1,42 @@
 # Some simple testing tasks (sorry, UNIX only).
 
 PYTHON=python3.3
-FLAKE=flake8
 
 FILTER=
 
 doc:
 	cd docs && make html
+	echo "open file://`pwd`/docs/_build/html/index.html"
 
 pep:
-	$(FLAKE) ./
+	pep8 aiozmq examples tests
 
-test:
+flake:
+	pyflakes3 .
+
+test: pep flake
 	$(PYTHON) runtests.py $(FILTER)
 
-vtest:
+vtest: pep flake
 	$(PYTHON) runtests.py -v $(FILTER)
 
-testloop:
+testloop: pep flake
 	$(PYTHON) runtests.py --forever $(FILTER)
 
-cov cover coverage:
+cov cover coverage: pep flake
 	$(PYTHON) runtests.py --coverage $(FILTER)
 
 clean:
-	rm -rf `find . -name __pycache__`
-	rm -f `find . -type f -name '*.py[co]' `
-	rm -f `find . -type f -name '*~' `
-	rm -f `find . -type f -name '.*~' `
-	rm -f `find . -type f -name '@*' `
-	rm -f `find . -type f -name '#*#' `
-	rm -f `find . -type f -name '*.orig' `
-	rm -f `find . -type f -name '*.rej' `
+	find . -name __pycache__ |xargs rm -rf
+	find . -type f -name '*.py[co]' -delete
+	find . -type f -name '*~' -delete
+	find . -type f -name '.*~' -delete
+	find . -type f -name '@*' -delete
+	find . -type f -name '#*#' -delete
+	find . -type f -name '*.orig' -delete
+	find . -type f -name '*.rej' -delete
 	rm -f .coverage
 	rm -rf coverage
+	rm -rf docs/_build
 
 .PHONY: all pep test vtest testloop cov clean

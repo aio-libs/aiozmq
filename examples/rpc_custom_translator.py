@@ -1,5 +1,6 @@
 import asyncio
-import aiozmq, aiozmq.rpc
+import aiozmq
+import aiozmq.rpc
 import msgpack
 
 
@@ -30,16 +31,16 @@ class ServerHandler(aiozmq.rpc.AttrHandler):
 
 @asyncio.coroutine
 def go():
-    server = yield from aiozmq.rpc.start_server(
+    server = yield from aiozmq.rpc.serve_rpc(
         ServerHandler(), bind='tcp://*:*',
         translation_table=translation_table)
     server_addr = next(iter(server.transport.bindings()))
 
-    client = yield from aiozmq.rpc.open_client(
+    client = yield from aiozmq.rpc.connect_rpc(
         connect=server_addr,
         translation_table=translation_table)
 
-    ret = yield from client.rpc.remote(Point(1, 2))
+    ret = yield from client.call.remote(Point(1, 2))
     assert ret == Point(1, 2)
 
     server.close()

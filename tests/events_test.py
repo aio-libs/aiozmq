@@ -21,10 +21,10 @@ import time
 import errno
 import unittest
 
-from aiozmq._test_utils import (find_unused_port,
-                                IPV6_ENABLED,
-                                requires_mac_ver,
-                                requires_freebsd_version)
+from aiozmq._test_util import (find_unused_port,
+                               IPV6_ENABLED,
+                               requires_mac_ver,
+                               requires_freebsd_version)
 
 
 import asyncio
@@ -586,7 +586,8 @@ class EventLoopTestsMixin:
         tr.close()
 
     @unittest.skipIf(ssl is None, 'No ssl module')
-    def xtest_create_ssl_connection(self):
+    @unittest.expectedFailure
+    def test_create_ssl_connection(self):
         with test_utils.run_test_server(use_ssl=True) as httpd:
             conn_fut = self.loop.create_connection(
                 lambda: MyProto(loop=self.loop),
@@ -597,7 +598,8 @@ class EventLoopTestsMixin:
 
     @unittest.skipIf(ssl is None, 'No ssl module')
     @unittest.skipUnless(hasattr(socket, 'AF_UNIX'), 'No UNIX Sockets')
-    def xtest_create_ssl_unix_connection(self):
+    @unittest.expectedFailure
+    def test_create_ssl_unix_connection(self):
         # Issue #20682: On Mac OS X Tiger, getsockname() returns a
         # zero-length address for UNIX socket.
         check_sockname = not osx_tiger()
@@ -1159,6 +1161,7 @@ class EventLoopTestsMixin:
         transport.write(b'1')
 
         data = bytearray()
+
         def reader(data):
             chunk = os.read(rpipe, 1024)
             data += chunk
@@ -1223,6 +1226,7 @@ class EventLoopTestsMixin:
         transport.write(b'1')
 
         data = bytearray()
+
         def reader(data):
             chunk = os.read(master, 1024)
             data += chunk
@@ -1284,7 +1288,7 @@ class EventLoopTestsMixin:
         r.close()
         w.close()
 
-    def xtest_timeout_rounding(self):
+    def test_timeout_rounding(self):
         def _run_once():
             self.loop._run_once_counter += 1
             orig_run_once()
@@ -1307,7 +1311,8 @@ class EventLoopTestsMixin:
         # may sleep at little bit less than timeout depending on the resolution
         # of the clock used by the kernel. Tolerate a few useless calls on
         # these platforms.
-        self.assertLessEqual(self.loop._run_once_counter, 20,
+        self.assertLessEqual(
+            self.loop._run_once_counter, 20,
             {'clock_resolution': self.loop._clock_resolution,
              'selector': self.loop._selector.__class__.__name__})
 
@@ -1374,8 +1379,8 @@ class SubprocessTestsMixin:
         prog = os.path.join(os.path.dirname(__file__), 'echo.py')
 
         connect = self.loop.subprocess_exec(
-                        functools.partial(MySubprocessProtocol, self.loop),
-                        sys.executable, prog)
+            functools.partial(MySubprocessProtocol, self.loop),
+            sys.executable, prog)
         transp, proto = self.loop.run_until_complete(connect)
         self.assertIsInstance(proto, MySubprocessProtocol)
         self.loop.run_until_complete(proto.connected)
@@ -1393,8 +1398,8 @@ class SubprocessTestsMixin:
         prog = os.path.join(os.path.dirname(__file__), 'echo.py')
 
         connect = self.loop.subprocess_exec(
-                        functools.partial(MySubprocessProtocol, self.loop),
-                        sys.executable, prog)
+            functools.partial(MySubprocessProtocol, self.loop),
+            sys.executable, prog)
         transp, proto = self.loop.run_until_complete(connect)
         self.assertIsInstance(proto, MySubprocessProtocol)
         self.loop.run_until_complete(proto.connected)
@@ -1418,8 +1423,8 @@ class SubprocessTestsMixin:
 
     def test_subprocess_shell(self):
         connect = self.loop.subprocess_shell(
-                        functools.partial(MySubprocessProtocol, self.loop),
-                        'echo Python')
+            functools.partial(MySubprocessProtocol, self.loop),
+            'echo Python')
         transp, proto = self.loop.run_until_complete(connect)
         self.assertIsInstance(proto, MySubprocessProtocol)
         self.loop.run_until_complete(proto.connected)
@@ -1433,8 +1438,8 @@ class SubprocessTestsMixin:
 
     def test_subprocess_exitcode(self):
         connect = self.loop.subprocess_shell(
-                        functools.partial(MySubprocessProtocol, self.loop),
-                        'exit 7', stdin=None, stdout=None, stderr=None)
+            functools.partial(MySubprocessProtocol, self.loop),
+            'exit 7', stdin=None, stdout=None, stderr=None)
         transp, proto = self.loop.run_until_complete(connect)
         self.assertIsInstance(proto, MySubprocessProtocol)
         self.loop.run_until_complete(proto.completed)
@@ -1442,8 +1447,8 @@ class SubprocessTestsMixin:
 
     def test_subprocess_close_after_finish(self):
         connect = self.loop.subprocess_shell(
-                        functools.partial(MySubprocessProtocol, self.loop),
-                        'exit 7', stdin=None, stdout=None, stderr=None)
+            functools.partial(MySubprocessProtocol, self.loop),
+            'exit 7', stdin=None, stdout=None, stderr=None)
         transp, proto = self.loop.run_until_complete(connect)
         self.assertIsInstance(proto, MySubprocessProtocol)
         self.assertIsNone(transp.get_pipe_transport(0))
@@ -1457,8 +1462,8 @@ class SubprocessTestsMixin:
         prog = os.path.join(os.path.dirname(__file__), 'echo.py')
 
         connect = self.loop.subprocess_exec(
-                        functools.partial(MySubprocessProtocol, self.loop),
-                        sys.executable, prog)
+            functools.partial(MySubprocessProtocol, self.loop),
+            sys.executable, prog)
         transp, proto = self.loop.run_until_complete(connect)
         self.assertIsInstance(proto, MySubprocessProtocol)
         self.loop.run_until_complete(proto.connected)
@@ -1471,8 +1476,8 @@ class SubprocessTestsMixin:
         prog = os.path.join(os.path.dirname(__file__), 'echo.py')
 
         connect = self.loop.subprocess_exec(
-                        functools.partial(MySubprocessProtocol, self.loop),
-                        sys.executable, prog)
+            functools.partial(MySubprocessProtocol, self.loop),
+            sys.executable, prog)
         transp, proto = self.loop.run_until_complete(connect)
         self.assertIsInstance(proto, MySubprocessProtocol)
         self.loop.run_until_complete(proto.connected)
@@ -1486,8 +1491,8 @@ class SubprocessTestsMixin:
         prog = os.path.join(os.path.dirname(__file__), 'echo.py')
 
         connect = self.loop.subprocess_exec(
-                        functools.partial(MySubprocessProtocol, self.loop),
-                        sys.executable, prog)
+            functools.partial(MySubprocessProtocol, self.loop),
+            sys.executable, prog)
         transp, proto = self.loop.run_until_complete(connect)
         self.assertIsInstance(proto, MySubprocessProtocol)
         self.loop.run_until_complete(proto.connected)
@@ -1500,8 +1505,8 @@ class SubprocessTestsMixin:
         prog = os.path.join(os.path.dirname(__file__), 'echo2.py')
 
         connect = self.loop.subprocess_exec(
-                        functools.partial(MySubprocessProtocol, self.loop),
-                        sys.executable, prog)
+            functools.partial(MySubprocessProtocol, self.loop),
+            sys.executable, prog)
         transp, proto = self.loop.run_until_complete(connect)
         self.assertIsInstance(proto, MySubprocessProtocol)
         self.loop.run_until_complete(proto.connected)
@@ -1520,8 +1525,8 @@ class SubprocessTestsMixin:
         prog = os.path.join(os.path.dirname(__file__), 'echo2.py')
 
         connect = self.loop.subprocess_exec(
-                        functools.partial(MySubprocessProtocol, self.loop),
-                        sys.executable, prog, stderr=subprocess.STDOUT)
+            functools.partial(MySubprocessProtocol, self.loop),
+            sys.executable, prog, stderr=subprocess.STDOUT)
         transp, proto = self.loop.run_until_complete(connect)
         self.assertIsInstance(proto, MySubprocessProtocol)
         self.loop.run_until_complete(proto.connected)
@@ -1543,8 +1548,8 @@ class SubprocessTestsMixin:
         prog = os.path.join(os.path.dirname(__file__), 'echo3.py')
 
         connect = self.loop.subprocess_exec(
-                        functools.partial(MySubprocessProtocol, self.loop),
-                        sys.executable, prog)
+            functools.partial(MySubprocessProtocol, self.loop),
+            sys.executable, prog)
         transp, proto = self.loop.run_until_complete(connect)
         self.assertIsInstance(proto, MySubprocessProtocol)
         self.loop.run_until_complete(proto.connected)
@@ -1574,9 +1579,9 @@ class SubprocessTestsMixin:
     def test_subprocess_wait_no_same_group(self):
         # start the new process in a new session
         connect = self.loop.subprocess_shell(
-                        functools.partial(MySubprocessProtocol, self.loop),
-                        'exit 7', stdin=None, stdout=None, stderr=None,
-                        start_new_session=True)
+            functools.partial(MySubprocessProtocol, self.loop),
+            'exit 7', stdin=None, stdout=None, stderr=None,
+            start_new_session=True)
         _, proto = yield self.loop.run_until_complete(connect)
         self.assertIsInstance(proto, MySubprocessProtocol)
         self.loop.run_until_complete(proto.completed)

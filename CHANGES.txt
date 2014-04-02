@@ -1,12 +1,31 @@
 CHANGES
-=======
+-------
 
-0.0.2 (XXXX-XX-XX)
-------------------
+0.2.0 (XXXX-XX-XX)
+^^^^^^^^^^^^^^^^^^
 
-Implement ZmqEventLoop with method create_zmq_connection which operates
+Derive ServiceClosedError from aiozmq.rpc.Error, not Exception
+
+Implement logging from remote calls at server side (log_exceptions parameter).
+
+0.1.2 (2014-04-01)
+^^^^^^^^^^^^^^^^^^
+
+Function default values are not passed to an annotaion.
+
+0.1.1 (2014-03-31)
+^^^^^^^^^^^^^^^^^^
+
+Rename plural module names to single ones.
+
+0.1.0 (2014-03-30)
+^^^^^^^^^^^^^^^^^^
+
+Implement ZmqEventLoop with *create_zmq_connection* method which operates
 on zmq transport and protocol.
+
+Implement ZmqEventLoopPolicy.
 
 Introduce ZmqTransport and ZmqProtocol.
 
-Implement zmq.rpc
+Implement zmq.rpc with RPC, PUSHPULL and PUBSUB protocols.

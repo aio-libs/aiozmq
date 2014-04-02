@@ -12,12 +12,19 @@ before_install:
 install:
   - python setup.py install
   - test $USE_MSGPACK == 1 && pip install msgpack-python || true
+  - pip install pyflakes
+  - pip install pep8
 
 script:
+  - pep8 aiozmq examples tests
+  - pyflakes .
   - python runtests.py -v
 
 env:
-  - USE_MSGPACK=1
-  - USE_MSGPACK=0
+  global:
+    - PYTHON=python
+  matrix:
+    - USE_MSGPACK=1
+    - USE_MSGPACK=0
 
 cache: apt

@@ -6,21 +6,20 @@ import aiozmq.rpc
 class ServerHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
-    def remote_func(self, a:int, b:int) -> int:
-        return a + b
+    def remote_func(self, a: int, b: int):
+        pass
 
 
 @asyncio.coroutine
 def go():
-    server = yield from aiozmq.rpc.start_server(
+    server = yield from aiozmq.rpc.serve_pipeline(
         ServerHandler(), bind='tcp://*:*')
     server_addr = next(iter(server.transport.bindings()))
 
-    client = yield from aiozmq.rpc.open_client(
+    client = yield from aiozmq.rpc.connect_pipeline(
         connect=server_addr)
 
-    ret = yield from client.rpc.remote_func(1, 2)
-    assert 3 == ret
+    yield from client.notify.remote_func(1, 2)
 
     server.close()
     client.close()

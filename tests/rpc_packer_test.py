@@ -1,12 +1,12 @@
 import unittest
 import datetime
 
+from aiozmq.rpc.packer import _Packer
+
 from unittest import mock
 from msgpack import ExtType, packb
 from pickle import dumps, loads, HIGHEST_PROTOCOL
 from functools import partial
-
-from aiozmq.util import _Packer
 
 
 class Point:
@@ -35,7 +35,7 @@ class PackerTests(unittest.TestCase):
         self.assertEqual((123,), packer.unpackb(packb([123])))
         self.assertEqual((123,), packer.unpackb(packb((123,))))
 
-    @mock.patch('aiozmq.util.ExtType')
+    @mock.patch('aiozmq.rpc.packer.ExtType')
     def test_ext_type__date(self, ExtTypeMock):
         packer = _Packer()
 
@@ -48,7 +48,7 @@ class PackerTests(unittest.TestCase):
         packer.ext_type_pack_hook(dt)
         ExtTypeMock.assert_called_once_with(CODE, data)
 
-    @mock.patch('aiozmq.util.ExtType')
+    @mock.patch('aiozmq.rpc.packer.ExtType')
     def test_ext_type__datetime(self, ExtTypeMock):
         packer = _Packer()
 
@@ -61,7 +61,7 @@ class PackerTests(unittest.TestCase):
         packer.ext_type_pack_hook(dt)
         ExtTypeMock.assert_called_once_with(CODE, data)
 
-    @mock.patch('aiozmq.util.ExtType')
+    @mock.patch('aiozmq.rpc.packer.ExtType')
     def test_ext_type__datetime_tzinfo(self, ExtTypeMock):
         packer = _Packer()
 
@@ -75,7 +75,7 @@ class PackerTests(unittest.TestCase):
         packer.ext_type_pack_hook(dt)
         ExtTypeMock.assert_called_once_with(CODE, data)
 
-    @mock.patch('aiozmq.util.ExtType')
+    @mock.patch('aiozmq.rpc.packer.ExtType')
     def test_ext_type__time(self, ExtTypeMock):
         packer = _Packer()
 
@@ -88,7 +88,7 @@ class PackerTests(unittest.TestCase):
         packer.ext_type_pack_hook(tm)
         ExtTypeMock.assert_called_once_with(CODE, data)
 
-    @mock.patch('aiozmq.util.ExtType')
+    @mock.patch('aiozmq.rpc.packer.ExtType')
     def test_ext_type__time_tzinfo(self, ExtTypeMock):
         packer = _Packer()
 
@@ -101,7 +101,7 @@ class PackerTests(unittest.TestCase):
         packer.ext_type_pack_hook(tm)
         ExtTypeMock.assert_called_once_with(CODE, data)
 
-    @mock.patch('aiozmq.util.ExtType')
+    @mock.patch('aiozmq.rpc.packer.ExtType')
     def test_ext_type__timedelta(self, ExtTypeMock):
         packer = _Packer()
 
@@ -114,7 +114,7 @@ class PackerTests(unittest.TestCase):
         packer.ext_type_pack_hook(td)
         ExtTypeMock.assert_called_once_with(CODE, data)
 
-    @mock.patch('aiozmq.util.ExtType')
+    @mock.patch('aiozmq.rpc.packer.ExtType')
     def test_ext_type__tzinfo(self, ExtTypeMock):
         packer = _Packer()
 

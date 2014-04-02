@@ -27,6 +27,7 @@ import re
 import shutil
 import sys
 import unittest
+import traceback
 import textwrap
 import importlib.machinery
 try:
@@ -74,7 +75,7 @@ COV_ARGS.add_argument(
     help='enable coverage report and provide python files directory')
 
 
-def load_modules(basedir, suffix='.py'):
+def load_modules(basedir, suffix='.py', *, verbose=False):
     def list_dir(prefix, dir):
         files = []
 
@@ -109,16 +110,22 @@ def load_modules(basedir, suffix='.py'):
             raise
         except Exception as err:
             print("Skipping '{}': {}".format(modname, err), file=sys.stderr)
-
+            if verbose:
+                try:
+                    traceback.print_exc()
+                except Exception:
+                    pass
     return mods
 
 
 class TestsFinder:
 
-    def __init__(self, testsdir, includes=(), excludes=()):
+    def __init__(self, testsdir, includes=(), excludes=(), *,
+                 verbose=False):
         self._testsdir = testsdir
         self._includes = includes
         self._excludes = excludes
+        self._verbose = verbose
         self.find_available_tests()
 
     def find_available_tests(self):
@@ -126,7 +133,8 @@ class TestsFinder:
         Find available test classes without instantiating them.
         """
         self._test_factories = []
-        mods = [mod for mod, _ in load_modules(self._testsdir)]
+        mods = [mod for mod, _ in load_modules(self._testsdir,
+                                               verbose=self._verbose)]
         for mod in mods:
             for name in set(dir(mod)):
                 if name.endswith('Tests'):
@@ -236,7 +244,8 @@ def runtests():
                                 )
         cov.start()
 
-    finder = TestsFinder(args.testsdir, includes, excludes)
+    finder = TestsFinder(args.testsdir, includes, excludes,
+                         verbose=args.verbose)
     logger = logging.getLogger()
     if v == 0:
         logger.setLevel(logging.CRITICAL)

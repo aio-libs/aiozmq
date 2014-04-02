@@ -8,14 +8,6 @@ aiozmq
 
 ZeroMQ integration with asyncio (:pep:`3156`).
 
-.. raw:: html
-
-   <p style="height:22px">
-     <a href="https://travis-ci.org/aio-libs/aiozmq" >
-       <img src="https://travis-ci.org/aio-libs/aiozmq.svg?branch=master"/>
-     </a>
-   </p>
-
 .. _GitHub: https://github.com/aio-libs/aiozmq
 
 
@@ -23,33 +15,37 @@ Features
 --------
 
 - Implements :mod:`asyncio` event loop for :term:`ZeroMQ` sockets via
-  :class:`~aiozmq.ZmqEventLoop`
-- Has installable policy for ZerMQ event loop (see :ref:`install-aiozmq-policy`)
+  :class:`~aiozmq.ZmqEventLoop`.
+- Implements installable policy for ZeroMQ event loop (see
+  :ref:`install-aiozmq-policy`), **required** for ZeroMQ sockets layer.
 - Provides :class:`~aiozmq.ZmqTransport` and :class:`~aiozmq.ZmqProtocol`
-- Provides RPC :ref:`client <aiozmq-rpc-client>` and :ref:`server
-  <aiozmq-rpc-server>` based on :term:`ZeroMQ` *DEALER/ROUTER* sockets
+- Provides RPC :ref:`aiozmq-rpc-rpc` :ref:`aiozmq-rpc-pushpull` and
+  :ref:`aiozmq-rpc-pubsub` patterns for *remote calls*.
 
 Library Installation
 --------------------
 
-The :ref:`core <aiozmq-low-level>` requires only :term:`pyzmq` and can
-be installed (with pyzmq as dependency) by::
+The :ref:`core <aiozmq-core>` requires only :term:`pyzmq` and can
+be installed (with pyzmq as dependency) by executing::
 
    pip3 install aiozmq
 
 Also probably you want to use :mod:`aiozmq.rpc`.
 
+
+.. _aiozmq-install-msgpack:
+
 RPC module is **optional** and requires :term:`msgpack`. You can
-install *msgpack* by::
+install *msgpack-python* by executing::
 
   pip3 install msgpack-python
 
 .. note::
 
    *aiozmq* can be executed by *Python 3* only. The most Linux
-   distributions uses *pip3* for installing *Python 3 libraries* but
-   maybe your system uses *Python 3* by default. Than try just *pip*
-   instead of *pip3*. The same issue may be for *virtualenv*,
+   distributions uses *pip3* for installing *Python 3 libraries*.
+   But your system may be using *Python 3* by default than try
+   just *pip* instead of *pip3*. The same may be true for *virtualenv*,
    *travis continuous integration system* etc.
 
 Source code
@@ -58,7 +54,7 @@ Source code
 The project is hosted on `GitHub`_
 
 Please feel free to file an issue on `bug tracker
-<https://github.com/aio-libs/aiozmq/issues>`_ if you had found a bug
+<https://github.com/aio-libs/aiozmq/issues>`_ if you have found a bug
 or have some suggestion for library improvement.
 
 The library uses `Travis <https://travis-ci.org/aio-libs/aiozmq>`_ for
@@ -69,8 +65,9 @@ Dependencies
 ------------
 
 - Python 3.3 and :term:`asyncio` or Python 3.4+
-- :term:`pyzmq`
-- aiozmq.rpc requires :term:`msgpack` and :term:`trafaret`
+- :term:`ZeroMQ` 3.2+
+- :term:`pyzmq` 13.1+ (did not test with earlier versions)
+- aiozmq.rpc requires :term:`msgpack`
 
 Authors and License
 -------------------
@@ -102,9 +99,9 @@ After that you probably would like to use RPC::
 
     @asyncio.coroutine
     def go():
-        server = yield from aiozmq.rpc.start_server(
+        server = yield from aiozmq.rpc.serve_rpc(
             ServerHandler(), bind='tcp://127.0.0.1:5555')
-        client = yield from aiozmq.rpc.open_client(
+        client = yield from aiozmq.rpc.connect_rpc(
             connect='tcp://127.0.0.1:5555')
 
         ret = yield from client.rpc.remote_func(1, 2)
@@ -115,7 +112,8 @@ After that you probably would like to use RPC::
 
     asyncio.get_event_loop().run_until_complete(go())
 
-
+.. note:: To execute the example you need to :ref:`install
+   msgpack<aiozmq-install-msgpack>` first.
 
 Indices and tables
 ==================
@@ -126,6 +124,7 @@ Indices and tables
 
 .. toctree::
 
-   low-level
+   core
    rpc
+   examples
    glossary
