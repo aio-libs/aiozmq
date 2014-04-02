@@ -94,14 +94,14 @@ class RpcTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        logger = logging.getLogger()
+        root_logger = logging.getLogger()
         self.log_level = logger.getEffectiveLevel()
-        logger.setLevel(logging.DEBUG)
+        root_logger.setLevel(logging.DEBUG)
 
     @classmethod
     def tearDownClass(self):
-        logger = logging.getLogger()
-        logger.setLevel(self.log_level)
+        root_logger = logging.getLogger()
+        root_logger.setLevel(self.log_level)
 
     def setUp(self):
         self.loop = aiozmq.ZmqEventLoop()
@@ -404,8 +404,6 @@ class RpcTests(unittest.TestCase):
                 lambda: Protocol(self.loop), zmq.DEALER,
                 connect='tcp://127.0.0.1:{}'.format(port))
 
-            yield from asyncio.sleep(0.001, loop=self.loop)
-
             with log_hook('aiozmq.rpc', self.err_queue):
                 tr.write([struct.pack('=HHLd', 1, 2, 3, 4),
                           b'bad args', b'bad_kwargs'])
@@ -413,15 +411,17 @@ class RpcTests(unittest.TestCase):
                 ret = yield from self.err_queue.get()
                 self.assertEqual(logging.CRITICAL, ret.levelno)
                 self.assertEqual("Cannot unpack %r", ret.msg)
-                self.assertEqual(((mock.ANY, mock.ANY,
-                                   b'bad args', b'bad_kwargs'),),
-                                   ret.args)
+                self.assertEqual(
+                    ((mock.ANY, mock.ANY, b'bad args', b'bad_kwargs'),),
+                    ret.args)
                 self.assertIsNotNone(ret.exc_info)
+
+            self.assertTrue(pr.received.empty())
+            server.close()
 
         self.loop.run_until_complete(go())
 
-    @mock.patch("aiozmq.rpc.rpc.logger")
-    def test_malformed_kwargs(self, m_log):
+    def test_malformed_kwargs(self):
         port = find_unused_port()
 
         @asyncio.coroutine
@@ -434,22 +434,24 @@ class RpcTests(unittest.TestCase):
                 lambda: Protocol(self.loop), zmq.DEALER,
                 connect='tcp://127.0.0.1:{}'.format(port))
 
-            tr.write([struct.pack('=HHLd', 1, 2, 3, 4),
-                      msgpack.packb((1, 2)), b'bad_kwargs'])
+            with log_hook('aiozmq.rpc', self.err_queue):
+                tr.write([struct.pack('=HHLd', 1, 2, 3, 4),
+                          msgpack.packb((1, 2)), b'bad_kwargs'])
 
-            yield from asyncio.sleep(0.001, loop=self.loop)
+                ret = yield from self.err_queue.get()
+                self.assertEqual(logging.CRITICAL, ret.levelno)
+                self.assertEqual("Cannot unpack %r", ret.msg)
+                self.assertEqual(
+                    ((mock.ANY, mock.ANY, mock.ANY, b'bad_kwargs'),),
+                    ret.args)
+                self.assertIsNotNone(ret.exc_info)
 
-            m_log.critical.assert_called_with(
-                'Cannot unpack %r',
-                mock.ANY,
-                exc_info=mock.ANY)
             self.assertTrue(pr.received.empty())
             server.close()
 
         self.loop.run_until_complete(go())
 
-    @mock.patch("aiozmq.rpc.rpc.logger")
-    def test_unknown_format_at_client(self, m_log):
+    def test_unknown_format_at_client(self):
         port = find_unused_port()
 
         @asyncio.coroutine
@@ -462,20 +464,22 @@ class RpcTests(unittest.TestCase):
                 connect='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
 
-            tr.write([b'invalid', b'structure'])
+            with log_hook('aiozmq.rpc', self.err_queue):
+                tr.write([b'invalid', b'structure'])
 
-            yield from asyncio.sleep(0.001, loop=self.loop)
+                ret = yield from self.err_queue.get()
+                self.assertEqual(logging.CRITICAL, ret.levelno)
+                self.assertEqual("Cannot unpack %r", ret.msg)
+                self.assertEqual(
+                    ((b'invalid', b'structure'),),
+                    ret.args)
+                self.assertIsNotNone(ret.exc_info)
 
-            m_log.critical.assert_called_with(
-                'Cannot unpack %r',
-                mock.ANY,
-                exc_info=mock.ANY)
             client.close()
 
         self.loop.run_until_complete(go())
 
-    @mock.patch("aiozmq.rpc.rpc.logger")
-    def test_malformed_anser_at_client(self, m_log):
+    def test_malformed_anser_at_client(self):
         port = find_unused_port()
 
         @asyncio.coroutine
@@ -488,21 +492,23 @@ class RpcTests(unittest.TestCase):
                 connect='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
 
-            tr.write([struct.pack('=HHLd?', 1, 2, 3, 4, True),
-                      b'bad_answer'])
+            with log_hook('aiozmq.rpc', self.err_queue):
+                tr.write([struct.pack('=HHLd?', 1, 2, 3, 4, True),
+                          b'bad_answer'])
 
-            yield from asyncio.sleep(0.001, loop=self.loop)
+                ret = yield from self.err_queue.get()
+                self.assertEqual(logging.CRITICAL, ret.levelno)
+                self.assertEqual("Cannot unpack %r", ret.msg)
+                self.assertEqual(
+                    ((mock.ANY, b'bad_answer'),),
+                    ret.args)
+                self.assertIsNotNone(ret.exc_info)
 
-            m_log.critical.assert_called_with(
-                'Cannot unpack %r',
-                mock.ANY,
-                exc_info=mock.ANY)
             client.close()
 
         self.loop.run_until_complete(go())
 
-    @mock.patch("aiozmq.rpc.rpc.logger")
-    def test_unknown_req_id_at_client(self, m_log):
+    def test_unknown_req_id_at_client(self):
         port = find_unused_port()
 
         @asyncio.coroutine
@@ -515,14 +521,19 @@ class RpcTests(unittest.TestCase):
                 connect='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
 
-            tr.write([struct.pack('=HHLd?', 1, 2, 34435, 4, True),
-                      msgpack.packb((1, 2))])
+            with log_hook('aiozmq.rpc', self.err_queue):
+                tr.write([struct.pack('=HHLd?', 1, 2, 34435, 4, True),
+                          msgpack.packb((1, 2))])
 
-            yield from asyncio.sleep(0.001, loop=self.loop)
+                ret = yield from self.err_queue.get()
+                self.assertEqual(logging.CRITICAL, ret.levelno)
+                self.assertEqual("Unknown answer id: %d (%d %d %f %d) -> %s",
+                                 ret.msg)
+                self.assertEqual(
+                    (mock.ANY, 1, 2, 4.0, True, (1, 2)),
+                    ret.args)
+                self.assertIsNone(ret.exc_info)
 
-            m_log.critical.assert_called_with(
-                'Unknown answer id: %d (%d %d %f %d) -> %s',
-                34435, 1, 2, 4.0, True, (1, 2))
             client.close()
 
         self.loop.run_until_complete(go())
@@ -540,20 +551,27 @@ class RpcTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
 
-    @mock.patch('aiozmq.rpc.base.logger')
-    def test_log_exceptions(self, m_log):
+    def test_log_exceptions(self):
         client, server = self.make_rpc_pair(log_exceptions=True)
 
         @asyncio.coroutine
         def communicate():
-            with self.assertRaises(RuntimeError) as exc:
-                yield from client.call.exc(1)
-            self.assertEqual(('bad arg', 1), exc.exception.args)
+            with log_hook('aiozmq.rpc', self.err_queue):
+                with self.assertRaises(RuntimeError) as exc:
+                    yield from client.call.exc(1)
+                self.assertEqual(('bad arg', 1), exc.exception.args)
+
+                ret = yield from self.err_queue.get()
+                self.assertEqual(logging.ERROR, ret.levelno)
+                self.assertEqual('An exception from method %r '
+                                 'call has been occurred.\n'
+                                 'args = %s\nkwargs = %s\n', ret.msg)
+                self.assertEqual(
+                    ('exc', '(1,)', '{}'),
+                    ret.args)
+                self.assertIsNotNone(ret.exc_info)
 
         self.loop.run_until_complete(communicate())
-        m_log.exception.assert_called_with(
-            'An exception from method %r call has been occurred.\n'
-            'args = %s\nkwargs = %s\n', 'exc', '(1,)', '{}')
 
 
 class AbstractHandlerTests(unittest.TestCase):

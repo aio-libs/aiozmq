@@ -6,7 +6,6 @@ import logging
 
 from unittest import mock
 from aiozmq._test_util import find_unused_port, log_hook
-from asyncio.test_utils import run_briefly
 
 
 class MyHandler(aiozmq.rpc.AttrHandler):
@@ -325,17 +324,21 @@ class PubSubTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
 
-    @mock.patch("aiozmq.rpc.pubsub.logger")
-    def test_warning_if_remote_return_not_None(self, m_log):
+    def test_warning_if_remote_return_not_None(self):
         client, server = self.make_pubsub_pair('topic')
 
         @asyncio.coroutine
         def communicate():
-            yield from client.publish('topic').suspicious(1)
-            ret = yield from self.queue.get()
-            self.assertEqual(2, ret)
+            with log_hook('aiozmq.rpc', self.err_queue):
+                yield from client.publish('topic').suspicious(1)
+                ret = yield from self.queue.get()
+                self.assertEqual(2, ret)
+
+                ret = yield from self.err_queue.get()
+                self.assertEqual(logging.WARNING, ret.levelno)
+                self.assertEqual('PubSub handler %r returned not None',
+                                 ret.msg)
+                self.assertEqual(('suspicious',), ret.args)
+                self.assertIsNone(ret.exc_info)
 
         self.loop.run_until_complete(communicate())
-        run_briefly(self.loop)
-        m_log.warning.assert_called_with('PubSub handler %r returned not None',
-                                         'suspicious')
