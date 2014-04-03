@@ -16,6 +16,19 @@ from .base import (
 @asyncio.coroutine
 def connect_pubsub(*, connect=None, bind=None, loop=None,
                    translation_table=None):
+    """A coroutine that creates and connects/binds pubsub client.
+
+    Usually for this function you need to use connect parameter, but
+    ZeroMQ does not forbid to use bind.
+
+    translation_table -- an optional table for custom value translators.
+
+    loop -- an optional parameter to point
+       ZmqEventLoop.  If loop is None then default
+       event loop will be given by asyncio.get_event_loop() call.
+
+    Returns PubSubClient instance.
+    """
     if loop is None:
         loop = asyncio.get_event_loop()
 
@@ -28,6 +41,30 @@ def connect_pubsub(*, connect=None, bind=None, loop=None,
 @asyncio.coroutine
 def serve_pubsub(handler, *, subscribe=None, connect=None, bind=None,
                  loop=None, translation_table=None, log_exceptions=False):
+    """A coroutine that creates and connects/binds pubsub server instance.
+
+    Usually for this function you need to use *bind* parameter, but
+    ZeroMQ does not forbid to use *connect*.
+
+    handler -- an object which processes incoming pipeline calls.
+    Usually you like to pass AttrHandler instance.
+
+    log_exceptions -- log exceptions from remote calls if True.
+
+    subscribe -- subscription specification.
+    Subscribe server to topics.
+    Allowed parameters are str, bytes, iterable of str or bytes.
+
+    translation_table -- an optional table for custom value translators.
+
+    loop -- an optional parameter to point
+       ZmqEventLoop.  If loop is None then default
+       event loop will be given by asyncio.get_event_loop() call.
+
+    Returns PubSubService instance.
+    Raises OSError on system error.
+    Raises TypeError if arguments have inappropriate type.
+    """
     if loop is None:
         loop = asyncio.get_event_loop()
 

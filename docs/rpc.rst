@@ -97,10 +97,6 @@ The basic usage is::
     Usually for this function you need to use *connect* parameter, but
     :term:`ZeroMQ` does not forbid to use *bind*.
 
-    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
-       :ref:`asyncio-event-loop`.  if *loop* is *None* then default
-       event loop will be given by :func:`asyncio.get_event_loop` call.
-
     :param dict error_table: an optional table for custom exception translators.
 
        .. seealso:: :ref:`aiozmq-rpc-exception-translation`
@@ -117,6 +113,10 @@ The basic usage is::
        an optional table for custom value translators.
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
+
+    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
+       :ref:`asyncio-event-loop`.  If *loop* is *None* then default
+       event loop will be given by :func:`asyncio.get_event_loop` call.
 
     :return: :class:`RPCClient` instance.
 
@@ -143,7 +143,7 @@ The basic usage is::
       Usually you like to pass :class:`AttrHandler` instance.
 
     :param bool log_exceptions:
-       log exceptions from remote calls if *True*
+       log exceptions from remote calls if *True*.
 
        .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
 
@@ -151,6 +151,10 @@ The basic usage is::
        an optional table for custom value translators.
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
+
+    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
+       :ref:`asyncio-event-loop`.  If *loop* is *None* then default
+       event loop will be given by :func:`asyncio.get_event_loop` call.
 
     :return: :class:`Service` instance.
 
@@ -220,14 +224,14 @@ The basic usage is::
     Usually for this function you need to use *connect* parameter, but
     :term:`ZeroMQ` does not forbid to use *bind*.
 
-    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
-       :ref:`asyncio-event-loop`.  if *loop* is *None* then default
-       event loop will be given by :func:`asyncio.get_event_loop` call.
-
     :param dict translation_table:
        an optional table for custom value translators.
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
+
+    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
+       :ref:`asyncio-event-loop`.  If *loop* is *None* then default
+       event loop will be given by :func:`asyncio.get_event_loop` call.
 
     :return: :class:`PipelineClient` instance.
 
@@ -255,7 +259,7 @@ The basic usage is::
       Usually you like to pass :class:`AttrHandler` instance.
 
     :param bool log_exceptions:
-       log exceptions from remote calls if *True*
+       log exceptions from remote calls if *True*.
 
        .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
 
@@ -263,6 +267,10 @@ The basic usage is::
        an optional table for custom value translators.
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
+
+    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
+       :ref:`asyncio-event-loop`.  If *loop* is *None* then default
+       event loop will be given by :func:`asyncio.get_event_loop` call.
 
     :return: :class:`Service` instance.
 
@@ -331,14 +339,14 @@ The basic usage is::
     Usually for this function you need to use *connect* parameter, but
     :term:`ZeroMQ` does not forbid to use *bind*.
 
-    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
-       :ref:`asyncio-event-loop`.  if *loop* is *None* then default
-       event loop will be given by :func:`asyncio.get_event_loop` call.
-
     :param dict translation_table:
        an optional table for custom value translators.
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
+
+    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
+       :ref:`asyncio-event-loop`.  If *loop* is *None* then default
+       event loop will be given by :func:`asyncio.get_event_loop` call.
 
     :return: :class:`PubSubClient` instance.
 
@@ -363,7 +371,7 @@ The basic usage is::
       Usually you like to pass :class:`AttrHandler` instance.
 
     :param bool log_exceptions:
-       log exceptions from remote calls if *True*
+       log exceptions from remote calls if *True*.
 
        .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
 
@@ -379,9 +387,13 @@ The basic usage is::
 
         .. seealso:: :ref:`aiozmq-rpc-value-translators`
 
+    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
+       :ref:`asyncio-event-loop`.  If *loop* is *None* then default
+       event loop will be given by :func:`asyncio.get_event_loop` call.
+
     :return: :class:`PubSubService` instance.
     :raise OSError: on system error.
-    :raise TypeError: if arguments have inappropriate type
+    :raise TypeError: if arguments have inappropriate type.
 
     .. seealso::
 
