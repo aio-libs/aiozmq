@@ -94,8 +94,12 @@ The basic usage is::
     A :ref:`coroutine<coroutine>` that creates and connects/binds
     *RPC* client.
 
+
     Usually for this function you need to use *connect* parameter, but
     :term:`ZeroMQ` does not forbid to use *bind*.
+
+    Parameters *bind*, *connect* and *loop* work like that of
+    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
 
     :param dict error_table: an optional table for custom exception translators.
 
@@ -114,18 +118,7 @@ The basic usage is::
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
 
-    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
-       :ref:`asyncio-event-loop`.  If *loop* is *None* then default
-       event loop will be given by :func:`asyncio.get_event_loop` call.
-
     :return: :class:`RPCClient` instance.
-
-    .. seealso::
-
-       Please take a look on
-       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
-       values to *connect* and *bind* parameters.
-
 
 .. function:: serve_rpc(handler, *, bind=None, connect=None, loop=None, \
                         log_exceptions=False, translation_table=None)
@@ -135,6 +128,9 @@ The basic usage is::
 
     Usually for this function you need to use *bind* parameter, but
     :term:`ZeroMQ` does not forbid to use *connect*.
+
+    Parameters *bind*, *connect* and *loop* work like that of
+    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
 
     :param aiozmq.rpc.AbstractHander handler:
 
@@ -152,17 +148,7 @@ The basic usage is::
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
 
-    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
-       :ref:`asyncio-event-loop`.  If *loop* is *None* then default
-       event loop will be given by :func:`asyncio.get_event_loop` call.
-
     :return: :class:`Service` instance.
-
-    .. seealso::
-
-       Please take a look on
-       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
-       values for *connect* and *bind* parameters.
 
     .. versionchanged:: 0.2
        Added *log_exceptions* parameter.
@@ -221,6 +207,9 @@ The basic usage is::
     A :ref:`coroutine<coroutine>` that creates and connects/binds
     *pipeline* client.
 
+    Parameters *bind*, *connect* and *loop* work like that of
+    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
+
     Usually for this function you need to use *connect* parameter, but
     :term:`ZeroMQ` does not forbid to use *bind*.
 
@@ -229,18 +218,7 @@ The basic usage is::
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
 
-    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
-       :ref:`asyncio-event-loop`.  If *loop* is *None* then default
-       event loop will be given by :func:`asyncio.get_event_loop` call.
-
     :return: :class:`PipelineClient` instance.
-
-    .. seealso::
-
-       Please take a look on
-       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
-       values to *connect* and *bind* parameters.
-
 
 
 .. function:: serve_pipeline(handler, *, connect=None, bind=None, loop=None, \
@@ -251,6 +229,9 @@ The basic usage is::
 
     Usually for this function you need to use *bind* parameter, but
     :term:`ZeroMQ` does not forbid to use *connect*.
+
+    Parameters *bind*, *connect* and *loop* work like that of
+    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
 
     :param aiozmq.rpc.AbstractHander handler:
 
@@ -268,17 +249,7 @@ The basic usage is::
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
 
-    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
-       :ref:`asyncio-event-loop`.  If *loop* is *None* then default
-       event loop will be given by :func:`asyncio.get_event_loop` call.
-
     :return: :class:`Service` instance.
-
-    .. seealso::
-
-       Please take a look on
-       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
-       values for *connect* and *bind* parameters.
 
     .. versionchanged:: 0.2
        Added *log_exceptions* parameter.
@@ -339,20 +310,15 @@ The basic usage is::
     Usually for this function you need to use *connect* parameter, but
     :term:`ZeroMQ` does not forbid to use *bind*.
 
+    Parameters *bind*, *connect* and *loop* work like that of
+    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
+
     :param dict translation_table:
        an optional table for custom value translators.
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
 
-    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
-       :ref:`asyncio-event-loop`.  If *loop* is *None* then default
-       event loop will be given by :func:`asyncio.get_event_loop` call.
-
     :return: :class:`PubSubClient` instance.
-
-    .. seealso:: Please take a look on
-       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
-       values to *connect* and *bind* parameters.
 
 
 .. function:: serve_pubsub(handler, *, connect=None, bind=None, subscribe=None,\
@@ -363,6 +329,9 @@ The basic usage is::
 
     Usually for this function you need to use *bind* parameter, but
     :term:`ZeroMQ` does not forbid to use *connect*.
+
+    Parameters *bind*, *connect* and *loop* work like that of
+    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
 
     :param aiozmq.rpc.AbstractHander handler:
 
@@ -387,19 +356,9 @@ The basic usage is::
 
         .. seealso:: :ref:`aiozmq-rpc-value-translators`
 
-    :param aiozmq.ZmqEventLoop loop: an optional parameter to point
-       :ref:`asyncio-event-loop`.  If *loop* is *None* then default
-       event loop will be given by :func:`asyncio.get_event_loop` call.
-
     :return: :class:`PubSubService` instance.
     :raise OSError: on system error.
     :raise TypeError: if arguments have inappropriate type.
-
-    .. seealso::
-
-       Please take a look on
-       :meth:`aiozmq.ZmqEventLoop.create_zmq_connection` for valid
-       values for *connect* and *bind* parameters.
 
    .. versionchanged:: 0.2
       Added *log_exceptions* parameter.
