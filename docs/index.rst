@@ -51,7 +51,7 @@ install *msgpack-python* by executing::
 Source code
 -----------
 
-The project is hosted on `GitHub`_
+The project is hosted on GitHub_
 
 Please feel free to file an issue on `bug tracker
 <https://github.com/aio-libs/aiozmq/issues>`_ if you have found a bug
@@ -74,7 +74,7 @@ Authors and License
 
 The ``aiozmq`` package is initially written by Nikolay Kim, now
 maintained by Andrew Svetlov.  It's BSD licensed and freely available.
-Feel free to improve this package and send a pull request to `GitHub`_.
+Feel free to improve this package and send a pull request to GitHub_.
 
 Getting Started
 ---------------
