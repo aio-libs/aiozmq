@@ -1,6 +1,11 @@
+import collections
 import asyncio
 from asyncio.streams import FlowControlMixin
 from .interface import ZmqProtocol
+
+
+class ZmqStreamClosed(Exception):
+    """A stream was closed"""
 
 
 @asyncio.coroutine
@@ -69,7 +74,7 @@ class ZmqStream:
         self._transport = None
         self._protocol = ZmqStreamProtocol(self, loop=loop)
         self._loop = loop
-        self._queue = asyncio.Queue(loop=loop)
+        self._queue = collections.deque()
         self._closing = False  # Whether we're done.
         self._waiter = None  # A future.
         self._exception = None
@@ -134,52 +139,53 @@ class ZmqStream:
 
     def feed_closing(self):
         """Private"""
-        self._eof = True
+        self._closing = True
+        self._transport = None
         waiter = self._waiter
         if waiter is not None:
             self._waiter = None
             if not waiter.cancelled():
-                waiter.set_result(True)
+                waiter.set_exception(ZmqStreamClosed())
 
     def at_closing(self):
-        """Return True if the buffer is empty and 'feed_eof' was called."""
+        """Return True if the buffer is empty and 'feed_closing' was called."""
         return self._closing and not self._queue
 
     def feed_msg(self, msg):
         """Private"""
         assert not self._closing, 'feed_msg after feed_closing'
 
-        if not msg:
-            return
-
-        self._queue.put_nowait(msg)
-        self._queue_len += sum(len(i) for i in msg)
+        msg_len = sum(len(i) for i in msg)
+        self._queue.append((msg_len, msg))
 
         waiter = self._waiter
         if waiter is not None:
             self._waiter = None
             if not waiter.cancelled():
-                waiter.set_result(False)
+                waiter.set_result(None)
 
         if (self._transport is not None and
                 not self._paused and
                 self._queue_len > 2*self._limit):
-            try:
-                self._transport.pause_reading()
-            except NotImplementedError:
-                # The transport can't be paused.
-                # We'll just have to buffer all data.
-                # Forget the transport so we don't keep trying.
-                self._transport = None
-            else:
-                self._paused = True
+            self._transport.pause_reading()
+            self._paused = True
 
     @asyncio.coroutine
     def read(self):
         if self._exception is not None:
             raise self._exception
 
-        msg = yield from self._queue.get()
-        self._queue_len -= sum(len(i) for i in msg)
+        if not self._queue_len:
+            if self._waiter is not None:
+                raise RuntimeError('read called while another coroutine is '
+                                   'already waiting for incoming data')
+            self._waiter = asyncio.Future(loop=self._loop)
+            try:
+                yield from self._waiter
+            finally:
+                self._waiter = None
+
+        msg_len, msg = self._queue.popleft()
+        self._queue_len -= msg_len
         self._maybe_resume_transport()
         return msg
