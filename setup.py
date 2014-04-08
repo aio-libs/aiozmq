@@ -43,14 +43,9 @@ classifiers=[
     'Programming Language :: Python :: 3.4',
     'Operating System :: POSIX',
     'Environment :: Web Environment',
+    'Development Status :: 4 - Beta',
 ]
 
-if 'a' in read_version():
-    classifiers.append('Development Status :: 3 - Alpha')
-elif 'b' in read_version():
-    classifiers.append('Development Status :: 4 - Beta')
-else:
-    classifiers.append('Development Status :: 5 - Production/Stable')
 
 setup(name='aiozmq',
       version=read_version(),

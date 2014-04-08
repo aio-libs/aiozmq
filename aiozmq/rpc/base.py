@@ -18,10 +18,16 @@ class Error(Exception):
 class GenericError(Error):
     """Error used for all untranslated exceptions from rpc method calls."""
 
-    def __init__(self, exc_type, args):
-        super().__init__(exc_type, args)
+    def __init__(self, exc_type, args, exc_repr):
+        super().__init__(exc_type, args, exc_repr)
         self.exc_type = exc_type
         self.arguments = args
+        self.exc_repr = exc_repr
+
+    def __repr__(self):
+        return '<Generic RPC Error {}{}: {}>'.format(self.exc_type,
+                                                     self.arguments,
+                                                     self.exc_repr)
 
 
 class NotFoundError(Error, LookupError):
