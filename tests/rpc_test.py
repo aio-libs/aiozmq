@@ -236,8 +236,13 @@ class RpcTests(unittest.TestCase):
             with self.assertRaises(aiozmq.rpc.GenericError) as exc:
                 yield from client.call.generic_exception()
             self.assertEqual(('rpc_test.MyException',
-                             ('additional', 'data')),
+                              ('additional', 'data'),
+                              "MyException('additional', 'data')"),
                              exc.exception.args)
+            self.assertEqual("<Generic RPC Error "
+                             "rpc_test.MyException('additional', 'data'): "
+                             "MyException('additional', 'data')>",
+                             repr(exc.exception))
 
         self.loop.run_until_complete(communicate())
 

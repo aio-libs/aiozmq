@@ -143,10 +143,10 @@ class _ClientProtocol(_BaseProtocol):
             else:
                 call.set_result(answer)
 
-    def _translate_error(self, exc_type, exc_args):
+    def _translate_error(self, exc_type, exc_args, exc_repr):
         found = self.error_table.get(exc_type)
         if found is None:
-            return GenericError(exc_type, tuple(exc_args))
+            return GenericError(exc_type, exc_args, exc_repr)
         else:
             return found(*exc_args)
 
@@ -261,5 +261,5 @@ class _ServerProtocol(_BaseServerProtocol):
                                                          time.time(), True)
             exc_type = exc.__class__
             exc_info = (exc_type.__module__ + '.' + exc_type.__name__,
-                        exc.args)
+                        exc.args, repr(exc))
             self.transport.write([peer, prefix, self.packer.packb(exc_info)])
