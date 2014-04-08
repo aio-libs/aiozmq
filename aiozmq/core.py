@@ -208,7 +208,7 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
                                   'Fatal write error on zmq socket transport')
                 return
 
-        self._buffer.append(data)
+        self._buffer.append((data_len, data))
         self._buffer_size += data_len
         self._maybe_pause_protocol()
 
@@ -217,7 +217,7 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
 
         try:
             try:
-                self._zmq_sock.send_multipart(self._buffer[0], zmq.DONTWAIT)
+                self._zmq_sock.send_multipart(self._buffer[0][1], zmq.DONTWAIT)
             except zmq.ZMQError as exc:
                 if exc.errno in (errno.EAGAIN, errno.EINTR):
                     return
@@ -227,8 +227,8 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
             self._fatal_error(exc,
                               'Fatal write error on zmq socket transport')
         else:
-            sent_data = self._buffer.popleft()
-            self._buffer_size -= sum(len(part) for part in sent_data)
+            sent_len, sent_data = self._buffer.popleft()
+            self._buffer_size -= sent_len
 
             self._maybe_resume_protocol()
 

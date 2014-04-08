@@ -47,7 +47,7 @@ class TransportTests(unittest.TestCase):
         self.tr.write((b'a', b'b'))
         self.sock.send_multipart.assert_called_with((b'a', b'b'), zmq.DONTWAIT)
         self.assertFalse(self.proto.pause_writing.called)
-        self.assertEqual([(b'a', b'b')], list(self.tr._buffer))
+        self.assertEqual([(2, (b'a', b'b'))], list(self.tr._buffer))
         self.assertEqual(2, self.tr._buffer_size)
         self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
@@ -59,14 +59,15 @@ class TransportTests(unittest.TestCase):
         self.sock.send_multipart.mock_calls = [
             mock.call((b'a', b'b'), zmq.DONTWAIT)]
         self.assertFalse(self.proto.pause_writing.called)
-        self.assertEqual([(b'a', b'b'), (b'c',)], list(self.tr._buffer))
+        self.assertEqual([(2, (b'a', b'b')), (1, (b'c',))],
+                         list(self.tr._buffer))
         self.assertEqual(3, self.tr._buffer_size)
         self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
 
     def test__write_ready(self):
-        self.tr._buffer.append((b'a', b'b'))
-        self.tr._buffer.append((b'c',))
+        self.tr._buffer.append((2, (b'a', b'b')))
+        self.tr._buffer.append((1, (b'c',)))
         self.tr._buffer_size = 3
         self.loop.add_writer(self.sock, self.tr._write_ready)
 
@@ -75,13 +76,13 @@ class TransportTests(unittest.TestCase):
         self.sock.send_multipart.mock_calls = [
             mock.call((b'a', b'b'), zmq.DONTWAIT)]
         self.assertFalse(self.proto.pause_writing.called)
-        self.assertEqual([(b'c',)], list(self.tr._buffer))
+        self.assertEqual([(1, (b'c',))], list(self.tr._buffer))
         self.assertEqual(1, self.tr._buffer_size)
         self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
 
     def test__write_ready_sent_whole_buffer(self):
-        self.tr._buffer.append((b'a', b'b'))
+        self.tr._buffer.append((2, (b'a', b'b')))
         self.tr._buffer_size = 2
         self.loop.add_writer(self.sock, self.tr._write_ready)
 
@@ -96,7 +97,7 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(1, self.loop.remove_writer_count[self.sock])
 
     def test__write_ready_raises_ZMQError(self):
-        self.tr._buffer.append((b'a', b'b'))
+        self.tr._buffer.append((2, (b'a', b'b')))
         self.tr._buffer_size = 2
         self.loop.add_writer(self.sock, self.tr._write_ready)
 
@@ -112,7 +113,7 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(1, self.loop.remove_reader_count[self.sock])
 
     def test__write_ready_raises_EAGAIN(self):
-        self.tr._buffer.append((b'a', b'b'))
+        self.tr._buffer.append((2, (b'a', b'b')))
         self.tr._buffer_size = 2
         self.loop.add_writer(self.sock, self.tr._write_ready)
 
@@ -120,7 +121,7 @@ class TransportTests(unittest.TestCase):
                                                             'try again')
         self.tr._write_ready()
         self.assertFalse(self.proto.pause_writing.called)
-        self.assertEqual([(b'a', b'b',)], list(self.tr._buffer))
+        self.assertEqual([(2, (b'a', b'b',))], list(self.tr._buffer))
         self.assertEqual(2, self.tr._buffer_size)
         self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
@@ -179,7 +180,7 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(1, self.loop.remove_reader_count[self.sock])
 
     def test_close_on_last__write_ready(self):
-        self.tr._buffer = deque([(b'data',)])
+        self.tr._buffer = deque([(4, (b'data',))])
         self.tr._buffer_size = 4
         self.loop.add_writer(self.sock, self.tr._write_ready)
 
@@ -316,7 +317,7 @@ class TransportTests(unittest.TestCase):
         self.sock.send_multipart.assert_called_once_with(
             (b'a', b'b'), zmq.DONTWAIT)
         self.assertFalse(self.proto.pause_writing.called)
-        self.assertEqual([(b'a', b'b')], list(self.tr._buffer))
+        self.assertEqual([(2, (b'a', b'b'))], list(self.tr._buffer))
         self.assertEqual(2, self.tr._buffer_size)
         self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
@@ -327,7 +328,7 @@ class TransportTests(unittest.TestCase):
         self.sock.send_multipart.assert_called_once_with(
             (b'a', b'b'), zmq.DONTWAIT)
         self.assertFalse(self.proto.pause_writing.called)
-        self.assertEqual([(b'a', b'b')], list(self.tr._buffer))
+        self.assertEqual([(2, (b'a', b'b'))], list(self.tr._buffer))
         self.assertEqual(2, self.tr._buffer_size)
         self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
