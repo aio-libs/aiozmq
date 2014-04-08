@@ -5,10 +5,12 @@ import sys
 from .selector import ZmqSelector
 from .core import ZmqEventLoop, ZmqEventLoopPolicy
 from .interface import ZmqTransport, ZmqProtocol
+from .stream import ZmqStream, ZmqStreamProtocol, create_zmq_connection
 
 
 __all__ = ('ZmqSelector', 'ZmqEventLoop', 'ZmqEventLoopPolicy',
            'ZmqTransport', 'ZmqProtocol',
+           'ZmqStream', 'ZmqStreamProtocol', 'create_zmq_connection',
            'version_info', 'version')
 
 __version__ = '0.2.0a1'
@@ -43,4 +45,5 @@ version_info = _parse_version(__version__)
 
 
 # make pyflakes happy
-(ZmqSelector, ZmqEventLoop, ZmqEventLoopPolicy, ZmqTransport, ZmqProtocol)
+(ZmqSelector, ZmqEventLoop, ZmqEventLoopPolicy, ZmqTransport, ZmqProtocol,
+ ZmqStream, ZmqStreamProtocol, create_zmq_connection)

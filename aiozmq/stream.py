@@ -1,11 +1,11 @@
-import collections
+import asyncio
 from asyncio.streams import FlowControlMixin
 from .interface import ZmqProtocol
 
 
-@tasks.coroutine
-def create_zmq_connection(zmq_type*, bind=None, connect=None,
-                          loop=None, zmq_sock=None):
+@asyncio.coroutine
+def create_zmq_connection(zmq_type, *, bind=None, connect=None,
+                          loop=None, zmq_sock=None, limit=0xffff):
     """A wrapper for create_connection() returning a Stream instance.
 
     The arguments are all the usual arguments to create_connection()
@@ -21,11 +21,10 @@ def create_zmq_connection(zmq_type*, bind=None, connect=None,
     really nothing special here except some convenience.)
     """
     if loop is None:
-        loop = events.get_event_loop()
-    stream = ZmqStream(loop=loop)
-    protocol = ZmqStreamProtocol(stream, loop=loop)
-    transport, _ = yield from loop.create_zmq_connection(
-        lambda: protocol, zmq_type, bind=bind, connect=connect,
+        loop = asyncio.get_event_loop()
+    stream = ZmqStream(loop=loop, limit=limit)
+    yield from loop.create_zmq_connection(
+        lambda: stream._protocol, zmq_type, bind=bind, connect=connect,
         zmq_sock=zmq_sock)
     return stream
 
@@ -66,16 +65,17 @@ class ZmqStream:
     property which references the ZmqTransport directly.
     """
 
-    def __init__(self, protocol, loop):
+    def __init__(self, loop, limit=0xffff):
         self._transport = None
-        self._protocol = protocol
+        self._protocol = ZmqStreamProtocol(self, loop=loop)
         self._loop = loop
-        self._buffer = collections.deque()
+        self._queue = asyncio.Queue(loop=loop)
         self._closing = False  # Whether we're done.
         self._waiter = None  # A future.
         self._exception = None
         self._paused = False
-        self._limit = 0xffff
+        self._limit = limit
+        self._queue_len = 0
 
     @property
     def transport(self):
@@ -128,11 +128,11 @@ class ZmqStream:
         self._transport = transport
 
     def _maybe_resume_transport(self):
-        if self._paused and len(self._buffer) <= self._limit:
+        if self._paused and self._queue_len <= self._limit:
             self._paused = False
             self._transport.resume_reading()
 
-    def feed_eof(self):
+    def feed_closing(self):
         """Private"""
         self._eof = True
         waiter = self._waiter
@@ -143,7 +143,7 @@ class ZmqStream:
 
     def at_closing(self):
         """Return True if the buffer is empty and 'feed_eof' was called."""
-        return self._closing and not self._buffer
+        return self._closing and not self._queue
 
     def feed_msg(self, msg):
         """Private"""
@@ -152,7 +152,8 @@ class ZmqStream:
         if not msg:
             return
 
-        self._buffer.extend(msg)
+        self._queue.put_nowait(msg)
+        self._queue_len += sum(len(i) for i in msg)
 
         waiter = self._waiter
         if waiter is not None:
@@ -161,8 +162,8 @@ class ZmqStream:
                 waiter.set_result(False)
 
         if (self._transport is not None and
-            not self._paused and
-            len(self._buffer) > 2*self._limit):
+                not self._paused and
+                self._queue_len > 2*self._limit):
             try:
                 self._transport.pause_reading()
             except NotImplementedError:
@@ -173,25 +174,12 @@ class ZmqStream:
             else:
                 self._paused = True
 
-    def _create_waiter(self, func_name):
-        # ZmqStream uses a future to link the protocol feed_data() method
-        # to a read coroutine. Running two read coroutines at the same time
-        # would have an unexpected behaviour. It would not possible to know
-        # which coroutine would get the next data.
-
-    @tasks.coroutine
-    def read_msg(self):
+    @asyncio.coroutine
+    def read(self):
         if self._exception is not None:
             raise self._exception
 
-        if self._queue.empty():
-            if self._waiter is not None:
-                raise RuntimeError('read_msg() called while '
-                                   'another coroutine is '
-                                   'already waiting for incoming message')
-            self._waiter = futures.Future(loop=self._loop)
-            return self._waiter
-        else:
-            return (yield from self._queue.get())
+        msg = yield from self._queue.get()
+        self._queue_len -= sum(len(i) for i in msg)
         self._maybe_resume_transport()
-        return bytes(line)
+        return msg
