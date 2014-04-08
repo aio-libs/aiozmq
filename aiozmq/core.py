@@ -144,7 +144,7 @@ class _EndpointsSet(Set):
     __str__ = __repr__
 
 
-class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
+class _ZmqTransportImpl(_FlowControlMixin, ZmqTransport):
 
     _TCP_RE = re.compile('^tcp://(.+):(\d+)|\*$')
 

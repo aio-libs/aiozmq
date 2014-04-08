@@ -1,6 +1,5 @@
 import collections
 import asyncio
-from asyncio.streams import FlowControlMixin
 from .interface import ZmqProtocol
 
 
@@ -10,7 +9,9 @@ class ZmqStreamClosed(Exception):
 
 @asyncio.coroutine
 def create_zmq_connection(zmq_type, *, bind=None, connect=None,
-                          loop=None, zmq_sock=None, limit=0xffff):
+                          loop=None, zmq_sock=None,
+                          high_read=None, low_read=None,
+                          high_write=None, low_write=None):
     """A wrapper for create_connection() returning a Stream instance.
 
     The arguments are all the usual arguments to create_connection()
@@ -27,23 +28,38 @@ def create_zmq_connection(zmq_type, *, bind=None, connect=None,
     """
     if loop is None:
         loop = asyncio.get_event_loop()
-    stream = ZmqStream(loop=loop, limit=limit)
-    yield from loop.create_zmq_connection(
+    stream = ZmqStream(loop=loop, high=high_read, low=low_read)
+    tr, _ = yield from loop.create_zmq_connection(
         lambda: stream._protocol, zmq_type, bind=bind, connect=connect,
         zmq_sock=zmq_sock)
+    tr.set_write_buffer_limits(high_write, low_write)
     return stream
 
 
-class ZmqStreamProtocol(FlowControlMixin, ZmqProtocol):
+class ZmqStreamProtocol(ZmqProtocol):
     """Helper class to adapt between ZmqProtocol and ZmqStream.
 
     This is a helper class to use ZmqStream instead of subclassing
     ZmqProtocol.
     """
 
-    def __init__(self, stream, loop=None):
-        super().__init__(loop=loop)
+    def __init__(self, stream, loop):
         self._stream = stream
+        self._paused = False
+        self._drain_waiter = None
+
+    def pause_writing(self):
+        assert not self._paused
+        self._paused = True
+
+    def resume_writing(self):
+        assert self._paused
+        self._paused = False
+        waiter = self._drain_waiter
+        if waiter is not None:
+            self._drain_waiter = None
+            if not waiter.done():
+                waiter.set_result(None)
 
     def connection_made(self, transport):
         self._stream.set_transport(transport)
@@ -53,7 +69,27 @@ class ZmqStreamProtocol(FlowControlMixin, ZmqProtocol):
             self._stream.feed_closing()
         else:
             self._stream.set_exception(exc)
-        super().connection_lost(exc)
+        if not self._paused:
+            return
+        waiter = self._drain_waiter
+        if waiter is None:
+            return
+        self._drain_waiter = None
+        if waiter.done():
+            return
+        if exc is None:
+            waiter.set_result(None)
+        else:
+            waiter.set_exception(exc)
+
+    def _make_drain_waiter(self):
+        if not self._paused:
+            return ()
+        waiter = self._drain_waiter
+        assert waiter is None or waiter.cancelled()
+        waiter = asyncio.Future(loop=self._loop)
+        self._drain_waiter = waiter
+        return waiter
 
     def msg_received(self, msg):
         self._stream.feed_msg(msg)
@@ -70,7 +106,7 @@ class ZmqStream:
     property which references the ZmqTransport directly.
     """
 
-    def __init__(self, loop, limit=0xffff):
+    def __init__(self, loop, *, high=None, low=None):
         self._transport = None
         self._protocol = ZmqStreamProtocol(self, loop=loop)
         self._loop = loop
@@ -79,7 +115,7 @@ class ZmqStream:
         self._waiter = None  # A future.
         self._exception = None
         self._paused = False
-        self._limit = limit
+        self._set_read_buffer_limits(high, low)
         self._queue_len = 0
 
     @property
@@ -132,8 +168,26 @@ class ZmqStream:
         assert self._transport is None, 'Transport already set'
         self._transport = transport
 
+    def _set_read_buffer_limits(self, high=None, low=None):
+        if high is None:
+            if low is None:
+                high = 64*1024
+            else:
+                high = 4*low
+        if low is None:
+            low = high // 4
+        if not high >= low >= 0:
+            raise ValueError('high (%r) must be >= low (%r) must be >= 0' %
+                             (high, low))
+        self._high_water = high
+        self._low_water = low
+
+    def set_read_buffer_limits(self, high=None, low=None):
+        self._set_read_buffer_limits(high, low)
+        self._maybe_resume_transport()
+
     def _maybe_resume_transport(self):
-        if self._paused and self._queue_len <= self._limit:
+        if self._paused and self._queue_len <= self._low_water:
             self._paused = False
             self._transport.resume_reading()
 
@@ -166,7 +220,7 @@ class ZmqStream:
 
         if (self._transport is not None and
                 not self._paused and
-                self._queue_len > 2*self._limit):
+                self._queue_len > self._high_water):
             self._transport.pause_reading()
             self._paused = True
 
