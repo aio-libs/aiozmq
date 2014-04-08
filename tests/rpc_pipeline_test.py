@@ -2,9 +2,11 @@ import unittest
 import asyncio
 import aiozmq
 import aiozmq.rpc
+import logging
 
 from unittest import mock
 from asyncio.test_utils import run_briefly
+from aiozmq._test_util import log_hook
 
 
 class MyHandler(aiozmq.rpc.AttrHandler):
@@ -43,6 +45,17 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
 
 class PipelineTests(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(self):
+        logger = logging.getLogger()
+        self.log_level = logger.getEffectiveLevel()
+        logger.setLevel(logging.DEBUG)
+
+    @classmethod
+    def tearDownClass(self):
+        logger = logging.getLogger()
+        logger.setLevel(self.log_level)
 
     def setUp(self):
         self.loop = aiozmq.ZmqEventLoop()
@@ -118,10 +131,15 @@ class PipelineTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            yield from client.notify.bad_handler()
-            ctx = yield from self.err_queue.get()
-            self.assertRegex(ctx['message'],
-                             "Call to 'bad_handler'.*NotFoundError")
+            with log_hook('aiozmq.rpc', self.err_queue):
+                yield from client.notify.bad_handler()
+
+                ret = yield from self.err_queue.get()
+                self.assertEqual(logging.ERROR, ret.levelno)
+                self.assertEqual("Call to %r caused error: %r", ret.msg)
+                self.assertEqual(('bad_handler', mock.ANY),
+                                 ret.args)
+                self.assertIsNotNone(ret.exc_info)
 
         self.loop.run_until_complete(communicate())
 
@@ -136,20 +154,24 @@ class PipelineTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
 
-    @mock.patch('aiozmq.rpc.base.logger')
-    def test_func_error(self, m_log):
+    def test_func_error(self):
         client, server = self.make_pipeline_pair(log_exceptions=True)
 
         @asyncio.coroutine
         def communicate():
-            yield from client.notify.func_error()
+            with log_hook('aiozmq.rpc', self.err_queue):
+                yield from client.notify.func_error()
+
+                ret = yield from self.err_queue.get()
+                self.assertEqual(logging.ERROR, ret.levelno)
+                self.assertEqual("An exception from method %r "
+                                 "call has been occurred.\n"
+                                 "args = %s\nkwargs = %s\n", ret.msg)
+                self.assertEqual(('func_error', '()', '{}'),
+                                 ret.args)
+                self.assertIsNotNone(ret.exc_info)
 
         self.loop.run_until_complete(communicate())
-
-        yield from asyncio.sleep(0.1, loop=self.loop)
-        m_log.exception.assert_called_with(
-            'An exception from method %r call has been occurred.\n'
-            'args = %s\nkwargs = %s\n', 'exc', '(1,)', '{}')
 
     def test_default_event_loop(self):
         asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
@@ -169,17 +191,22 @@ class PipelineTests(unittest.TestCase):
         self.loop = loop = asyncio.get_event_loop()
         self.client, self.server = loop.run_until_complete(create())
 
-    @mock.patch("aiozmq.rpc.pipeline.logger")
-    def test_warning_if_remote_return_not_None(self, m_log):
+    def test_warning_if_remote_return_not_None(self):
         client, server = self.make_pipeline_pair()
 
         @asyncio.coroutine
         def communicate():
-            yield from client.notify.suspicious(1)
-            ret = yield from self.queue.get()
-            self.assertEqual(1, ret)
+            with log_hook('aiozmq.rpc', self.err_queue):
+                yield from client.notify.suspicious(1)
+                ret = yield from self.queue.get()
+                self.assertEqual(1, ret)
+
+                ret = yield from self.err_queue.get()
+                self.assertEqual(logging.WARNING, ret.levelno)
+                self.assertEqual('Pipeline handler %r returned not None',
+                                 ret.msg)
+                self.assertEqual(('suspicious',), ret.args)
+                self.assertIsNone(ret.exc_info)
 
         self.loop.run_until_complete(communicate())
         run_briefly(self.loop)
-        m_log.warning.assert_called_with(
-            'Pipeline handler %r returned not None', 'suspicious')

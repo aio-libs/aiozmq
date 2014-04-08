@@ -40,11 +40,25 @@ def connect_rpc(*, connect=None, bind=None, loop=None,
                 error_table=None, translation_table=None, timeout=None):
     """A coroutine that creates and connects/binds RPC client.
 
-    Return value is a client instance.
+    Usually for this function you need to use *connect* parameter, but
+    ZeroMQ does not forbid to use *bind*.
+
+    error_table -- an optional table for custom exception translators.
+
+    timeout -- an optional timeout for RPC calls. If timeout is not
+    None and remote call takes longer than timeout seconds then
+    asyncio.TimeoutError will be raised at client side. If the server
+    will return an answer after timeout has been raised that answer
+    **is ignored**.
+
+    translation_table -- an optional table for custom value translators.
+
+    loop -- an optional parameter to point ZmqEventLoop instance.  If
+    loop is None then default event loop will be given by
+    asyncio.get_event_loop call.
+
+    Returns a RPCClient instance.
     """
-    # TODO: describe params
-    # TODO: add a way to pass exception translator
-    # TODO: add a way to pass value translator
     if loop is None:
         loop = asyncio.get_event_loop()
 
@@ -58,9 +72,24 @@ def connect_rpc(*, connect=None, bind=None, loop=None,
 @asyncio.coroutine
 def serve_rpc(handler, *, connect=None, bind=None, loop=None,
               translation_table=None, log_exceptions=False):
-    """A coroutine that creates and connects/binds RPC server instance."""
-    # TODO: describe params
-    # TODO: add a way to pass value translator
+    """A coroutine that creates and connects/binds RPC server instance.
+
+    Usually for this function you need to use *bind* parameter, but
+    ZeroMQ does not forbid to use *connect*.
+
+    handler -- an object which processes incoming RPC calls.
+    Usually you like to pass AttrHandler instance.
+
+    log_exceptions -- log exceptions from remote calls if True.
+
+    translation_table -- an optional table for custom value translators.
+
+    loop -- an optional parameter to point ZmqEventLoop instance.  If
+    loop is None then default event loop will be given by
+    asyncio.get_event_loop call.
+
+    Returns Service instance.
+    """
     if loop is None:
         loop = asyncio.get_event_loop()
 
@@ -106,8 +135,8 @@ class _ClientProtocol(_BaseProtocol):
             logger.critical("Unknown answer id: %d (%d %d %f %d) -> %s",
                             req_id, pid, rnd, timestamp, is_error, answer)
         elif call.cancelled():
-            logger.info("The future for %d has been cancelled, "
-                        "skip the received result.", req_id)
+            logger.debug("The future for request #%08x has been cancelled, "
+                         "skip the received result.", req_id)
         else:
             if is_error:
                 call.set_exception(self._translate_error(*answer))

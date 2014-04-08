@@ -94,12 +94,12 @@ class SelectorTests(unittest.TestCase):
         self.addCleanup(s.close)
 
         m = mock.Mock()
-        m.side_effect = zmq.ZMQError(errno.ENOTSOCK, 'not a socket')
+        m.side_effect = zmq.ZMQError(errno.EFAULT, 'not a socket')
         s._poller.register = m
 
         with self.assertRaises(OSError) as ctx:
             s.register(1, EVENT_READ)
-        self.assertEqual(errno.ENOTSOCK, ctx.exception.errno)
+        self.assertEqual(errno.EFAULT, ctx.exception.errno)
         self.assertNotIn(1, s.get_map())
 
     def test_unregister(self):
@@ -125,12 +125,12 @@ class SelectorTests(unittest.TestCase):
         s.register(rd, EVENT_READ)
 
         m = mock.Mock()
-        m.side_effect = zmq.ZMQError(errno.ENOTSOCK, 'not a socket')
+        m.side_effect = zmq.ZMQError(errno.EFAULT, 'not a socket')
         s._poller.unregister = m
 
         with self.assertRaises(OSError) as ctx:
             s.unregister(rd)
-        self.assertEqual(errno.ENOTSOCK, ctx.exception.errno)
+        self.assertEqual(errno.EFAULT, ctx.exception.errno)
         self.assertIn(rd, s.get_map())
 
     def test_unregister_after_fd_close(self):
@@ -223,12 +223,12 @@ class SelectorTests(unittest.TestCase):
         s.register(rd, EVENT_READ)
 
         m = mock.Mock()
-        m.side_effect = zmq.ZMQError(errno.ENOTSOCK, 'not a socket')
+        m.side_effect = zmq.ZMQError(errno.EFAULT, 'not a socket')
         s._poller.modify = m
 
         with self.assertRaises(OSError) as ctx:
             s.modify(rd, EVENT_WRITE)
-        self.assertEqual(errno.ENOTSOCK, ctx.exception.errno)
+        self.assertEqual(errno.EFAULT, ctx.exception.errno)
         self.assertIn(rd, s.get_map())
 
     def test_close(self):
@@ -307,12 +307,12 @@ class SelectorTests(unittest.TestCase):
         s.register(rd, EVENT_READ)
 
         m = mock.Mock()
-        m.side_effect = zmq.ZMQError(errno.ENOTSOCK, 'not a socket')
+        m.side_effect = zmq.ZMQError(errno.EFAULT, 'not a socket')
         s._poller.poll = m
 
         with self.assertRaises(OSError) as ctx:
             s.select()
-        self.assertEqual(errno.ENOTSOCK, ctx.exception.errno)
+        self.assertEqual(errno.EFAULT, ctx.exception.errno)
 
     def test_select_without_key(self):
         s = self.SELECTOR()

@@ -53,7 +53,7 @@ Requirements
 
 - asyncio http://code.google.com/p/tulip/ or Python 3.4+
 
-- optional submodule aiozmq.rpc requires msgpack-python
+- optional submodule aiozmq.rpc requires msgpack-python 0.4+
 
 
 

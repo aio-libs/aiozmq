@@ -2,10 +2,10 @@ import unittest
 import asyncio
 import aiozmq
 import aiozmq.rpc
+import logging
 
 from unittest import mock
-from aiozmq._test_util import find_unused_port
-from asyncio.test_utils import run_briefly
+from aiozmq._test_util import find_unused_port, log_hook
 
 
 class MyHandler(aiozmq.rpc.AttrHandler):
@@ -40,13 +40,23 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
 class PubSubTests(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(self):
+        logger = logging.getLogger()
+        self.log_level = logger.getEffectiveLevel()
+        logger.setLevel(logging.DEBUG)
+
+    @classmethod
+    def tearDownClass(self):
+        logger = logging.getLogger()
+        logger.setLevel(self.log_level)
+
     def setUp(self):
         self.loop = aiozmq.ZmqEventLoop()
         asyncio.set_event_loop(None)
         self.client = self.server = None
         self.queue = asyncio.Queue(loop=self.loop)
         self.err_queue = asyncio.Queue(loop=self.loop)
-        self.loop.set_exception_handler(self.exc_handler)
 
     def tearDown(self):
         if self.client:
@@ -58,9 +68,6 @@ class PubSubTests(unittest.TestCase):
     def close(self, service):
         service.close()
         self.loop.run_until_complete(service.wait_closed())
-
-    def exc_handler(self, loop, context):
-        self.err_queue.put_nowait(context)
 
     def make_pubsub_pair(self, subscribe=None, log_exceptions=False):
 
@@ -157,10 +164,15 @@ class PubSubTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            yield from client.publish('my-topic').bad.method(1, 2)
-            ret = yield from self.err_queue.get()
-            self.assertRegex(ret['message'],
-                             "Call to 'bad.method'.*NotFoundError")
+            with log_hook('aiozmq.rpc', self.err_queue):
+                yield from client.publish('my-topic').bad.method(1, 2)
+
+                ret = yield from self.err_queue.get()
+                self.assertEqual(logging.ERROR, ret.levelno)
+                self.assertEqual("Call to %r caused error: %r", ret.msg)
+                self.assertEqual(('bad.method', mock.ANY),
+                                 ret.args)
+                self.assertIsNotNone(ret.exc_info)
 
         self.loop.run_until_complete(communicate())
 
@@ -180,28 +192,38 @@ class PubSubTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            yield from client.publish('my-topic').func('abc')
-            self.assertTrue(self.queue.empty())
-            ret = yield from self.err_queue.get()
-            self.assertRegex(ret['message'],
-                             "Call to 'func'.*ParametersError")
+            with log_hook('aiozmq.rpc', self.err_queue):
+                yield from client.publish('my-topic').func('abc')
+
+                ret = yield from self.err_queue.get()
+                self.assertEqual(logging.ERROR, ret.levelno)
+                self.assertEqual("Call to %r caused error: %r", ret.msg)
+                self.assertEqual(('func', mock.ANY),
+                                 ret.args)
+                self.assertIsNotNone(ret.exc_info)
+
+                self.assertTrue(self.queue.empty())
 
         self.loop.run_until_complete(communicate())
 
-    @mock.patch('aiozmq.rpc.base.logger')
-    def test_func_raises_error(self, m_log):
+    def test_func_raises_error(self):
         client, server = self.make_pubsub_pair('my-topic', log_exceptions=True)
 
         @asyncio.coroutine
         def communicate():
-            yield from client.publish('my-topic').func_raise_error()
+            with log_hook('aiozmq.rpc', self.err_queue):
+                yield from client.publish('my-topic').func_raise_error()
+
+                ret = yield from self.err_queue.get()
+                self.assertEqual(logging.ERROR, ret.levelno)
+                self.assertEqual('An exception from method %r call '
+                                 'has been occurred.\n'
+                                 'args = %s\nkwargs = %s\n', ret.msg)
+                self.assertEqual(('func_raise_error', '()', '{}'),
+                                 ret.args)
+                self.assertIsNotNone(ret.exc_info)
 
         self.loop.run_until_complete(communicate())
-
-        yield from asyncio.sleep(0.1, loop=self.loop)
-        m_log.exception.assert_called_with(
-            'An exception from method %r call has been occurred.\n'
-            'args = %s\nkwargs = %s\n', 'exc', '(1,)', '{}')
 
     def test_subscribe_to_bytes(self):
         client, server = self.make_pubsub_pair(b'my-topic')
@@ -313,17 +335,21 @@ class PubSubTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
 
-    @mock.patch("aiozmq.rpc.pubsub.logger")
-    def test_warning_if_remote_return_not_None(self, m_log):
+    def test_warning_if_remote_return_not_None(self):
         client, server = self.make_pubsub_pair('topic')
 
         @asyncio.coroutine
         def communicate():
-            yield from client.publish('topic').suspicious(1)
-            ret = yield from self.queue.get()
-            self.assertEqual(2, ret)
+            with log_hook('aiozmq.rpc', self.err_queue):
+                yield from client.publish('topic').suspicious(1)
+                ret = yield from self.queue.get()
+                self.assertEqual(2, ret)
+
+                ret = yield from self.err_queue.get()
+                self.assertEqual(logging.WARNING, ret.levelno)
+                self.assertEqual('PubSub handler %r returned not None',
+                                 ret.msg)
+                self.assertEqual(('suspicious',), ret.args)
+                self.assertIsNone(ret.exc_info)
 
         self.loop.run_until_complete(communicate())
-        run_briefly(self.loop)
-        m_log.warning.assert_called_with('PubSub handler %r returned not None',
-                                         'suspicious')

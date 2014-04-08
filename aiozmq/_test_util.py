@@ -1,6 +1,8 @@
 """Private test support utulities"""
 
+import contextlib
 import functools
+import logging
 import platform
 import socket
 import sys
@@ -220,3 +222,22 @@ def bind_port(sock, host=HOST):  # pragma: no cover
 
 def check_errno(errno, exc):
     assert exc.errno == errno, (exc, errno)
+
+
+class TestHandler(logging.Handler):
+
+    def __init__(self, queue):
+        super().__init__()
+        self.queue = queue
+
+    def emit(self, record):
+        self.queue.put_nowait(record)
+
+
+@contextlib.contextmanager
+def log_hook(logname, queue):
+    logger = logging.getLogger(logname)
+    handler = TestHandler(queue)
+    logger.addHandler(handler)
+    yield
+    logger.removeHandler(handler)
