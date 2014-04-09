@@ -30,9 +30,9 @@ Simple client-server RPC example::
 
     @asyncio.coroutine
     def go():
-        server = yield from aiozmq.rpc.start_server(
+        server = yield from aiozmq.rpc.serve_rpc(
             ServerHandler(), bind='tcp://127.0.0.1:5555')
-        client = yield from aiozmq.rpc.open_client(
+        client = yield from aiozmq.rpc.connect_rpc(
             connect='tcp://127.0.0.1:5555')
 
         ret = yield from client.rpc.remote_func(1, 2)
