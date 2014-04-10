@@ -1,6 +1,7 @@
 from collections import namedtuple
 import re
 import sys
+import zmq
 
 from .selector import ZmqSelector
 from .core import ZmqEventLoop, ZmqEventLoopPolicy
@@ -44,6 +45,10 @@ def _parse_version(ver):
 
 
 version_info = _parse_version(__version__)
+
+
+if zmq.zmq_version_info()[0] < 3:  # pragma no cover
+    raise ImportError("aiozmq doesn't support libzmq < 3.0")
 
 
 # make pyflakes happy
