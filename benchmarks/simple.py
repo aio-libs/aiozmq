@@ -193,7 +193,7 @@ def print_results(count, results, verbose):
     for test_name in sorted(results):
         times = results[test_name]
         ave = sum(times)/len(times)
-        print('Results for', test_name, 'test')
+        print('Results for', test_name)
         print('RPS: {:d},\t average: {:.3f} ms'.format(int(count/ave),
                                                        ave*1000/count))
         if verbose:
