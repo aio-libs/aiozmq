@@ -222,10 +222,14 @@ ARGS.add_argument(
     nargs='?', type=int, default=30, help='count of tries')
 ARGS.add_argument(
     '-v', '--verbose', action="count",
-    help='count of tries')
+    help='verbosity level')
+ARGS.add_argument(
+    '--without-multiprocessing', action="store_false", default=True,
+    dest='use_multiprocessing',
+    help="don't use multiprocessing")
 
 
-def run_tests(tries, count, funcs):
+def run_tests(tries, count, use_multiprocessing, funcs):
     results = {func.__doc__: [] for func in funcs}
     queue = []
     print('Run tests for {}*{} iterations: {}'
@@ -233,14 +237,18 @@ def run_tests(tries, count, funcs):
     test_plan = [func for func in funcs for i in range(tries)]
     random.shuffle(test_plan)
 
-    with multiprocessing.Pool() as pool:
+    if use_multiprocessing:
+        with multiprocessing.Pool() as pool:
+            for test in test_plan:
+                res = pool.apply_async(test, (count,))
+                queue.append((test.__doc__, res))
+            pool.close()
+            pool.join()
+        for name, res in queue:
+            results[name].append(res.get())
+    else:
         for test in test_plan:
-            res = pool.apply_async(test, (count,))
-            queue.append((test.__doc__, res))
-        pool.close()
-        pool.join()
-    for name, res in queue:
-        results[name].append(res.get())
+            results[test.__doc__].append(test(count))
     print()
     return results
 
@@ -275,8 +283,9 @@ def main(argv):
     count = args.count
     tries = args.tries
     verbose = args.verbose
+    use_multiprocessing = args.use_multiprocessing
 
-    res = run_tests(tries, count,
+    res = run_tests(tries, count, use_multiprocessing,
                     [test_raw_zmq, test_zmq_with_poller,
                      test_aiozmq_rpc, test_core_aiozmq,
                      test_zmq_with_thread])
