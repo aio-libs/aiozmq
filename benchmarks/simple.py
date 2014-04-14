@@ -124,15 +124,19 @@ class ZmqDealerProtocol(aiozmq.ZmqProtocol):
 
     transport = None
 
-    def __init__(self, queue, on_close):
-        self.queue = queue
+    def __init__(self, count, on_close):
+        self.count = count
         self.on_close = on_close
 
     def connection_made(self, transport):
         self.transport = transport
 
     def msg_received(self, msg):
-        self.queue.put_nowait(msg)
+        self.count -= 1
+        if self.count:
+            self.transport.write(msg)
+        else:
+            self.transport.close()
 
     def connection_lost(self, exc):
         self.on_close.set_result(exc)
@@ -153,9 +157,8 @@ def test_core_aiozmq(count):
             bind='tcp://127.0.0.1:*')
 
         addr = next(iter(router.bindings()))
-        queue = asyncio.Queue()
         dealer, _ = yield from loop.create_zmq_connection(
-            lambda: ZmqDealerProtocol(queue, dealer_closed),
+            lambda: ZmqDealerProtocol(count, dealer_closed),
             zmq.DEALER,
             connect=addr)
 
@@ -163,15 +166,12 @@ def test_core_aiozmq(count):
 
         gc.collect()
         t1 = time.monotonic()
-        for i in range(count):
-            dealer.write(msg)
-            yield from queue.get()
+        dealer.write(msg)
+        yield from dealer_closed
         t2 = time.monotonic()
         gc.collect()
-        dealer.close()
         router.close()
         yield from router_closed
-        yield from dealer_closed
         return t2 - t1
 
     return loop.run_until_complete(go())
@@ -219,7 +219,7 @@ ARGS.add_argument(
     nargs='?', type=int, default=1000, help='iterations count')
 ARGS.add_argument(
     '-t', '--tries', action="store",
-    nargs='?', type=int, default=10, help='count of tries')
+    nargs='?', type=int, default=30, help='count of tries')
 ARGS.add_argument(
     '-v', '--verbose', action="count",
     help='count of tries')
