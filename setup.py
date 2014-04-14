@@ -17,7 +17,8 @@ else:
 
 tests_require = install_requires + ['msgpack-python>=0.4.0']
 
-extras_require = {'rpc': ['msgpack-python>=0.4.0']}
+extras_require = {'rpc': ['msgpack-python>=0.4.0'],
+                  'bench': ['numpy>=1.8', 'scipy>=0.13']}
 
 
 def read(f):
@@ -61,8 +62,9 @@ setup(name='aiozmq',
       download_url='https://pypi.python.org/pypi/aiozmq',
       license='BSD',
       packages=find_packages(),
-      install_requires = install_requires,
-      tests_require = tests_require,
+      install_requires=install_requires,
+      tests_require=tests_require,
+      extras_require=extras_require,
       #test_suite = 'nose.collector',
       provides = ['aiozmq', 'aiozmq.rpc'],
       requires = ['pyzmq'],
