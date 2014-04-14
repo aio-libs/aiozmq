@@ -3,15 +3,20 @@ import aiozmq.rpc
 import argparse
 import asyncio
 import gc
+import multiprocessing
 import random
 import sys
 import threading
 import time
 import zmq
 
+from scipy.stats import norm, tmean, tvar, tstd
+from numpy import array
+
 
 def test_raw_zmq(count):
     """single thread raw zmq"""
+    print('.', end='', flush=True)
     ctx = zmq.Context()
     router = ctx.socket(zmq.ROUTER)
     router.bind('tcp://127.0.0.1:*')
@@ -20,15 +25,21 @@ def test_raw_zmq(count):
     dealer.connect(address)
     msg = b'func', b'\0'*200
 
+    gc.collect()
+    t1 = time.monotonic()
     for i in range(count):
         dealer.send_multipart(msg)
         addr, m1, m2 = router.recv_multipart()
         router.send_multipart((addr, m1, m2))
         dealer.recv_multipart()
+    t2 = time.monotonic()
+    gc.collect()
+    return t2 - t1
 
 
 def test_zmq_with_poller(count):
     """single thread zmq with poller"""
+    print('.', end='', flush=True)
     ctx = zmq.Context()
     router = ctx.socket(zmq.ROUTER)
     router.bind('tcp://127.0.0.1:*')
@@ -48,6 +59,8 @@ def test_zmq_with_poller(count):
                 if ev & event and sock == socket:
                     return
 
+    gc.collect()
+    t1 = time.monotonic()
     for i in range(count):
         dealer.send_multipart(msg, zmq.DONTWAIT)
         wait(router)
@@ -55,10 +68,14 @@ def test_zmq_with_poller(count):
         router.send_multipart((addr, m1, m2), zmq.DONTWAIT)
         wait(dealer)
         dealer.recv_multipart(zmq.NOBLOCK)
+    t2 = time.monotonic()
+    gc.collect()
+    return t2 - t1
 
 
 def test_zmq_with_thread(count):
     """zmq with threads"""
+    print('.', end='', flush=True)
     ctx = zmq.Context()
     dealer = ctx.socket(zmq.DEALER)
     dealer.bind('tcp://127.0.0.1:*')
@@ -75,15 +92,23 @@ def test_zmq_with_thread(count):
 
     th = threading.Thread(target=router_thread)
     th.start()
+    gc.collect()
+    t1 = time.monotonic()
     for i in range(count):
         dealer.send_multipart(msg)
         dealer.recv_multipart()
+    t2 = time.monotonic()
+    gc.collect()
     th.join()
+    return t2 - t1
 
 
 class ZmqRouterProtocol(aiozmq.ZmqProtocol):
 
     transport = None
+
+    def __init__(self, on_close):
+        self.on_close = on_close
 
     def connection_made(self, transport):
         self.transport = transport
@@ -91,13 +116,17 @@ class ZmqRouterProtocol(aiozmq.ZmqProtocol):
     def msg_received(self, msg):
         self.transport.write(msg)
 
+    def connection_lost(self, exc):
+        self.on_close.set_result(exc)
+
 
 class ZmqDealerProtocol(aiozmq.ZmqProtocol):
 
     transport = None
 
-    def __init__(self, queue):
+    def __init__(self, queue, on_close):
         self.queue = queue
+        self.on_close = on_close
 
     def connection_made(self, transport):
         self.transport = transport
@@ -105,32 +134,47 @@ class ZmqDealerProtocol(aiozmq.ZmqProtocol):
     def msg_received(self, msg):
         self.queue.put_nowait(msg)
 
+    def connection_lost(self, exc):
+        self.on_close.set_result(exc)
+
 
 def test_core_aiozmq(count):
     """core aiozmq"""
+    print('.', end='', flush=True)
     loop = asyncio.get_event_loop()
 
     @asyncio.coroutine
     def go():
+        router_closed = asyncio.Future()
+        dealer_closed = asyncio.Future()
         router, _ = yield from loop.create_zmq_connection(
-            ZmqRouterProtocol,
+            lambda: ZmqRouterProtocol(router_closed),
             zmq.ROUTER,
             bind='tcp://127.0.0.1:*')
 
         addr = next(iter(router.bindings()))
         queue = asyncio.Queue()
         dealer, _ = yield from loop.create_zmq_connection(
-            lambda: ZmqDealerProtocol(queue),
+            lambda: ZmqDealerProtocol(queue, dealer_closed),
             zmq.DEALER,
             connect=addr)
 
         msg = b'func', b'\0'*200
 
+        gc.collect()
+        t1 = time.monotonic()
         for i in range(count):
             dealer.write(msg)
             yield from queue.get()
+        t2 = time.monotonic()
+        gc.collect()
+        dealer.close()
+        router.close()
+        yield from router_closed
+        yield from dealer_closed
+        return t2 - t1
 
-    loop.run_until_complete(go())
+    return loop.run_until_complete(go())
 
 
 class Handler(aiozmq.rpc.AttrHandler):
@@ -142,6 +186,7 @@ class Handler(aiozmq.rpc.AttrHandler):
 
 def test_aiozmq_rpc(count):
     """aiozmq.rpc"""
+    print('.', end='', flush=True)
     loop = asyncio.get_event_loop()
 
     @asyncio.coroutine
@@ -153,10 +198,19 @@ def test_aiozmq_rpc(count):
 
         data = b'\0'*200
 
+        gc.collect()
+        t1 = time.monotonic()
         for i in range(count):
             yield from client.call.func(data)
+        t2 = time.monotonic()
+        gc.collect()
+        server.close()
+        yield from server.wait_closed()
+        client.close()
+        yield from client.wait_closed()
+        return t2 - t1
 
-    loop.run_until_complete(go())
+    return loop.run_until_complete(go())
 
 
 ARGS = argparse.ArgumentParser(description="Run benchmark.")
@@ -173,29 +227,43 @@ ARGS.add_argument(
 
 def run_tests(tries, count, funcs):
     results = {func.__doc__: [] for func in funcs}
+    queue = []
     print('Run tests for {}*{} iterations: {}'
           .format(tries, count, sorted(results)))
     test_plan = [func for func in funcs for i in range(tries)]
     random.shuffle(test_plan)
-    for test in test_plan:
-        print('.', end='', flush=True)
-        gc.collect()
-        t1 = time.monotonic()
-        test(count)
-        t2 = time.monotonic()
-        gc.collect()
-        results[test.__doc__].append(t2 - t1)
+
+    with multiprocessing.Pool() as pool:
+        for test in test_plan:
+            res = pool.apply_async(test, (count,))
+            queue.append((test.__doc__, res))
+        pool.close()
+        pool.join()
+    for name, res in queue:
+        results[name].append(res.get())
     print()
     return results
 
 
 def print_results(count, results, verbose):
+    print("RPS calculated as 95% confidence interval")
     for test_name in sorted(results):
-        times = results[test_name]
-        ave = sum(times)/len(times)
+        data = results[test_name]
+        rps = count / array(data)
+        rps_mean = tmean(rps)
+        rps_var = tvar(rps)
+        low, high = norm.interval(0.95, loc=rps_mean, scale=rps_var**0.5)
+        times = array(data) * 1000000 / count
+        times_mean = tmean(times)
+        times_stdev = tstd(times)
         print('Results for', test_name)
-        print('RPS: {:d},\t average: {:.3f} ms'.format(int(count/ave),
-                                                       ave*1000/count))
+        print('RPS: {:d}: [{:d}, {:d}],\tmean: {:.3f} μs,'
+              '\tstandard deviation {:.3f} μs'
+              .format(int(rps_mean),
+                      int(low),
+                      int(high),
+                      times_mean,
+                      times_stdev))
         if verbose:
             print('    from', times)
         print()
