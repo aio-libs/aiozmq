@@ -11,7 +11,7 @@ import time
 import zmq
 
 from scipy.stats import norm, tmean, tvar, tstd
-from numpy import array
+from numpy import array, arange
 
 
 def test_raw_zmq(count):
@@ -221,6 +221,10 @@ ARGS.add_argument(
     '-t', '--tries', action="store",
     nargs='?', type=int, default=30, help='count of tries')
 ARGS.add_argument(
+    '-p', '--plot-file-name', action="store",
+    nargs=1, type=str, default=None,
+    dest='plot_file_name', help='file name for plot')
+ARGS.add_argument(
     '-v', '--verbose', action="count",
     help='verbosity level')
 ARGS.add_argument(
@@ -253,8 +257,14 @@ def run_tests(tries, count, use_multiprocessing, funcs):
     return results
 
 
-def print_results(count, results, verbose):
+def print_and_plot_results(count, results, verbose, plot_file_name):
     print("RPS calculated as 95% confidence interval")
+
+    rps_mean_ar = []
+    low_ar = []
+    high_ar = []
+    test_name_ar = []
+
     for test_name in sorted(results):
         data = results[test_name]
         rps = count / array(data)
@@ -272,9 +282,38 @@ def print_results(count, results, verbose):
                       int(high),
                       times_mean,
                       times_stdev))
+
+        test_name_ar.append(test_name)
+        rps_mean_ar.append(rps_mean)
+        low_ar.append(low)
+        high_ar.append(high)
+
         if verbose:
             print('    from', times)
         print()
+
+
+    if plot_file_name is not None:
+        import matplotlib.pyplot as plt
+        from matplotlib import cm
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        L = len(rps_mean_ar)
+        color = [cm.autumn(float(c) / (L - 1)) for c in arange(L)]
+        bars = ax.bar(
+            arange(L), rps_mean_ar,
+            color=color, yerr=(low_ar, high_ar), ecolor='k')
+        # order of legend is reversed for visual appeal
+        ax.legend(
+            reversed(bars), reversed(test_name_ar),
+            loc='upper left')
+        ax.get_xaxis().set_visible(False)
+        plt.ylabel('Requets per Second', fontsize=16)
+        print(plot_file_name)
+        plt.savefig(plot_file_name, dpi=96)
+        print("Plot is saved to {}".format(plot_file_name))
+        if verbose:
+            plt.show()
 
 
 def main(argv):
@@ -283,6 +322,7 @@ def main(argv):
     count = args.count
     tries = args.tries
     verbose = args.verbose
+    plot_file_name = args.plot_file_name[0]
     use_multiprocessing = args.use_multiprocessing
 
     res = run_tests(tries, count, use_multiprocessing,
@@ -292,7 +332,7 @@ def main(argv):
 
     print()
 
-    print_results(count, res, verbose)
+    print_and_plot_results(count, res, verbose, plot_file_name)
 
 
 if __name__ == '__main__':
