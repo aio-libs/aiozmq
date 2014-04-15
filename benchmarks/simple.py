@@ -12,6 +12,8 @@ import zmq
 
 from scipy.stats import norm, tmean, tvar, tstd
 from numpy import array, arange
+import matplotlib.pyplot as plt
+from matplotlib import cm
 
 
 def test_raw_zmq(count):
@@ -34,6 +36,9 @@ def test_raw_zmq(count):
         dealer.recv_multipart()
     t2 = time.monotonic()
     gc.collect()
+    router.close()
+    dealer.close()
+    ctx.destroy()
     return t2 - t1
 
 
@@ -70,6 +75,9 @@ def test_zmq_with_poller(count):
         dealer.recv_multipart(zmq.NOBLOCK)
     t2 = time.monotonic()
     gc.collect()
+    router.close()
+    dealer.close()
+    ctx.destroy()
     return t2 - t1
 
 
@@ -90,6 +98,8 @@ def test_zmq_with_thread(count):
             addr, m1, m2 = router.recv_multipart()
             router.send_multipart((addr, m1, m2))
 
+        router.close()
+
     th = threading.Thread(target=router_thread)
     th.start()
     gc.collect()
@@ -100,6 +110,8 @@ def test_zmq_with_thread(count):
     t2 = time.monotonic()
     gc.collect()
     th.join()
+    dealer.close()
+    ctx.destroy()
     return t2 - t1
 
 
@@ -222,7 +234,7 @@ ARGS.add_argument(
     nargs='?', type=int, default=30, help='count of tries')
 ARGS.add_argument(
     '-p', '--plot-file-name', action="store",
-    nargs=1, type=str, default=None,
+    type=str, default=None,
     dest='plot_file_name', help='file name for plot')
 ARGS.add_argument(
     '-v', '--verbose', action="count",
@@ -261,8 +273,7 @@ def print_and_plot_results(count, results, verbose, plot_file_name):
     print("RPS calculated as 95% confidence interval")
 
     rps_mean_ar = []
-    low_ar = []
-    high_ar = []
+    rps_err_ar = []
     test_name_ar = []
 
     for test_name in sorted(results):
@@ -285,8 +296,7 @@ def print_and_plot_results(count, results, verbose, plot_file_name):
 
         test_name_ar.append(test_name)
         rps_mean_ar.append(rps_mean)
-        low_ar.append(low)
-        high_ar.append(high)
+        rps_err_ar.append(rps_var ** 0.5)
 
         if verbose:
             print('    from', times)
@@ -294,22 +304,19 @@ def print_and_plot_results(count, results, verbose, plot_file_name):
 
 
     if plot_file_name is not None:
-        import matplotlib.pyplot as plt
-        from matplotlib import cm
         fig = plt.figure()
         ax = fig.add_subplot(111)
         L = len(rps_mean_ar)
         color = [cm.autumn(float(c) / (L - 1)) for c in arange(L)]
         bars = ax.bar(
             arange(L), rps_mean_ar,
-            color=color, yerr=(low_ar, high_ar), ecolor='k')
+            color=color, yerr=rps_err_ar, ecolor='k')
         # order of legend is reversed for visual appeal
         ax.legend(
             reversed(bars), reversed(test_name_ar),
-            loc='upper left')
+            loc='upper left', framealpha=0.5)
         ax.get_xaxis().set_visible(False)
         plt.ylabel('Requets per Second', fontsize=16)
-        print(plot_file_name)
         plt.savefig(plot_file_name, dpi=96)
         print("Plot is saved to {}".format(plot_file_name))
         if verbose:
@@ -322,7 +329,7 @@ def main(argv):
     count = args.count
     tries = args.tries
     verbose = args.verbose
-    plot_file_name = args.plot_file_name[0]
+    plot_file_name = args.plot_file_name
     use_multiprocessing = args.use_multiprocessing
 
     res = run_tests(tries, count, use_multiprocessing,
