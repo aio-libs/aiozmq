@@ -18,7 +18,7 @@ else:
 tests_require = install_requires + ['msgpack-python>=0.4.0']
 
 extras_require = {'rpc': ['msgpack-python>=0.4.0'],
-                  'bench': ['numpy>=1.8', 'scipy>=0.13']}
+                  'bench': ['numpy>=1.8', 'scipy>=0.13', 'matplotlib>=1.3']}
 
 
 def read(f):

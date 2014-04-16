@@ -275,6 +275,7 @@ def print_and_plot_results(count, results, verbose, plot_file_name):
     rps_mean_ar = []
     rps_err_ar = []
     test_name_ar = []
+    rps_degree_of_freedoms = []
 
     for test_name in sorted(results):
         data = results[test_name]
@@ -296,7 +297,7 @@ def print_and_plot_results(count, results, verbose, plot_file_name):
 
         test_name_ar.append(test_name)
         rps_mean_ar.append(rps_mean)
-        rps_err_ar.append(rps_var ** 0.5)
+        rps_err_ar.append(high - rps_mean)
 
         if verbose:
             print('    from', times)
