@@ -225,6 +225,11 @@ def test_aiozmq_rpc(count):
     return loop.run_until_complete(go())
 
 
+avail_tests = {f.__name__: f for f in [test_raw_zmq, test_zmq_with_poller,
+                                       test_aiozmq_rpc, test_core_aiozmq,
+                                       test_zmq_with_thread]}
+
+
 ARGS = argparse.ArgumentParser(description="Run benchmark.")
 ARGS.add_argument(
     '-n', '--count', action="store",
@@ -243,6 +248,10 @@ ARGS.add_argument(
     '--without-multiprocessing', action="store_false", default=True,
     dest='use_multiprocessing',
     help="don't use multiprocessing")
+ARGS.add_argument(
+    dest='tests', type=str,
+    nargs='*', help='tests, {} by default'.format(
+        list(sorted(avail_tests))))
 
 
 def run_tests(tries, count, use_multiprocessing, funcs):
@@ -331,11 +340,13 @@ def main(argv):
     verbose = args.verbose
     plot_file_name = args.plot_file_name
     use_multiprocessing = args.use_multiprocessing
+    tests = args.tests
+    if tests:
+        tests = [avail_tests[t] for t in tests]
+    else:
+        tests = avail_tests.values()
 
-    res = run_tests(tries, count, use_multiprocessing,
-                    [test_raw_zmq, test_zmq_with_poller,
-                     test_aiozmq_rpc, test_core_aiozmq,
-                     test_zmq_with_thread])
+    res = run_tests(tries, count, use_multiprocessing, tests)
 
     print()
 
