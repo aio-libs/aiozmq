@@ -275,7 +275,6 @@ def print_and_plot_results(count, results, verbose, plot_file_name):
     rps_mean_ar = []
     rps_err_ar = []
     test_name_ar = []
-    rps_degree_of_freedoms = []
 
     for test_name in sorted(results):
         data = results[test_name]
