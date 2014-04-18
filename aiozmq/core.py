@@ -179,7 +179,7 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         except Exception as exc:
             self._fatal_error(exc, 'Fatal read error on zmq socket transport')
         else:
-            self._protocol.msg_received(tuple(data))
+            self._protocol.msg_received(data)
 
     def write(self, data):
         if not data:

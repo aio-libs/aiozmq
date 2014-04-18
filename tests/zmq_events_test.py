@@ -38,7 +38,7 @@ class Protocol(aiozmq.ZmqProtocol):
         pass
 
     def msg_received(self, data):
-        assert isinstance(data, tuple), data
+        assert isinstance(data, list), data
         assert self.state == 'CONNECTED', self.state
         self.received.put_nowait(data)
 
@@ -83,10 +83,10 @@ class ZmqEventLoopTests(unittest.TestCase):
         def communicate():
             tr1.write([b'request'])
             request = yield from pr2.received.get()
-            self.assertEqual((b'request',), request)
+            self.assertEqual([b'request'], request)
             tr2.write([b'answer'])
             answer = yield from pr1.received.get()
-            self.assertEqual((b'answer',), answer)
+            self.assertEqual([b'answer'], answer)
 
         self.loop.run_until_complete(communicate())
 
@@ -134,7 +134,7 @@ class ZmqEventLoopTests(unittest.TestCase):
         def communicate():
             tr1.write([b'node_id', b'publish'])
             request = yield from pr2.received.get()
-            self.assertEqual((b'node_id', b'publish'), request)
+            self.assertEqual([b'node_id', b'publish'], request)
 
         # Sorry, sleep is required to get rid of sporadic hangs
         # without that 0MQ not always establishes tcp connection
@@ -200,10 +200,10 @@ class ZmqEventLoopTests(unittest.TestCase):
         def communicate():
             tr1.write([b'request'])
             request = yield from pr2.received.get()
-            self.assertEqual((mock.ANY, b'request',), request)
+            self.assertEqual([mock.ANY, b'request'], request)
             tr2.write([request[0], b'answer'])
             answer = yield from pr1.received.get()
-            self.assertEqual((b'answer',), answer)
+            self.assertEqual([b'answer'], answer)
 
         self.loop.run_until_complete(communicate())
 
