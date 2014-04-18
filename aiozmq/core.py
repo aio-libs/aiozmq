@@ -189,8 +189,6 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
                 raise TypeError('data argument must be iterable of '
                                 'byte-ish (%r)' % data)
         data_len = sum(len(part) for part in data)
-        if not data_len:
-            return
 
         if not self._buffer:
             try:
