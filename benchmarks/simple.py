@@ -311,7 +311,6 @@ def print_and_plot_results(count, results, verbose, plot_file_name):
             print('    from', times)
         print()
 
-
     if plot_file_name is not None:
         fig = plt.figure()
         ax = fig.add_subplot(111)
