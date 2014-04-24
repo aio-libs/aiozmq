@@ -889,7 +889,7 @@ Clases
    Class that returned by :func:`connect_pubsub` call. Inherited from
    :class:`Service`.
 
-   For *pubsub* calls use :attr:`~RPCClient.publish` method.
+   For *pubsub* calls use :meth:`~RPCClient.publish` method.
 
    .. method:: publish(topic)
 
