@@ -319,7 +319,7 @@ class ZmqEventLoopTests(unittest.TestCase):
 
         with self.assertRaises(OSError) as ctx:
             self.loop.run_until_complete(connect())
-        self.assertEqual(errno.ENOTSUP, ctx.exception.errno)
+        self.assertTrue(ctx.exception.errno in (errno.ENOTSUP, errno.ENOTSOCK))
 
     def test_create_zmq_connection_invalid_bind(self):
 
