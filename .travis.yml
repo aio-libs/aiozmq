@@ -20,8 +20,6 @@ script:
   - python runtests.py -v
 
 env:
-  global:
-    - PYTHON=python
   matrix:
     - USE_MSGPACK=1
     - USE_MSGPACK=0
