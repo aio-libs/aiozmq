@@ -194,3 +194,21 @@ class ZmqStreamTests(unittest.TestCase):
             self.assertFalse(s2._paused)
 
         self.loop.run_until_complete(go())
+
+    def test_set_exception(self):
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_connection(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:*',
+                loop=self.loop)
+
+            exc = RuntimeError('some exc')
+            s1.set_exception(exc)
+            self.assertIs(exc, s1.exception())
+
+            with self.assertRaisesRegex(RuntimeError, 'some exc'):
+                yield from s1.read()
+
+        self.loop.run_until_complete(go())
