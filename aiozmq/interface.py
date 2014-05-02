@@ -71,6 +71,14 @@ class ZmqTransport(BaseTransport):
         """Return the current size of the write buffer."""
         raise NotImplementedError
 
+    def pause_reading(self):
+        """Pause reading."""
+        raise NotImplementedError
+
+    def resume_reading(self):
+        """Resume reading."""
+        raise NotImplementedError
+
     def bind(self, endpoint):
         """Bind transpot to endpoint.
 

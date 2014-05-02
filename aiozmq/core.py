@@ -327,6 +327,12 @@ class _ZmqTransportImpl(ZmqTransport):
         self._set_write_buffer_limits(high=high, low=low)
         self._maybe_pause_protocol()
 
+    def pause_reading(self):
+        self._loop.remove_reader(self._zmq_sock)
+
+    def resume_reading(self):
+        self._loop.add_reader(self._zmq_sock, self._read_ready)
+
     def getsockopt(self, option):
         while True:
             try:

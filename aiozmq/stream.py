@@ -211,13 +211,13 @@ class ZmqStream:
 
         msg_len = sum(len(i) for i in msg)
         self._queue.append((msg_len, msg))
+        self._queue_len += msg_len
 
         waiter = self._waiter
         if waiter is not None:
             self._waiter = None
             if not waiter.cancelled():
                 waiter.set_result(None)
-
         if (self._transport is not None and
                 not self._paused and
                 self._queue_len > self._high_water):

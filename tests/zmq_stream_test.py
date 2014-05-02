@@ -65,13 +65,12 @@ class ZmqStreamTests(unittest.TestCase):
         self.loop.run_until_complete(go())
 
     def test_transport(self):
-        port = find_unused_port()
 
         @asyncio.coroutine
         def go():
             s1 = yield from aiozmq.create_zmq_connection(
                 zmq.DEALER,
-                bind='tcp://127.0.0.1:{}'.format(port),
+                bind='tcp://127.0.0.1:*',
                 loop=self.loop)
 
             self.assertIsInstance(s1.transport, aiozmq.ZmqTransport)
@@ -83,13 +82,12 @@ class ZmqStreamTests(unittest.TestCase):
         self.loop.run_until_complete(go())
 
     def test_get_extra_info(self):
-        port = find_unused_port()
 
         @asyncio.coroutine
         def go():
             s1 = yield from aiozmq.create_zmq_connection(
                 zmq.DEALER,
-                bind='tcp://127.0.0.1:{}'.format(port),
+                bind='tcp://127.0.0.1:*',
                 loop=self.loop)
 
             self.assertIsInstance(s1.get_extra_info('zmq_socket'),
@@ -98,6 +96,79 @@ class ZmqStreamTests(unittest.TestCase):
         self.loop.run_until_complete(go())
 
     def test_exception(self):
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_connection(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:*',
+                loop=self.loop)
+
+            self.assertIsNone(s1.exception())
+
+        self.loop.run_until_complete(go())
+
+    def test_default_loop(self):
+        asyncio.set_event_loop(self.loop)
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_connection(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:*')
+
+            s1.close()
+
+        self.loop.run_until_complete(go())
+
+    def test_set_read_buffer_limits1(self):
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_connection(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:*',
+                loop=self.loop)
+
+            s1.set_read_buffer_limits(low=10)
+            self.assertEqual(10, s1._low_water)
+            self.assertEqual(40, s1._high_water)
+
+            s1.close()
+
+        self.loop.run_until_complete(go())
+
+    def test_set_read_buffer_limits2(self):
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_connection(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:*',
+                loop=self.loop)
+
+            s1.set_read_buffer_limits(high=60)
+            self.assertEqual(15, s1._low_water)
+            self.assertEqual(60, s1._high_water)
+
+            s1.close()
+
+        self.loop.run_until_complete(go())
+
+    def test_set_read_buffer_limits3(self):
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_connection(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:*',
+                loop=self.loop)
+
+            with self.assertRaises(ValueError):
+                s1.set_read_buffer_limits(high=1, low=2)
+
+            s1.close()
+
+        self.loop.run_until_complete(go())
+
+    def test_pause_reading(self):
         port = find_unused_port()
 
         @asyncio.coroutine
@@ -107,6 +178,19 @@ class ZmqStreamTests(unittest.TestCase):
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
 
-            self.assertIsNone(s1.exception())
+            s2 = yield from aiozmq.create_zmq_connection(
+                zmq.ROUTER,
+                connect='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+
+            s2.set_read_buffer_limits(high=5)
+            s1.write([b'request'])
+
+            yield from asyncio.sleep(0.01, loop=self.loop)
+            self.assertTrue(s2._paused)
+
+            msg = yield from s2.read()
+            self.assertEqual([mock.ANY, b'request'], msg)
+            self.assertFalse(s2._paused)
 
         self.loop.run_until_complete(go())
