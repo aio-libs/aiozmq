@@ -26,7 +26,7 @@ class TransportTests(unittest.TestCase):
 
     def test_empty_write(self):
         self.tr.write([b''])
-        self.assertFalse(self.sock.send_multipart.called)
+        self.assertTrue(self.sock.send_multipart.called)
         self.assertFalse(self.proto.pause_writing.called)
         self.assertFalse(self.tr._buffer)
         self.assertEqual(0, self.tr._buffer_size)

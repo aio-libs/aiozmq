@@ -2,12 +2,11 @@ language: python
 
 python:
   - "3.3"
-  # - "3.4"
+  - "3.4"
 
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq libzmq3-dev
-  # - sudo apt-get install python3.4
 
 install:
   - python setup.py install
@@ -16,13 +15,11 @@ install:
   - pip install pep8
 
 script:
-  - pep8 aiozmq examples tests
+  - pep8 aiozmq examples tests benchmarks
   - pyflakes .
   - python runtests.py -v
 
 env:
-  global:
-    - PYTHON=python
   matrix:
     - USE_MSGPACK=1
     - USE_MSGPACK=0

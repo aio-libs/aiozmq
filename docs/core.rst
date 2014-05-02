@@ -431,7 +431,7 @@ ZmqProtocol
 
       Called when some ZeroMQ message is received.
 
-      :param tuple data: the multipart tuple of bytes with at least one item.
+      :param list data: the multipart list of bytes with at least one item.
 
 
 ZmqEventLoopPolicy
@@ -443,7 +443,8 @@ In this policy, each thread has its own event loop.  However, we only
 automatically create an event loop by default for the main thread;
 other threads by default have no event loop.
 
-:class:`ZmqEventLoopPolicy` implements an :class:`asyncio.AbstractEventLoopPolicy` interface.
+:class:`ZmqEventLoopPolicy` implements an
+:class:`asyncio.AbstractEventLoopPolicy` interface.
 
 .. class:: ZmqEventLoopPolicy(*, io_threads=1)
 

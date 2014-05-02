@@ -165,7 +165,7 @@ class PipelineTests(unittest.TestCase):
                 ret = yield from self.err_queue.get()
                 self.assertEqual(logging.ERROR, ret.levelno)
                 self.assertEqual("An exception from method %r "
-                                 "call has been occurred.\n"
+                                 "call occurred.\n"
                                  "args = %s\nkwargs = %s\n", ret.msg)
                 self.assertEqual(('func_error', '()', '{}'),
                                  ret.args)

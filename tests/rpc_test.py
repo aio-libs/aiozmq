@@ -387,7 +387,7 @@ class RpcTests(unittest.TestCase):
                 ret = yield from self.err_queue.get()
                 self.assertEqual(logging.CRITICAL, ret.levelno)
                 self.assertEqual("Cannot unpack %r", ret.msg)
-                self.assertEqual(((mock.ANY, b'invalid', b'structure'),),
+                self.assertEqual(([mock.ANY, b'invalid', b'structure'],),
                                  ret.args)
                 self.assertIsNotNone(ret.exc_info)
 
@@ -417,7 +417,7 @@ class RpcTests(unittest.TestCase):
                 self.assertEqual(logging.CRITICAL, ret.levelno)
                 self.assertEqual("Cannot unpack %r", ret.msg)
                 self.assertEqual(
-                    ((mock.ANY, mock.ANY, b'bad args', b'bad_kwargs'),),
+                    ([mock.ANY, mock.ANY, b'bad args', b'bad_kwargs'],),
                     ret.args)
                 self.assertIsNotNone(ret.exc_info)
 
@@ -447,7 +447,7 @@ class RpcTests(unittest.TestCase):
                 self.assertEqual(logging.CRITICAL, ret.levelno)
                 self.assertEqual("Cannot unpack %r", ret.msg)
                 self.assertEqual(
-                    ((mock.ANY, mock.ANY, mock.ANY, b'bad_kwargs'),),
+                    ([mock.ANY, mock.ANY, mock.ANY, b'bad_kwargs'],),
                     ret.args)
                 self.assertIsNotNone(ret.exc_info)
 
@@ -476,7 +476,7 @@ class RpcTests(unittest.TestCase):
                 self.assertEqual(logging.CRITICAL, ret.levelno)
                 self.assertEqual("Cannot unpack %r", ret.msg)
                 self.assertEqual(
-                    ((b'invalid', b'structure'),),
+                    ([b'invalid', b'structure'],),
                     ret.args)
                 self.assertIsNotNone(ret.exc_info)
 
@@ -505,7 +505,7 @@ class RpcTests(unittest.TestCase):
                 self.assertEqual(logging.CRITICAL, ret.levelno)
                 self.assertEqual("Cannot unpack %r", ret.msg)
                 self.assertEqual(
-                    ((mock.ANY, b'bad_answer'),),
+                    ([mock.ANY, b'bad_answer'],),
                     ret.args)
                 self.assertIsNotNone(ret.exc_info)
 
@@ -569,7 +569,7 @@ class RpcTests(unittest.TestCase):
                 ret = yield from self.err_queue.get()
                 self.assertEqual(logging.ERROR, ret.levelno)
                 self.assertEqual('An exception from method %r '
-                                 'call has been occurred.\n'
+                                 'call occurred.\n'
                                  'args = %s\nkwargs = %s\n', ret.msg)
                 self.assertEqual(
                     ('exc', '(1,)', '{}'),

@@ -1,14 +1,20 @@
 CHANGES
 -------
 
-0.2.0 (XXXX-XX-XX)
+0.2.0 (2014-04-18)
 ^^^^^^^^^^^^^^^^^^
+
+* msg in msg_received now is a list, not tuple
+
+* Allow to send empty msg by trsansport.write()
+
+* Add benchmarks
 
 * Derive ServiceClosedError from aiozmq.rpc.Error, not Exception
 
 * Implement logging from remote calls at server side (log_exceptions parameter).
 
-* Optimize bytes counting in ZmqTransport.
+* Optimize byte counting in ZmqTransport.
 
 0.1.3 (2014-04-10)
 ^^^^^^^^^^^^^^^^^^
