@@ -216,6 +216,24 @@ ZmqTransport
 
       Return the current size of the write buffer.
 
+   .. method:: pause_reading()
+
+      Pause the receiving end.
+
+      No data will be passed to the protocol's :meth:`ZmqProtocol.msg_received`
+      method until :meth:`ZmqTransport.resume_reading` is called.
+
+      .. seealso:: :meth:`ZmqTransport.resume_reading` method.
+
+   .. method:: resume_reading()
+
+      Resume the receiving end.
+
+      Data received will once again be passed to the protocol's
+      :meth:`ZmqProtocol.msg_received` method.
+
+      .. seealso:: :meth:`ZmqTransport.pause_reading` method.
+
    .. method:: bind(endpoint)
 
       Bind transpot to :term:`endpoint`.
