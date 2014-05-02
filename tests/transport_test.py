@@ -370,3 +370,17 @@ class TransportTests(unittest.TestCase):
         self.tr.unsubscribe(b'val')
         self.assertFalse(self.tr.subscriptions())
         self.sock.setsockopt.assert_called_with(zmq.UNSUBSCRIBE, b'val')
+
+    def test__set_write_buffer_limits1(self):
+        self.tr.set_write_buffer_limits(low=10)
+        self.assertEqual(10, self.tr._low_water)
+        self.assertEqual(40, self.tr._high_water)
+
+    def test__set_write_buffer_limits2(self):
+        self.tr.set_write_buffer_limits(high=60)
+        self.assertEqual(15, self.tr._low_water)
+        self.assertEqual(60, self.tr._high_water)
+
+    def test__set_write_buffer_limits3(self):
+        with self.assertRaises(ValueError):
+            self.tr.set_write_buffer_limits(high=1, low=2)

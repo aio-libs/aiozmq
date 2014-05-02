@@ -33,10 +33,10 @@ class ZmqStreamTests(unittest.TestCase):
 
             s1.write([b'request'])
             req = yield from s2.read()
-            self.assertEqual((mock.ANY, b'request',), req)
+            self.assertEqual([mock.ANY, b'request'], req)
             s2.write([req[0], b'answer'])
             answer = yield from s1.read()
-            self.assertEqual((b'answer',), answer)
+            self.assertEqual([b'answer'], answer)
 
         self.loop.run_until_complete(go())
 
