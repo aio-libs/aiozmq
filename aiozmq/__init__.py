@@ -1,11 +1,12 @@
-from collections import namedtuple
 import re
 import sys
+from collections import namedtuple
+
 import zmq
 
-from .selector import ZmqSelector
 from .core import ZmqEventLoop, ZmqEventLoopPolicy
 from .interface import ZmqTransport, ZmqProtocol
+from .selector import ZmqSelector
 from .stream import (ZmqStream, ZmqStreamProtocol, ZmqStreamClosed,
                      create_zmq_connection)
 

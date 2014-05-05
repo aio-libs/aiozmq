@@ -1,9 +1,9 @@
 import asyncio
-import zmq
-from functools import partial
 from collections import Iterable
+from functools import partial
 
-from .log import logger
+import zmq
+
 from .base import (
     NotFoundError,
     ParametersError,
@@ -11,6 +11,7 @@ from .base import (
     _BaseProtocol,
     _BaseServerProtocol,
     )
+from .log import logger
 
 
 @asyncio.coroutine

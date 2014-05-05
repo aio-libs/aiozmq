@@ -1,16 +1,15 @@
-import asyncio
 import asyncio.events
 import errno
 import re
 import threading
-import zmq
-
 from asyncio.unix_events import SelectorEventLoop, SafeChildWatcher
 from collections import deque, Iterable, Set
 from ipaddress import ip_address
 
-from .selector import ZmqSelector
+import zmq
+
 from .interface import ZmqTransport
+from .selector import ZmqSelector
 
 
 __all__ = ['ZmqEventLoop', 'ZmqEventLoopPolicy']

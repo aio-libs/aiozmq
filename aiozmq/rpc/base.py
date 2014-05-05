@@ -3,12 +3,11 @@ import asyncio
 import inspect
 import pprint
 import textwrap
-
-from aiozmq import interface
 from types import MethodType
 
-from .packer import _Packer
 from .log import logger
+from .packer import _Packer
+from aiozmq import interface
 
 
 class Error(Exception):

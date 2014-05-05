@@ -1,9 +1,7 @@
 import asyncio
-import zmq
-
 from functools import partial
 
-from .log import logger
+import zmq
 
 from .base import (
     NotFoundError,
@@ -12,6 +10,7 @@ from .base import (
     _BaseProtocol,
     _BaseServerProtocol,
     )
+from .log import logger
 from .util import (
     _MethodCall,
     )
