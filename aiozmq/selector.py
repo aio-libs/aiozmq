@@ -1,19 +1,20 @@
 """ZMQ pooler for asyncio."""
+import math
+from collections import Mapping
+from errno import EINTR
+
+from zmq import (ZMQError, POLLIN, POLLOUT, POLLERR,
+                 Socket as ZMQSocket, Poller as ZMQPoller)
 
 
 __all__ = ['ZmqSelector']
 
-import math
 
 try:
     from asyncio.selectors import (BaseSelector, SelectorKey,
                                    EVENT_READ, EVENT_WRITE)
 except ImportError:  # pragma: no cover
     from selectors import BaseSelector, SelectorKey, EVENT_READ, EVENT_WRITE
-from collections import Mapping
-from errno import EINTR
-from zmq import (ZMQError, POLLIN, POLLOUT, POLLERR,
-                 Socket as ZMQSocket, Poller as ZMQPoller)
 
 
 def _fileobj_to_fd(fileobj):
