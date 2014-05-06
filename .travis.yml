@@ -13,11 +13,13 @@ install:
   - test $USE_MSGPACK == 1 && pip install msgpack-python || true
   - pip install pyflakes
   - pip install pep8
+  - pip install docutils
 
 script:
   - pep8 aiozmq examples tests benchmarks
   - pyflakes .
   - python runtests.py -v
+  - python setup.py check -rms
 
 env:
   matrix:

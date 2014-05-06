@@ -13,3 +13,4 @@ tornado>=3.2
 wheel>=0.23.0
 coverage>=3.7
 ipdb>=0.8
+docutils>=0.11
