@@ -241,6 +241,7 @@ class _ServerProtocol(_BaseServerProtocol):
         else:
             if asyncio.iscoroutinefunction(func):
                 fut = asyncio.async(func(*args, **kwargs), loop=self.loop)
+                self.pending_waiters.add(fut)
             else:
                 fut = asyncio.Future(loop=self.loop)
                 try:
@@ -257,6 +258,7 @@ class _ServerProtocol(_BaseServerProtocol):
     def process_call_result(self, fut, *, req_id, peer, name,
                             args, kwargs,
                             return_annotation=None):
+        self.pending_waiters.discard(fut)
         self.try_log(fut, name, args, kwargs)
         try:
             ret = fut.result()
@@ -265,6 +267,8 @@ class _ServerProtocol(_BaseServerProtocol):
             prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
                                                          time.time(), False)
             self.transport.write([peer, prefix, self.packer.packb(ret)])
+        except asyncio.CancelledError:
+            return
         except Exception as exc:
             prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
                                                          time.time(), True)

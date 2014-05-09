@@ -121,6 +121,7 @@ class _ServerProtocol(_BaseServerProtocol):
         else:
             if asyncio.iscoroutinefunction(func):
                 fut = asyncio.async(func(*args, **kwargs), loop=self.loop)
+                self.pending_waiters.add(fut)
             else:
                 fut = asyncio.Future(loop=self.loop)
                 try:
@@ -131,10 +132,13 @@ class _ServerProtocol(_BaseServerProtocol):
                                       name=name, args=args, kwargs=kwargs))
 
     def process_call_result(self, fut, *, name, args, kwargs):
+        self.pending_waiters.discard(fut)
         try:
             if fut.result() is not None:
                 logger.warning("Pipeline handler %r returned not None", name)
         except (NotFoundError, ParametersError) as exc:
             logger.exception("Call to %r caused error: %r", name, exc)
+        except asyncio.CancelledError:
+            return
         except Exception:
             self.try_log(fut, name, args, kwargs)

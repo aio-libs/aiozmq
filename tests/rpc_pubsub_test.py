@@ -10,9 +10,10 @@ from aiozmq._test_util import find_unused_port, log_hook
 
 class MyHandler(aiozmq.rpc.AttrHandler):
 
-    def __init__(self, queue):
+    def __init__(self, queue, loop):
         super().__init__()
         self.queue = queue
+        self.loop = loop
 
     @aiozmq.rpc.method
     @asyncio.coroutine
@@ -36,6 +37,13 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     def suspicious(self, arg: int):
         self.queue.put_nowait(arg + 1)
         return 3
+
+    @aiozmq.rpc.method
+    @asyncio.coroutine
+    def fut(self):
+        f = asyncio.Future(loop=self.loop)
+        yield from self.queue.put(f)
+        yield from f
 
 
 class PubSubTests(unittest.TestCase):
@@ -74,7 +82,7 @@ class PubSubTests(unittest.TestCase):
         @asyncio.coroutine
         def create():
             server = yield from aiozmq.rpc.serve_pubsub(
-                MyHandler(self.queue),
+                MyHandler(self.queue, self.loop),
                 subscribe=subscribe,
                 bind='tcp://*:*',
                 loop=self.loop,
@@ -239,7 +247,7 @@ class PubSubTests(unittest.TestCase):
         @asyncio.coroutine
         def go():
             server = yield from aiozmq.rpc.serve_pubsub(
-                MyHandler(self.queue),
+                MyHandler(self.queue, self.loop),
                 bind='tcp://*:*',
                 loop=self.loop)
             self.assertRaises(TypeError, server.subscribe, 123)
@@ -250,7 +258,7 @@ class PubSubTests(unittest.TestCase):
         @asyncio.coroutine
         def go():
             server = yield from aiozmq.rpc.serve_pubsub(
-                MyHandler(self.queue),
+                MyHandler(self.queue, self.loop),
                 bind='tcp://*:*',
                 loop=self.loop)
             self.assertRaises(TypeError, server.subscribe, 123)
@@ -278,7 +286,7 @@ class PubSubTests(unittest.TestCase):
         @asyncio.coroutine
         def create():
             server = yield from aiozmq.rpc.serve_pubsub(
-                MyHandler(queue),
+                MyHandler(queue, self.loop),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=None,
                 subscribe='topic')
@@ -362,5 +370,23 @@ class PubSubTests(unittest.TestCase):
             yield from client.wait_closed()
             with self.assertRaises(aiozmq.rpc.ServiceClosedError):
                 yield from client.publish('ab').func()
+
+        self.loop.run_until_complete(communicate())
+
+    def test_server_close(self):
+        client, server = self.make_pubsub_pair('my-topic')
+
+        @asyncio.coroutine
+        def communicate():
+            client.publish('my-topic').fut()
+            fut = yield from self.queue.get()
+            self.assertEqual(1, len(server._proto.pending_waiters))
+            task = next(iter(server._proto.pending_waiters))
+            self.assertIsInstance(task, asyncio.Task)
+            server.close()
+            yield from server.wait_closed()
+            yield from asyncio.sleep(0, loop=self.loop)
+            self.assertEqual(0, len(server._proto.pending_waiters))
+            fut.cancel()
 
         self.loop.run_until_complete(communicate())
