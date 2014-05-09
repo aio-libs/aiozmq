@@ -56,6 +56,18 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     def slow_call(self):
         yield from asyncio.sleep(0.2, loop=self.loop)
 
+    @aiozmq.rpc.method
+    @asyncio.coroutine
+    def fut(self):
+        return asyncio.Future(loop=self.loop)
+
+    @aiozmq.rpc.method
+    @asyncio.coroutine
+    def cancelled_fut(self):
+        ret = asyncio.Future(loop=self.loop)
+        ret.cancel()
+        return ret
+
 
 class Protocol(aiozmq.ZmqProtocol):
 
@@ -575,6 +587,49 @@ class RpcTests(unittest.TestCase):
                     ('exc', '(1,)', '{}'),
                     ret.args)
                 self.assertIsNotNone(ret.exc_info)
+
+        self.loop.run_until_complete(communicate())
+
+    def test_call_closed_rpc(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            client.close()
+            yield from client.wait_closed()
+            with self.assertRaises(aiozmq.rpc.ServiceClosedError):
+                yield from client.call.func()
+
+        self.loop.run_until_complete(communicate())
+
+    def test_call_closed_rpc_cancelled(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            waiter = client.call.func()
+            client.close()
+            yield from client.wait_closed()
+            with self.assertRaises(asyncio.CancelledError):
+                yield from waiter
+
+        self.loop.run_until_complete(communicate())
+
+    def test_server_close(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            waiter = client.call.fut()
+            yield from asyncio.sleep(0.0001, loop=self.loop)
+            self.assertEqual(1, len(server._proto.pending_waiters))
+            task = next(iter(server._proto.pending_waiters))
+            self.assertIsInstance(task, asyncio.Task)
+            server.close()
+            yield from server.wait_closed()
+            yield from asyncio.sleep(0, loop=self.loop)
+            self.assertEqual(0, len(server._proto.pending_waiters))
+            del waiter
 
         self.loop.run_until_complete(communicate())
 

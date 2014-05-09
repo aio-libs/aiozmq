@@ -157,6 +157,13 @@ class _BaseServerProtocol(_BaseProtocol):
             raise TypeError('handler must implement AbstractHandler ABC')
         self.handler = handler
         self.log_exceptions = log_exceptions
+        self.pending_waiters = set()
+
+    def connection_lost(self, exc):
+        super().connection_lost(exc)
+        for waiter in list(self.pending_waiters):
+            if not waiter.cancelled():
+                waiter.cancel()
 
     def dispatch(self, name):
         if not name:

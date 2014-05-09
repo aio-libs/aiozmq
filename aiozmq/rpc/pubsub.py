@@ -8,6 +8,7 @@ from .base import (
     NotFoundError,
     ParametersError,
     Service,
+    ServiceClosedError,
     _BaseProtocol,
     _BaseServerProtocol,
     )
@@ -89,6 +90,8 @@ def serve_pubsub(handler, *, subscribe=None, connect=None, bind=None,
 class _ClientProtocol(_BaseProtocol):
 
     def call(self, topic, name, args, kwargs):
+        if self.transport is None:
+            raise ServiceClosedError()
         if topic is None:
             btopic = b''
         elif isinstance(topic, str):
@@ -193,6 +196,7 @@ class _ServerProtocol(_BaseServerProtocol):
         else:
             if asyncio.iscoroutinefunction(func):
                 fut = asyncio.async(func(*args, **kwargs), loop=self.loop)
+                self.pending_waiters.add(fut)
             else:
                 fut = asyncio.Future(loop=self.loop)
                 try:
@@ -203,9 +207,12 @@ class _ServerProtocol(_BaseServerProtocol):
                                       name=name, args=args, kwargs=kwargs))
 
     def process_call_result(self, fut, *, name, args, kwargs):
+        self.pending_waiters.discard(fut)
         try:
             if fut.result() is not None:
                 logger.warning("PubSub handler %r returned not None", name)
+        except asyncio.CancelledError:
+            return
         except (NotFoundError, ParametersError) as exc:
             logger.exception("Call to %r caused error: %r", name, exc)
         except Exception:
