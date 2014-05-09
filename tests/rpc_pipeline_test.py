@@ -210,3 +210,15 @@ class PipelineTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
         run_briefly(self.loop)
+
+    def test_call_closed_pipeline(self):
+        client, server = self.make_pipeline_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            client.close()
+            yield from client.wait_closed()
+            with self.assertRaises(aiozmq.rpc.ServiceClosedError):
+                yield from client.notify.func()
+
+        self.loop.run_until_complete(communicate())

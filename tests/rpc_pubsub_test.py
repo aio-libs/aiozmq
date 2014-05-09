@@ -352,3 +352,15 @@ class PubSubTests(unittest.TestCase):
                 self.assertIsNone(ret.exc_info)
 
         self.loop.run_until_complete(communicate())
+
+    def test_call_closed_pubsub(self):
+        client, server = self.make_pubsub_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            client.close()
+            yield from client.wait_closed()
+            with self.assertRaises(aiozmq.rpc.ServiceClosedError):
+                yield from client.publish('ab').func()
+
+        self.loop.run_until_complete(communicate())

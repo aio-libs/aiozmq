@@ -9,6 +9,7 @@ from .base import (
     NotFoundError,
     ParametersError,
     Service,
+    ServiceClosedError,
     _BaseProtocol,
     _BaseServerProtocol,
     )
@@ -77,6 +78,8 @@ def serve_pipeline(handler, *, connect=None, bind=None, loop=None,
 class _ClientProtocol(_BaseProtocol):
 
     def call(self, name, args, kwargs):
+        if self.transport is None:
+            raise ServiceClosedError()
         bname = name.encode('utf-8')
         bargs = self.packer.packb(args)
         bkwargs = self.packer.packb(kwargs)

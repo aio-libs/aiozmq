@@ -8,6 +8,7 @@ from .base import (
     NotFoundError,
     ParametersError,
     Service,
+    ServiceClosedError,
     _BaseProtocol,
     _BaseServerProtocol,
     )
@@ -88,6 +89,8 @@ def serve_pubsub(handler, *, subscribe=None, connect=None, bind=None,
 class _ClientProtocol(_BaseProtocol):
 
     def call(self, topic, name, args, kwargs):
+        if self.transport is None:
+            raise ServiceClosedError()
         if topic is None:
             btopic = b''
         elif isinstance(topic, str):

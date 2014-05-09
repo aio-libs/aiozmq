@@ -20,6 +20,7 @@ from .base import (
     NotFoundError,
     ParametersError,
     Service,
+    ServiceClosedError,
     _BaseProtocol,
     _BaseServerProtocol,
     )
@@ -143,6 +144,12 @@ class _ClientProtocol(_BaseProtocol):
             else:
                 call.set_result(answer)
 
+    def connection_lost(self, exc):
+        super().connection_lost(exc)
+        for call in self.calls.values():
+            if not call.cancelled():
+                call.cancel()
+
     def _translate_error(self, exc_type, exc_args, exc_repr):
         found = self.error_table.get(exc_type)
         if found is None:
@@ -158,6 +165,8 @@ class _ClientProtocol(_BaseProtocol):
                 self.counter)
 
     def call(self, name, args, kwargs):
+        if self.transport is None:
+            raise ServiceClosedError()
         bname = name.encode('utf-8')
         bargs = self.packer.packb(args)
         bkwargs = self.packer.packb(kwargs)

@@ -578,6 +578,31 @@ class RpcTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
 
+    def test_call_closed_rpc(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            client.close()
+            yield from client.wait_closed()
+            with self.assertRaises(aiozmq.rpc.ServiceClosedError):
+                yield from client.call.func()
+
+        self.loop.run_until_complete(communicate())
+
+    def test_call_closed_rpc_cancelled(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            waiter = client.call.func()
+            client.close()
+            yield from client.wait_closed()
+            with self.assertRaises(asyncio.CancelledError):
+                yield from waiter
+
+        self.loop.run_until_complete(communicate())
+
 
 class AbstractHandlerTests(unittest.TestCase):
 
