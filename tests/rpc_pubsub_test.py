@@ -84,7 +84,7 @@ class PubSubTests(unittest.TestCase):
             server = yield from aiozmq.rpc.serve_pubsub(
                 MyHandler(self.queue, self.loop),
                 subscribe=subscribe,
-                bind='tcp://*:*',
+                bind='tcp://127.0.0.1:*',
                 loop=self.loop,
                 log_exceptions=log_exceptions)
             connect = next(iter(server.transport.bindings()))
@@ -248,7 +248,7 @@ class PubSubTests(unittest.TestCase):
         def go():
             server = yield from aiozmq.rpc.serve_pubsub(
                 MyHandler(self.queue, self.loop),
-                bind='tcp://*:*',
+                bind='tcp://127.0.0.1:*',
                 loop=self.loop)
             self.assertRaises(TypeError, server.subscribe, 123)
 
@@ -259,7 +259,7 @@ class PubSubTests(unittest.TestCase):
         def go():
             server = yield from aiozmq.rpc.serve_pubsub(
                 MyHandler(self.queue, self.loop),
-                bind='tcp://*:*',
+                bind='tcp://127.0.0.1:*',
                 loop=self.loop)
             self.assertRaises(TypeError, server.subscribe, 123)
 

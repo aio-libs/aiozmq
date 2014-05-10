@@ -235,13 +235,13 @@ class ZmqEventLoopTests(unittest.TestCase):
 
             self.assertEqual({addr1, addr2}, tr.bindings())
 
-            addr3 = yield from tr.bind('tcp://*:*')
+            addr3 = yield from tr.bind('tcp://127.0.0.1:*')
             self.assertEqual({addr1, addr2, addr3}, tr.bindings())
             yield from tr.unbind(addr2)
             self.assertEqual({addr1, addr3}, tr.bindings())
             self.assertIn(addr1, tr.bindings())
             self.assertRegex(repr(tr.bindings()),
-                             r'{tcp://0.0.0.0:.\d+, tcp://127.0.0.1:\d+}')
+                             r'{tcp://127.0.0.1:.\d+, tcp://127.0.0.1:\d+}')
             tr.close()
 
         self.loop.run_until_complete(connect())
@@ -482,7 +482,7 @@ class ZmqEventLoopTests(unittest.TestCase):
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.PUSH,
-                bind='tcp://*:*')
+                bind='tcp://127.0.0.1:*')
             yield from pr.connected
             return tr, pr
 
@@ -498,7 +498,7 @@ class ZmqEventLoopTests(unittest.TestCase):
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.SUB,
-                bind='tcp://*:*')
+                bind='tcp://127.0.0.1:*')
             yield from pr.connected
             return tr, pr
 
@@ -516,7 +516,7 @@ class ZmqEventLoopTests(unittest.TestCase):
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.SUB,
-                bind='tcp://*:*')
+                bind='tcp://127.0.0.1:*')
             yield from pr.connected
             return tr, pr
 
@@ -536,7 +536,7 @@ class ZmqEventLoopTests(unittest.TestCase):
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.SUB,
-                bind='tcp://*:*')
+                bind='tcp://127.0.0.1:*')
             yield from pr.connected
             return tr, pr
 
@@ -554,7 +554,7 @@ class ZmqEventLoopTests(unittest.TestCase):
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.PUSH,
-                bind='tcp://*:*')
+                bind='tcp://127.0.0.1:*')
             yield from pr.connected
 
             with self.assertRaises(TypeError):

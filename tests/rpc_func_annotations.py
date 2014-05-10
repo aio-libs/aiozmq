@@ -75,7 +75,7 @@ class FuncAnnotationsTests(unittest.TestCase):
                 MyHandler(),
                 loop=self.loop)
 
-            addr = yield from server.transport.bind('tcp://*:*')
+            addr = yield from server.transport.bind('tcp://127.0.0.1:*')
 
             client = yield from aiozmq.rpc.connect_rpc(
                 connect=addr, loop=self.loop)

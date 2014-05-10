@@ -34,6 +34,9 @@ from asyncio import test_utils
 
 import aiozmq
 
+if sys.platform == 'win32':
+    raise unittest.SkipTest("don't check")
+
 
 def data_file(filename):
     fullname = os.path.join(os.path.dirname(__file__), filename)

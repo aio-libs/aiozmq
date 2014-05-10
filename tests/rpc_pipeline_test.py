@@ -87,7 +87,7 @@ class PipelineTests(unittest.TestCase):
         def create():
             server = yield from aiozmq.rpc.serve_pipeline(
                 MyHandler(self.queue, self.loop),
-                bind='tcp://*:*',
+                bind='tcp://127.0.0.1:*',
                 loop=self.loop,
                 log_exceptions=log_exceptions)
             connect = next(iter(server.transport.bindings()))
@@ -182,7 +182,7 @@ class PipelineTests(unittest.TestCase):
         def create():
             server = yield from aiozmq.rpc.serve_pipeline(
                 MyHandler(self.queue, self.loop),
-                bind='tcp://*:*',
+                bind='tcp://127.0.0.1:*',
                 loop=None)
             connect = next(iter(server.transport.bindings()))
             client = yield from aiozmq.rpc.connect_pipeline(

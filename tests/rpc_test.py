@@ -373,7 +373,7 @@ class RpcTests(unittest.TestCase):
             with self.assertRaises(TypeError):
                 yield from aiozmq.rpc.serve_rpc(
                     "Bad Handler",
-                    bind='tcp://*:*',
+                    bind='tcp://127.0.0.1:*',
                     loop=self.loop)
 
         self.loop.run_until_complete(go())
@@ -607,6 +607,7 @@ class RpcTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
+            server.close()
             waiter = client.call.func()
             client.close()
             yield from client.wait_closed()
@@ -621,13 +622,13 @@ class RpcTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             waiter = client.call.fut()
-            yield from asyncio.sleep(0.0001, loop=self.loop)
+            yield from asyncio.sleep(0.001, loop=self.loop)
             self.assertEqual(1, len(server._proto.pending_waiters))
             task = next(iter(server._proto.pending_waiters))
             self.assertIsInstance(task, asyncio.Task)
             server.close()
             yield from server.wait_closed()
-            yield from asyncio.sleep(0, loop=self.loop)
+            yield from asyncio.sleep(0.001, loop=self.loop)
             self.assertEqual(0, len(server._proto.pending_waiters))
             del waiter
 
