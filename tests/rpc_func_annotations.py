@@ -75,10 +75,11 @@ class FuncAnnotationsTests(unittest.TestCase):
                 MyHandler(),
                 loop=self.loop)
 
-            addr = yield from server.transport.bind('tcp://*:*')
+            yield from server.transport.bind('inproc://test')
 
             client = yield from aiozmq.rpc.connect_rpc(
-                connect=addr, loop=self.loop)
+                connect='inproc://test', loop=self.loop)
+            yield from asyncio.sleep(0.01, loop=self.loop)
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())
