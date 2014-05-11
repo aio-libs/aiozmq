@@ -116,17 +116,15 @@ class RpcTests(unittest.TestCase):
         root_logger.setLevel(self.log_level)
 
     def setUp(self):
+        self.orig_loop = asyncio.get_event_loop()
         self.loop = aiozmq.ZmqEventLoop()
         asyncio.set_event_loop(None)
         self.client = self.server = None
         self.err_queue = asyncio.Queue(loop=self.loop)
 
     def tearDown(self):
-        if self.client is not None:
-            self.close(self.client)
-        if self.server is not None:
-            self.close(self.server)
         self.loop.close()
+        asyncio.set_event_loop(self.orig_loop)
 
     def close(self, server):
         server.close()
@@ -144,7 +142,9 @@ class RpcTests(unittest.TestCase):
             client = yield from aiozmq.rpc.connect_rpc(
                 connect='inproc://test',
                 loop=self.loop, error_table=error_table, timeout=timeout)
+
             yield from asyncio.sleep(0.01, loop=self.loop)
+
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())
@@ -271,8 +271,6 @@ class RpcTests(unittest.TestCase):
 
     def test_default_event_loop(self):
         asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
-        self.addCleanup(asyncio.set_event_loop_policy, None)
-        self.addCleanup(asyncio.set_event_loop, None)
 
         @asyncio.coroutine
         def create():
@@ -485,7 +483,7 @@ class RpcTests(unittest.TestCase):
 
         self.loop.run_until_complete(go())
 
-    def test_malformed_anser_at_client(self):
+    def test_malformed_answer_at_client(self):
         @asyncio.coroutine
         def go():
             tr, pr = yield from self.loop.create_zmq_connection(
@@ -509,6 +507,7 @@ class RpcTests(unittest.TestCase):
                 self.assertIsNotNone(ret.exc_info)
 
             client.close()
+            tr.close()
 
         self.loop.run_until_complete(go())
 
@@ -548,8 +547,10 @@ class RpcTests(unittest.TestCase):
             client._proto.counter = 0xffffffff
             ret = yield from client.call.func(1)
             self.assertEqual(2, ret)
+            self.assertEqual(0, client._proto.counter)
             client.close()
             yield from client.wait_closed()
+            server.close()
 
         self.loop.run_until_complete(communicate())
 
@@ -593,6 +594,8 @@ class RpcTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             waiter = client.call.func()
+            server.close()
+            yield from server.wait_closed()
             client.close()
             yield from client.wait_closed()
             with self.assertRaises(asyncio.CancelledError):

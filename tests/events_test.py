@@ -223,6 +223,7 @@ class EventLoopTestsMixin:
 
     def setUp(self):
         super().setUp()
+        self.orig_loop = asyncio.get_event_loop()
         self.loop = self.create_event_loop()
         asyncio.set_event_loop(None)
 
@@ -232,6 +233,7 @@ class EventLoopTestsMixin:
 
         self.loop.close()
         gc.collect()
+        asyncio.set_event_loop(self.orig_loop)
         super().tearDown()
 
     def test_run_until_complete_nesting(self):
