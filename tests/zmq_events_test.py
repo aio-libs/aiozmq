@@ -53,14 +53,12 @@ class ZmqEventLoopTests(unittest.TestCase):
         self.loop.close()
 
     def test_req_rep(self):
-        port = find_unused_port()
-
         @asyncio.coroutine
         def connect_req():
             tr1, pr1 = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.REQ,
-                bind='tcp://127.0.0.1:{}'.format(port))
+                bind='inproc://test')
             self.assertEqual('CONNECTED', pr1.state)
             yield from pr1.connected
             return tr1, pr1
@@ -72,7 +70,7 @@ class ZmqEventLoopTests(unittest.TestCase):
             tr2, pr2 = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.REP,
-                connect='tcp://127.0.0.1:{}'.format(port))
+                connect='inproc://test')
             self.assertEqual('CONNECTED', pr2.state)
             yield from pr2.connected
             return tr2, pr2

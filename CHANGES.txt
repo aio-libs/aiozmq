@@ -1,6 +1,11 @@
 CHANGES
 -------
 
+0.3.0 (XXXX-XX-XX)
+^^^^^^^^^^^^^^^^^^
+
+* Process cancellation on rpc servers and clients.
+
 0.2.0 (2014-04-18)
 ^^^^^^^^^^^^^^^^^^
 
