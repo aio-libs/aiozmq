@@ -60,7 +60,6 @@ class PubSubTests(unittest.TestCase):
         logger.setLevel(self.log_level)
 
     def setUp(self):
-        self.orig_loop = asyncio.get_event_loop()
         self.loop = aiozmq.ZmqEventLoop()
         asyncio.set_event_loop(None)
         self.client = self.server = None
@@ -73,7 +72,7 @@ class PubSubTests(unittest.TestCase):
         if self.server:
             self.close(self.server)
         self.loop.close()
-        asyncio.set_event_loop(self.orig_loop)
+        asyncio.set_event_loop(None)
 
     def close(self, service):
         service.close()

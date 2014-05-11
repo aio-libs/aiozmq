@@ -116,7 +116,6 @@ class RpcTests(unittest.TestCase):
         root_logger.setLevel(self.log_level)
 
     def setUp(self):
-        self.orig_loop = asyncio.get_event_loop()
         self.loop = aiozmq.ZmqEventLoop()
         asyncio.set_event_loop(None)
         self.client = self.server = None
@@ -124,7 +123,7 @@ class RpcTests(unittest.TestCase):
 
     def tearDown(self):
         self.loop.close()
-        asyncio.set_event_loop(self.orig_loop)
+        asyncio.set_event_loop(None)
 
     def close(self, server):
         server.close()
@@ -316,11 +315,8 @@ class RpcTests(unittest.TestCase):
         def communicate():
             with log_hook('aiozmq.rpc', self.err_queue):
                 with self.assertRaises(asyncio.TimeoutError):
-                    t0 = time.monotonic()
                     with client.with_timeout(0.1) as timedout:
                         yield from timedout.call.slow_call()
-                    t1 = time.monotonic()
-                    self.assertTrue(0.08 <= t1-t0 <= 0.12, t1-t0)
 
                 t0 = time.monotonic()
                 with self.assertRaises(asyncio.TimeoutError):
@@ -347,17 +343,19 @@ class RpcTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             with self.assertRaises(asyncio.TimeoutError):
-                t0 = time.monotonic()
                 with client.with_timeout(0.1) as timedout:
                     yield from timedout.call.slow_call()
-                t1 = time.monotonic()
-                self.assertTrue(0.08 <= t1-t0 <= 0.12, t1-t0)
 
             t0 = time.monotonic()
             with self.assertRaises(asyncio.TimeoutError):
                 yield from client.with_timeout(0.1).call.slow_call()
             t1 = time.monotonic()
             self.assertTrue(0.08 <= t1-t0 <= 0.12, t1-t0)
+            server.close()
+            client.close()
+            yield from asyncio.gather(server.wait_closed(),
+                                      client.wait_closed(),
+                                      loop=self.loop)
 
         self.loop.run_until_complete(communicate())
 

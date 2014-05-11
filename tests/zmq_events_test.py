@@ -46,13 +46,12 @@ class Protocol(aiozmq.ZmqProtocol):
 class ZmqEventLoopTests(unittest.TestCase):
 
     def setUp(self):
-        self.orig_loop = asyncio.get_event_loop()
         self.loop = aiozmq.ZmqEventLoop()
         asyncio.set_event_loop(None)
 
     def tearDown(self):
         self.loop.close()
-        asyncio.set_event_loop(self.orig_loop)
+        asyncio.set_event_loop(None)
 
     def test_req_rep(self):
         @asyncio.coroutine

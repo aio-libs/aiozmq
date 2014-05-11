@@ -39,7 +39,6 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 class RpcTranslatorsTests(unittest.TestCase):
 
     def setUp(self):
-        self.orig_loop = asyncio.get_event_loop()
         self.loop = aiozmq.ZmqEventLoop()
         asyncio.set_event_loop(None)
         self.client = self.server = None
@@ -50,7 +49,7 @@ class RpcTranslatorsTests(unittest.TestCase):
         if self.server is not None:
             self.close(self.server)
         self.loop.close()
-        asyncio.set_event_loop(self.orig_loop)
+        asyncio.set_event_loop(None)
 
     def close(self, server):
         server.close()
