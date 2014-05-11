@@ -30,7 +30,7 @@ import unittest
 import traceback
 import textwrap
 import importlib.machinery
-import warnings
+
 try:
     import coverage
 except ImportError:
