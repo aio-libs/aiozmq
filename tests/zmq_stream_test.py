@@ -212,3 +212,162 @@ class ZmqStreamTests(unittest.TestCase):
                 yield from s1.read()
 
         self.loop.run_until_complete(go())
+
+    def test_set_exception_with_waiter(self):
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_connection(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:*',
+                loop=self.loop)
+
+            def f():
+                yield from s1.read()
+
+            t1 = asyncio.async(f(), loop=self.loop)
+            # to run f() up to yield from
+            yield from asyncio.sleep(0.001, loop=self.loop)
+
+            self.assertIsNotNone(s1._waiter)
+
+            exc = RuntimeError('some exc')
+            s1.set_exception(exc)
+            self.assertIs(exc, s1.exception())
+
+            with self.assertRaisesRegex(RuntimeError, 'some exc'):
+                yield from s1.read()
+
+            t1.cancel()
+
+        self.loop.run_until_complete(go())
+
+    def test_set_exception_with_cancelled_waiter(self):
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_connection(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:*',
+                loop=self.loop)
+
+            def f():
+                yield from s1.read()
+
+            t1 = asyncio.async(f(), loop=self.loop)
+            # to run f() up to yield from
+            yield from asyncio.sleep(0.001, loop=self.loop)
+
+            self.assertIsNotNone(s1._waiter)
+            t1.cancel()
+
+            exc = RuntimeError('some exc')
+            s1.set_exception(exc)
+            self.assertIs(exc, s1.exception())
+
+            with self.assertRaisesRegex(RuntimeError, 'some exc'):
+                yield from s1.read()
+
+        self.loop.run_until_complete(go())
+
+    def test_double_reading(self):
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_connection(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:*',
+                loop=self.loop)
+
+            def f():
+                yield from s1.read()
+
+            t1 = asyncio.async(f(), loop=self.loop)
+            # to run f() up to yield from
+            yield from asyncio.sleep(0.001, loop=self.loop)
+
+            with self.assertRaises(RuntimeError):
+                yield from s1.read()
+
+            t1.cancel()
+
+        self.loop.run_until_complete(go())
+
+    def test_close_on_reading(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_connection(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+
+            def f():
+                yield from s1.read()
+
+            t1 = asyncio.async(f(), loop=self.loop)
+            # to run f() up to yield from
+            yield from asyncio.sleep(0.001, loop=self.loop)
+
+            s1.close()
+            yield from asyncio.sleep(0.001, loop=self.loop)
+
+            with self.assertRaises(aiozmq.ZmqStreamClosed):
+                t1.result()
+
+        self.loop.run_until_complete(go())
+
+    def test_close_on_cancelled_reading(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_connection(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+
+            def f():
+                yield from s1.read()
+
+            t1 = asyncio.async(f(), loop=self.loop)
+            # to run f() up to yield from
+            yield from asyncio.sleep(0.001, loop=self.loop)
+
+            t1.cancel()
+            s1.feed_closing()
+
+            yield from asyncio.sleep(0.001, loop=self.loop)
+            with self.assertRaises(asyncio.CancelledError):
+                t1.result()
+
+        self.loop.run_until_complete(go())
+
+    def test_feed_cancelled_msg(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_connection(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+
+            def f():
+                yield from s1.read()
+
+            t1 = asyncio.async(f(), loop=self.loop)
+            # to run f() up to yield from
+            yield from asyncio.sleep(0.001, loop=self.loop)
+
+            t1.cancel()
+            s1.feed_msg([b'data'])
+
+            yield from asyncio.sleep(0.001, loop=self.loop)
+            with self.assertRaises(asyncio.CancelledError):
+                t1.result()
+
+            self.assertEqual(4, s1._queue_len)
+            self.assertEqual((4, [b'data']), s1._queue.popleft())
+
+        self.loop.run_until_complete(go())
