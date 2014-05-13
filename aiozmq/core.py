@@ -104,7 +104,7 @@ class ZmqEventLoop(SelectorEventLoop):
                         raise ValueError('bind should be str or iterable')
                 for endpoint in bind:
                     yield from transport.bind(endpoint)
-            elif connect is not None:
+            if connect is not None:
                 if isinstance(connect, str):
                     connect = [connect]
                 else:
