@@ -16,7 +16,7 @@ class Error(Exception):
 
 
 class GenericError(Error):
-    """Error used for all untranslated exceptions from rpc method calls."""
+    """Error for all untranslated exceptions from rpc method calls."""
 
     def __init__(self, exc_type, args, exc_repr):
         super().__init__(exc_type, args, exc_repr)
@@ -40,7 +40,7 @@ class ParametersError(Error, ValueError):
 
 
 class ServiceClosedError(Error):
-    """RPC Service has been closed."""
+    """RPC Service is closed."""
 
 
 class AbstractHandler(metaclass=abc.ABCMeta):
@@ -105,6 +105,7 @@ class Service(asyncio.AbstractServer):
     def __init__(self, loop, proto):
         self._loop = loop
         self._proto = proto
+        self._closing = False
 
     @property
     def transport(self):
@@ -119,6 +120,9 @@ class Service(asyncio.AbstractServer):
         return transport
 
     def close(self):
+        if self._closing:
+            return
+        self._closing = True
         if self._proto.transport is None:
             return
         self._proto.transport.close()
@@ -155,9 +159,16 @@ class _BaseServerProtocol(_BaseProtocol):
                  translation_table=None, log_exceptions=False):
         super().__init__(loop, translation_table=translation_table)
         if not isinstance(handler, AbstractHandler):
-            raise TypeError('handler should implement AbstractHandler ABC')
+            raise TypeError('handler must implement AbstractHandler ABC')
         self.handler = handler
         self.log_exceptions = log_exceptions
+        self.pending_waiters = set()
+
+    def connection_lost(self, exc):
+        super().connection_lost(exc)
+        for waiter in list(self.pending_waiters):
+            if not waiter.cancelled():
+                waiter.cancel()
 
     def dispatch(self, name):
         if not name:
@@ -222,7 +233,7 @@ class _BaseServerProtocol(_BaseProtocol):
         except Exception:
             if self.log_exceptions:
                 logger.exception(textwrap.dedent("""\
-                    An exception from method %r call has been occurred.
+                    An exception from method %r call occurred.
                     args = %s
                     kwargs = %s
                     """),

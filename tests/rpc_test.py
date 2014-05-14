@@ -10,7 +10,7 @@ import zmq
 import msgpack
 import struct
 
-from aiozmq._test_util import find_unused_port, log_hook
+from aiozmq._test_util import log_hook
 from aiozmq.rpc.log import logger
 
 
@@ -55,6 +55,18 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     @asyncio.coroutine
     def slow_call(self):
         yield from asyncio.sleep(0.2, loop=self.loop)
+
+    @aiozmq.rpc.method
+    @asyncio.coroutine
+    def fut(self):
+        return asyncio.Future(loop=self.loop)
+
+    @aiozmq.rpc.method
+    @asyncio.coroutine
+    def cancelled_fut(self):
+        ret = asyncio.Future(loop=self.loop)
+        ret.cancel()
+        return ret
 
 
 class Protocol(aiozmq.ZmqProtocol):
@@ -110,11 +122,8 @@ class RpcTests(unittest.TestCase):
         self.err_queue = asyncio.Queue(loop=self.loop)
 
     def tearDown(self):
-        if self.client is not None:
-            self.close(self.client)
-        if self.server is not None:
-            self.close(self.server)
         self.loop.close()
+        asyncio.set_event_loop(None)
 
     def close(self, server):
         server.close()
@@ -122,18 +131,19 @@ class RpcTests(unittest.TestCase):
 
     def make_rpc_pair(self, *, error_table=None, timeout=None,
                       log_exceptions=False):
-        port = find_unused_port()
-
         @asyncio.coroutine
         def create():
             server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
-                bind='tcp://127.0.0.1:{}'.format(port),
+                bind='inproc://test',
                 loop=self.loop,
                 log_exceptions=log_exceptions)
             client = yield from aiozmq.rpc.connect_rpc(
-                connect='tcp://127.0.0.1:{}'.format(port),
+                connect='inproc://test',
                 loop=self.loop, error_table=error_table, timeout=timeout)
+
+            yield from asyncio.sleep(0.01, loop=self.loop)
+
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())
@@ -259,20 +269,16 @@ class RpcTests(unittest.TestCase):
         self.loop.run_until_complete(communicate())
 
     def test_default_event_loop(self):
-        port = find_unused_port()
-
         asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
-        self.addCleanup(asyncio.set_event_loop_policy, None)
-        self.addCleanup(asyncio.set_event_loop, None)
 
         @asyncio.coroutine
         def create():
             server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
-                bind='tcp://127.0.0.1:{}'.format(port),
+                bind='inproc://test',
                 loop=None)
             client = yield from aiozmq.rpc.connect_rpc(
-                connect='tcp://127.0.0.1:{}'.format(port),
+                connect='inproc://test',
                 loop=None)
             return client, server
 
@@ -309,11 +315,8 @@ class RpcTests(unittest.TestCase):
         def communicate():
             with log_hook('aiozmq.rpc', self.err_queue):
                 with self.assertRaises(asyncio.TimeoutError):
-                    t0 = time.monotonic()
                     with client.with_timeout(0.1) as timedout:
                         yield from timedout.call.slow_call()
-                    t1 = time.monotonic()
-                    self.assertTrue(0.08 <= t1-t0 <= 0.12, t1-t0)
 
                 t0 = time.monotonic()
                 with self.assertRaises(asyncio.TimeoutError):
@@ -340,17 +343,19 @@ class RpcTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             with self.assertRaises(asyncio.TimeoutError):
-                t0 = time.monotonic()
                 with client.with_timeout(0.1) as timedout:
                     yield from timedout.call.slow_call()
-                t1 = time.monotonic()
-                self.assertTrue(0.08 <= t1-t0 <= 0.12, t1-t0)
 
             t0 = time.monotonic()
             with self.assertRaises(asyncio.TimeoutError):
                 yield from client.with_timeout(0.1).call.slow_call()
             t1 = time.monotonic()
             self.assertTrue(0.08 <= t1-t0 <= 0.12, t1-t0)
+            server.close()
+            client.close()
+            yield from asyncio.gather(server.wait_closed(),
+                                      client.wait_closed(),
+                                      loop=self.loop)
 
         self.loop.run_until_complete(communicate())
 
@@ -367,17 +372,15 @@ class RpcTests(unittest.TestCase):
         self.loop.run_until_complete(go())
 
     def test_unknown_format_at_server(self):
-        port = find_unused_port()
-
         @asyncio.coroutine
         def go():
             server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
-                bind='tcp://127.0.0.1:{}'.format(port),
+                bind='inproc://test',
                 loop=self.loop)
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                connect='tcp://127.0.0.1:{}'.format(port))
+                connect='inproc://test')
 
             yield from asyncio.sleep(0.001, loop=self.loop)
 
@@ -397,17 +400,15 @@ class RpcTests(unittest.TestCase):
         self.loop.run_until_complete(go())
 
     def test_malformed_args(self):
-        port = find_unused_port()
-
         @asyncio.coroutine
         def go():
             server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
-                bind='tcp://127.0.0.1:{}'.format(port),
+                bind='inproc://test',
                 loop=self.loop)
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                connect='tcp://127.0.0.1:{}'.format(port))
+                connect='inproc://test')
 
             with log_hook('aiozmq.rpc', self.err_queue):
                 tr.write([struct.pack('=HHLd', 1, 2, 3, 4),
@@ -427,17 +428,15 @@ class RpcTests(unittest.TestCase):
         self.loop.run_until_complete(go())
 
     def test_malformed_kwargs(self):
-        port = find_unused_port()
-
         @asyncio.coroutine
         def go():
             server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
-                bind='tcp://127.0.0.1:{}'.format(port),
+                bind='inproc://test',
                 loop=self.loop)
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                connect='tcp://127.0.0.1:{}'.format(port))
+                connect='inproc://test')
 
             with log_hook('aiozmq.rpc', self.err_queue):
                 tr.write([struct.pack('=HHLd', 1, 2, 3, 4),
@@ -457,16 +456,14 @@ class RpcTests(unittest.TestCase):
         self.loop.run_until_complete(go())
 
     def test_unknown_format_at_client(self):
-        port = find_unused_port()
-
         @asyncio.coroutine
         def go():
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                bind='tcp://127.0.0.1:{}'.format(port))
+                bind='inproc://test')
 
             client = yield from aiozmq.rpc.connect_rpc(
-                connect='tcp://127.0.0.1:{}'.format(port),
+                connect='inproc://test',
                 loop=self.loop)
 
             with log_hook('aiozmq.rpc', self.err_queue):
@@ -484,17 +481,15 @@ class RpcTests(unittest.TestCase):
 
         self.loop.run_until_complete(go())
 
-    def test_malformed_anser_at_client(self):
-        port = find_unused_port()
-
+    def test_malformed_answer_at_client(self):
         @asyncio.coroutine
         def go():
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                bind='tcp://127.0.0.1:{}'.format(port))
+                bind='inproc://test')
 
             client = yield from aiozmq.rpc.connect_rpc(
-                connect='tcp://127.0.0.1:{}'.format(port),
+                connect='inproc://test',
                 loop=self.loop)
 
             with log_hook('aiozmq.rpc', self.err_queue):
@@ -510,20 +505,19 @@ class RpcTests(unittest.TestCase):
                 self.assertIsNotNone(ret.exc_info)
 
             client.close()
+            tr.close()
 
         self.loop.run_until_complete(go())
 
     def test_unknown_req_id_at_client(self):
-        port = find_unused_port()
-
         @asyncio.coroutine
         def go():
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                bind='tcp://127.0.0.1:{}'.format(port))
+                bind='inproc://test')
 
             client = yield from aiozmq.rpc.connect_rpc(
-                connect='tcp://127.0.0.1:{}'.format(port),
+                connect='inproc://test',
                 loop=self.loop)
 
             with log_hook('aiozmq.rpc', self.err_queue):
@@ -551,8 +545,10 @@ class RpcTests(unittest.TestCase):
             client._proto.counter = 0xffffffff
             ret = yield from client.call.func(1)
             self.assertEqual(2, ret)
+            self.assertEqual(0, client._proto.counter)
             client.close()
             yield from client.wait_closed()
+            server.close()
 
         self.loop.run_until_complete(communicate())
 
@@ -569,12 +565,57 @@ class RpcTests(unittest.TestCase):
                 ret = yield from self.err_queue.get()
                 self.assertEqual(logging.ERROR, ret.levelno)
                 self.assertEqual('An exception from method %r '
-                                 'call has been occurred.\n'
+                                 'call occurred.\n'
                                  'args = %s\nkwargs = %s\n', ret.msg)
                 self.assertEqual(
                     ('exc', '(1,)', '{}'),
                     ret.args)
                 self.assertIsNotNone(ret.exc_info)
+
+        self.loop.run_until_complete(communicate())
+
+    def test_call_closed_rpc(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            client.close()
+            yield from client.wait_closed()
+            with self.assertRaises(aiozmq.rpc.ServiceClosedError):
+                yield from client.call.func()
+
+        self.loop.run_until_complete(communicate())
+
+    def test_call_closed_rpc_cancelled(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            waiter = client.call.func()
+            server.close()
+            yield from server.wait_closed()
+            client.close()
+            yield from client.wait_closed()
+            with self.assertRaises(asyncio.CancelledError):
+                yield from waiter
+
+        self.loop.run_until_complete(communicate())
+
+    def test_server_close(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            waiter = client.call.fut()
+            yield from asyncio.sleep(0.0001, loop=self.loop)
+            self.assertEqual(1, len(server._proto.pending_waiters))
+            task = next(iter(server._proto.pending_waiters))
+            self.assertIsInstance(task, asyncio.Task)
+            server.close()
+            yield from server.wait_closed()
+            yield from asyncio.sleep(0, loop=self.loop)
+            self.assertEqual(0, len(server._proto.pending_waiters))
+            del waiter
 
         self.loop.run_until_complete(communicate())
 

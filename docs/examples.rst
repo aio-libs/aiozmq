@@ -1,7 +1,8 @@
 Examples of aiozmq usage
 ========================
 
-There is a list of examples from https://aio-libs/aiozmq/examples
+There is a list of examples from `aiozmq/examples <https://github.com/aio-libs/aiozmq/tree/master/examples>`_
+
 Every example is a correct tiny python program.
 
 .. _aiozmq-examples-rpc-rpc:

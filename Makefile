@@ -1,6 +1,7 @@
 # Some simple testing tasks (sorry, UNIX only).
 
 PYTHON=python3
+PYFLAKES=pyflakes
 
 FILTER=
 
@@ -12,7 +13,7 @@ pep:
 	pep8 aiozmq examples tests
 
 flake:
-	pyflakes .
+	$(PYFLAKES) .
 
 test: pep flake
 	$(PYTHON) runtests.py $(FILTER)

@@ -62,6 +62,7 @@ class FuncAnnotationsTests(unittest.TestCase):
         if self.server is not None:
             self.close(self.server)
         self.loop.close()
+        asyncio.set_event_loop(None)
 
     def close(self, service):
         service.close()
@@ -75,10 +76,11 @@ class FuncAnnotationsTests(unittest.TestCase):
                 MyHandler(),
                 loop=self.loop)
 
-            addr = yield from server.transport.bind('tcp://*:*')
+            yield from server.transport.bind('inproc://test')
 
             client = yield from aiozmq.rpc.connect_rpc(
-                connect=addr, loop=self.loop)
+                connect='inproc://test', loop=self.loop)
+            yield from asyncio.sleep(0.01, loop=self.loop)
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())
@@ -88,13 +90,13 @@ class FuncAnnotationsTests(unittest.TestCase):
     def test_valid_annotations(self):
 
         msg = "Expected 'bad_arg' annotation to be callable"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             @aiozmq.rpc.method
             def test(good_arg: int, bad_arg: 0):
                 pass
 
         msg = "Expected return annotation to be callable"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             @aiozmq.rpc.method
             def test2() -> 'bad annotation':
                 pass

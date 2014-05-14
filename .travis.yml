@@ -16,13 +16,11 @@ install:
   #- pip install coveralls
 
 script:
-  - pep8 aiozmq examples tests
+  - pep8 aiozmq examples tests benchmarks
   - pyflakes .
   - python runtests.py -v
 
 env:
-  global:
-    - PYTHON=python
   matrix:
     - USE_MSGPACK=1
     - USE_MSGPACK=0

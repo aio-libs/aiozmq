@@ -49,6 +49,7 @@ class RpcTranslatorsTests(unittest.TestCase):
         if self.server is not None:
             self.close(self.server)
         self.loop.close()
+        asyncio.set_event_loop(None)
 
     def close(self, server):
         server.close()

@@ -11,8 +11,9 @@ from aiozmq._test_util import log_hook
 
 class MyHandler(aiozmq.rpc.AttrHandler):
 
-    def __init__(self, queue):
+    def __init__(self, queue, loop):
         self.queue = queue
+        self.loop = loop
 
     @asyncio.coroutine
     @aiozmq.rpc.method
@@ -33,15 +34,16 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         raise ValueError
 
     @aiozmq.rpc.method
-    @asyncio.coroutine
-    def return_value(self, arg):
-        return arg
-        yield
-
-    @aiozmq.rpc.method
     def suspicious(self, arg: int):
         self.queue.put_nowait(arg)
         return 3
+
+    @aiozmq.rpc.method
+    @asyncio.coroutine
+    def fut(self):
+        f = asyncio.Future(loop=self.loop)
+        yield from self.queue.put(f)
+        yield from f
 
 
 class PipelineTests(unittest.TestCase):
@@ -71,6 +73,7 @@ class PipelineTests(unittest.TestCase):
         if self.server is not None:
             self.close(self.server)
         self.loop.close()
+        asyncio.set_event_loop(None)
 
     def close(self, service):
         service.close()
@@ -84,7 +87,7 @@ class PipelineTests(unittest.TestCase):
         @asyncio.coroutine
         def create():
             server = yield from aiozmq.rpc.serve_pipeline(
-                MyHandler(self.queue),
+                MyHandler(self.queue, self.loop),
                 bind='tcp://*:*',
                 loop=self.loop,
                 log_exceptions=log_exceptions)
@@ -165,7 +168,7 @@ class PipelineTests(unittest.TestCase):
                 ret = yield from self.err_queue.get()
                 self.assertEqual(logging.ERROR, ret.levelno)
                 self.assertEqual("An exception from method %r "
-                                 "call has been occurred.\n"
+                                 "call occurred.\n"
                                  "args = %s\nkwargs = %s\n", ret.msg)
                 self.assertEqual(('func_error', '()', '{}'),
                                  ret.args)
@@ -179,7 +182,7 @@ class PipelineTests(unittest.TestCase):
         @asyncio.coroutine
         def create():
             server = yield from aiozmq.rpc.serve_pipeline(
-                MyHandler(self.queue),
+                MyHandler(self.queue, self.loop),
                 bind='tcp://*:*',
                 loop=None)
             connect = next(iter(server.transport.bindings()))
@@ -210,3 +213,33 @@ class PipelineTests(unittest.TestCase):
 
         self.loop.run_until_complete(communicate())
         run_briefly(self.loop)
+
+    def test_call_closed_pipeline(self):
+        client, server = self.make_pipeline_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            client.close()
+            yield from client.wait_closed()
+            with self.assertRaises(aiozmq.rpc.ServiceClosedError):
+                yield from client.notify.func()
+
+        self.loop.run_until_complete(communicate())
+
+    def test_server_close(self):
+        client, server = self.make_pipeline_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            client.notify.fut()
+            fut = yield from self.queue.get()
+            self.assertEqual(1, len(server._proto.pending_waiters))
+            task = next(iter(server._proto.pending_waiters))
+            self.assertIsInstance(task, asyncio.Task)
+            server.close()
+            yield from server.wait_closed()
+            yield from asyncio.sleep(0, loop=self.loop)
+            self.assertEqual(0, len(server._proto.pending_waiters))
+            fut.cancel()
+
+        self.loop.run_until_complete(communicate())

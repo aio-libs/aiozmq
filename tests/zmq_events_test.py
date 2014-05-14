@@ -51,16 +51,15 @@ class ZmqEventLoopTests(unittest.TestCase):
 
     def tearDown(self):
         self.loop.close()
+        asyncio.set_event_loop(None)
 
     def test_req_rep(self):
-        port = find_unused_port()
-
         @asyncio.coroutine
         def connect_req():
             tr1, pr1 = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.REQ,
-                bind='tcp://127.0.0.1:{}'.format(port))
+                bind='inproc://test')
             self.assertEqual('CONNECTED', pr1.state)
             yield from pr1.connected
             return tr1, pr1
@@ -72,7 +71,7 @@ class ZmqEventLoopTests(unittest.TestCase):
             tr2, pr2 = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.REP,
-                connect='tcp://127.0.0.1:{}'.format(port))
+                connect='inproc://test')
             self.assertEqual('CONNECTED', pr2.state)
             yield from pr2.connected
             return tr2, pr2
@@ -319,7 +318,7 @@ class ZmqEventLoopTests(unittest.TestCase):
 
         with self.assertRaises(OSError) as ctx:
             self.loop.run_until_complete(connect())
-        self.assertEqual(errno.ENOTSUP, ctx.exception.errno)
+        self.assertTrue(ctx.exception.errno in (errno.ENOTSUP, errno.ENOTSOCK))
 
     def test_create_zmq_connection_invalid_bind(self):
 
