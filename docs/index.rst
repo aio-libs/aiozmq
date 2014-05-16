@@ -19,8 +19,24 @@ Features
 - Implements installable policy for ZeroMQ event loop (see
   :ref:`install-aiozmq-policy`), **required** for ZeroMQ sockets layer.
 - Provides :class:`~aiozmq.ZmqTransport` and :class:`~aiozmq.ZmqProtocol`
-- Provides RPC :ref:`aiozmq-rpc-rpc` :ref:`aiozmq-rpc-pushpull` and
+- Provides RPC :ref:`aiozmq-rpc-rpc`, :ref:`aiozmq-rpc-pushpull` and
   :ref:`aiozmq-rpc-pubsub` patterns for *remote calls*.
+
+.. note::
+
+   The library works on Linux, MacOS X and Windows.
+
+   But Windows is a second-class citizen in :term:`ZeroMQ` world, sorry.
+
+   Thus *aiozmq* has *limited* support for Windows also.
+
+   Limitations are:
+
+   * You obviously cannot use *ipc://name* schema for :term:`endpoint`
+   * aiozmq`s loop :class:`aiozmq.ZmqEventLoop` is built on top of ``select``
+     system call, so it's not fast comparing to
+     :class:`asyncio.ProactorEventLoop` and it doesn't support
+     :ref:`subprocesses <asyncio-subprocess>`.
 
 Library Installation
 --------------------

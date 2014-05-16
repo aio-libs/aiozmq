@@ -4,6 +4,8 @@ CHANGES
 0.3.0 (XXXX-XX-XX)
 ^^^^^^^^^^^^^^^^^^
 
+* Add limited support for Windows.
+
 * Fix unstable test execution, change ZmqEventLoop to use global
   shared zmq.Context by default.
 

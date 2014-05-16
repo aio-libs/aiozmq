@@ -615,13 +615,13 @@ class RpcTests(unittest.TestCase):
         @asyncio.coroutine
         def communicate():
             waiter = client.call.fut()
-            yield from asyncio.sleep(0.001, loop=self.loop)
+            yield from asyncio.sleep(0.01, loop=self.loop)
             self.assertEqual(1, len(server._proto.pending_waiters))
             task = next(iter(server._proto.pending_waiters))
             self.assertIsInstance(task, asyncio.Task)
             server.close()
             yield from server.wait_closed()
-            yield from asyncio.sleep(0.001, loop=self.loop)
+            yield from asyncio.sleep(0.01, loop=self.loop)
             self.assertEqual(0, len(server._proto.pending_waiters))
             del waiter
 

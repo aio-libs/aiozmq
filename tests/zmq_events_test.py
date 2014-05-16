@@ -1,12 +1,12 @@
-import unittest
 import asyncio
-import aiozmq
 import errno
 import os
-import time
-import zmq
+import sys
+import unittest
 from unittest import mock
 
+import aiozmq
+import zmq
 from aiozmq._test_util import find_unused_port
 
 
@@ -131,14 +131,19 @@ class ZmqEventLoopTests(unittest.TestCase):
 
         @asyncio.coroutine
         def communicate():
-            tr1.write([b'node_id', b'publish'])
-            request = yield from pr2.received.get()
-            self.assertEqual([b'node_id', b'publish'], request)
+            for i in range(5):
+                tr1.write([b'node_id', b'publish'])
+                try:
+                    request = yield from asyncio.wait_for(pr2.received.get(),
+                                                          0.1,
+                                                          loop=self.loop)
+                    self.assertEqual([b'node_id', b'publish'], request)
+                    break
+                except asyncio.TimeoutError:
+                    pass
+                else:
+                    raise AssertionError("Cannot get message in subscriber")
 
-        # Sorry, sleep is required to get rid of sporadic hangs
-        # without that 0MQ not always establishes tcp connection
-        # and waiting for message from sub socket hangs.
-        time.sleep(0.01)
         self.loop.run_until_complete(communicate())
 
         @asyncio.coroutine
@@ -318,7 +323,7 @@ class ZmqEventLoopTests(unittest.TestCase):
 
         with self.assertRaises(OSError) as ctx:
             self.loop.run_until_complete(connect())
-        self.assertTrue(ctx.exception.errno in (errno.ENOTSUP, errno.ENOTSOCK))
+        self.assertIn(ctx.exception.errno, (zmq.ENOTSUP, zmq.ENOTSOCK))
 
     def test_create_zmq_connection_invalid_bind(self):
 
@@ -344,6 +349,8 @@ class ZmqEventLoopTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(connect())
 
+    @unittest.skipIf(sys.platform == 'win32',
+                     "Windows calls abort() on bad socket")
     def test_create_zmq_connection_closes_socket_on_bad_bind(self):
 
         @asyncio.coroutine
@@ -358,6 +365,8 @@ class ZmqEventLoopTests(unittest.TestCase):
         with self.assertRaises(OSError):
             self.loop.run_until_complete(connect())
 
+    @unittest.skipIf(sys.platform == 'win32',
+                     "Windows calls abort() on bad socket")
     def test_create_zmq_connection_closes_socket_on_bad_connect(self):
 
         @asyncio.coroutine
@@ -402,7 +411,7 @@ class ZmqEventLoopTests(unittest.TestCase):
 
         with self.assertRaises(OSError) as ctx:
             tr.getsockopt(1111)  # invalid option
-        self.assertEqual(errno.EINVAL, ctx.exception.errno)
+        self.assertEqual(zmq.EINVAL, ctx.exception.errno)
 
     def test_setsockopt_badopt(self):
         port = find_unused_port()
@@ -420,7 +429,7 @@ class ZmqEventLoopTests(unittest.TestCase):
 
         with self.assertRaises(OSError) as ctx:
             tr.setsockopt(1111, 1)  # invalid option
-        self.assertEqual(errno.EINVAL, ctx.exception.errno)
+        self.assertEqual(zmq.EINVAL, ctx.exception.errno)
 
     def test_unbind_from_nonbinded_addr(self):
         port = find_unused_port()
@@ -439,11 +448,12 @@ class ZmqEventLoopTests(unittest.TestCase):
                 yield from tr.unbind('ipc:///some-addr')  # non-bound addr
 
             # TODO: check travis build and remove skip when test passed.
-            if (ctx.exception.errno == errno.EAGAIN and
+            if (ctx.exception.errno == zmq.EAGAIN and
                     os.environ.get('TRAVIS')):
                 raise unittest.SkipTest("Travis has a bug, it returns "
                                         "EAGAIN for unknown endpoint")
-            self.assertEqual(errno.ENOENT, ctx.exception.errno)
+            self.assertIn(ctx.exception.errno,
+                          (errno.ENOENT, zmq.EPROTONOSUPPORT))
             self.assertEqual({addr}, tr.bindings())
 
         self.loop.run_until_complete(connect())
@@ -465,11 +475,12 @@ class ZmqEventLoopTests(unittest.TestCase):
                 yield from tr.disconnect('ipc:///some-addr')  # non-bound addr
 
             # TODO: check travis build and remove skip when test passed.
-            if (ctx.exception.errno == errno.EAGAIN and
+            if (ctx.exception.errno == zmq.EAGAIN and
                     os.environ.get('TRAVIS')):
                 raise unittest.SkipTest("Travis has a bug, it returns "
                                         "EAGAIN for unknown endpoint")
-            self.assertEqual(errno.ENOENT, ctx.exception.errno)
+            self.assertIn(ctx.exception.errno,
+                          (errno.ENOENT, zmq.EPROTONOSUPPORT))
             self.assertEqual({addr}, tr.connections())
 
         self.loop.run_until_complete(go())
