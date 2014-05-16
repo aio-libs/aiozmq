@@ -142,8 +142,6 @@ class RpcTests(unittest.TestCase):
                 connect='inproc://test',
                 loop=self.loop, error_table=error_table, timeout=timeout)
 
-            yield from asyncio.sleep(0.01, loop=self.loop)
-
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())

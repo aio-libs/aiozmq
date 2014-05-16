@@ -8,10 +8,7 @@ import aiozmq
 class PolicyTests(unittest.TestCase):
 
     def setUp(self):
-        self.policy = aiozmq.ZmqEventLoopPolicy(io_threads=5)
-
-    def test_ctor(self):
-        self.assertEqual(5, self.policy._io_threads)
+        self.policy = aiozmq.ZmqEventLoopPolicy()
 
     def test_get_event_loop(self):
         self.assertIsNone(self.policy._local._loop)

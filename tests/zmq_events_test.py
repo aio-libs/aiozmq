@@ -138,7 +138,7 @@ class ZmqEventLoopTests(unittest.TestCase):
         # Sorry, sleep is required to get rid of sporadic hangs
         # without that 0MQ not always establishes tcp connection
         # and waiting for message from sub socket hangs.
-        time.sleep(0.1)
+        time.sleep(0.01)
         self.loop.run_until_complete(communicate())
 
         @asyncio.coroutine

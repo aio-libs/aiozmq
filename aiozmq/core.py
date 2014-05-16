@@ -3,6 +3,7 @@ import asyncio.events
 import errno
 import re
 import threading
+import weakref
 import zmq
 
 from asyncio.unix_events import SelectorEventLoop, SafeChildWatcher
@@ -24,13 +25,19 @@ class ZmqEventLoop(SelectorEventLoop):
     create_zmq_connection method for working with ZeroMQ sockets.
     """
 
-    def __init__(self, *, io_threads=1):
+    def __init__(self, *, zmq_context=None):
         super().__init__(selector=ZmqSelector())
-        self._zmq_context = zmq.Context(io_threads)
+        if zmq_context is None:
+            self._zmq_context = zmq.Context.instance()
+        else:
+            self._zmq_context = zmq_context
+        self._zmq_sockets = weakref.WeakSet()
 
     def close(self):
+        for zmq_sock in self._zmq_sockets:
+            if not zmq_sock.closed:
+                zmq_sock.close()
         super().close()
-        self._zmq_context.destroy()
 
     @asyncio.coroutine
     def create_zmq_connection(self, protocol_factory, zmq_type, *,
@@ -113,7 +120,7 @@ class ZmqEventLoop(SelectorEventLoop):
                                          'str or iterable')
                 for endpoint in connect:
                     yield from transport.connect(endpoint)
-
+            self._zmq_sockets.add(zmq_sock)
             return transport, protocol
         except OSError:
             # don't care if zmq_sock.close can raise exception
@@ -273,7 +280,8 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         try:
             self._protocol.connection_lost(exc)
         finally:
-            self._zmq_sock.close()
+            if not self._zmq_sock.closed:
+                self._zmq_sock.close()
             self._zmq_sock = None
             self._protocol = None
             self._loop = None
@@ -420,10 +428,9 @@ class ZmqEventLoopPolicy(asyncio.AbstractEventLoopPolicy):
         _loop = None
         _set_called = False
 
-    def __init__(self, *, io_threads=1):
+    def __init__(self):
         self._local = self._Local()
         self._watcher = None
-        self._io_threads = io_threads
 
     def get_event_loop(self):
         """Get the event loop.
@@ -451,7 +458,7 @@ class ZmqEventLoopPolicy(asyncio.AbstractEventLoopPolicy):
         You must call set_event_loop() to make this the current event
         loop.
         """
-        return ZmqEventLoop(io_threads=self._io_threads)
+        return ZmqEventLoop()
 
     def _init_watcher(self):
         with asyncio.events._lock:

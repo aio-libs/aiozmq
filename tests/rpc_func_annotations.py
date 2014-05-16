@@ -80,7 +80,6 @@ class FuncAnnotationsTests(unittest.TestCase):
 
             client = yield from aiozmq.rpc.connect_rpc(
                 connect='inproc://test', loop=self.loop)
-            yield from asyncio.sleep(0.01, loop=self.loop)
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())

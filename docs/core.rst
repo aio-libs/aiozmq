@@ -55,14 +55,12 @@ Follows :class:`asyncio.AbstractEventLoop` specification and has
 :meth:`~ZmqEventLoop.create_zmq_connection` method for :term:`ZeroMQ`
 sockets layer.
 
-Internally the loop contains a :class:`zmq.Context` instance, so all
-transports created by event loop shares the same context.
+.. class:: ZmqEventLoop(*, zmq_context=None)
 
-
-.. class:: ZmqEventLoop(*, io_threads=1)
-
-   :param int io_threads: number of I/O threads.
-     See http://api.zeromq.org/3-3:zmq-ctx-set **ZMQ_IO_THREADS** for details.
+   :param zmq.Context zmq_context: explicit context to use for ZeroMQ
+     socket creation inside :meth:`ZmqEventLoop.create_zmq_connection`
+     calls.  :mod:`aiozmq` shares global context if *zmq_context*
+     parameter is ``None``.
 
    .. method:: create_zmq_connection(protocol_factory, zmq_type, *, \
                                bind=None, connect=None, zmq_sock=None)
