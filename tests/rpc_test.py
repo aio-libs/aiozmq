@@ -10,7 +10,7 @@ import zmq
 import msgpack
 import struct
 
-from aiozmq._test_util import log_hook
+from aiozmq._test_util import find_unused_port, log_hook
 from aiozmq.rpc.log import logger
 
 
@@ -133,13 +133,14 @@ class RpcTests(unittest.TestCase):
                       log_exceptions=False):
         @asyncio.coroutine
         def create():
+            port = find_unused_port()
             server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
-                bind='inproc://test',
+                bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop,
                 log_exceptions=log_exceptions)
             client = yield from aiozmq.rpc.connect_rpc(
-                connect='inproc://test',
+                connect='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop, error_table=error_table, timeout=timeout)
 
             return client, server
@@ -271,12 +272,13 @@ class RpcTests(unittest.TestCase):
 
         @asyncio.coroutine
         def create():
+            port = find_unused_port()
             server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
-                bind='inproc://test',
+                bind='tcp://127.0.0.1:{}'.format(port),
                 loop=None)
             client = yield from aiozmq.rpc.connect_rpc(
-                connect='inproc://test',
+                connect='tcp://127.0.0.1:{}'.format(port),
                 loop=None)
             return client, server
 
@@ -372,13 +374,14 @@ class RpcTests(unittest.TestCase):
     def test_unknown_format_at_server(self):
         @asyncio.coroutine
         def go():
+            port = find_unused_port()
             server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
-                bind='inproc://test',
+                bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                connect='inproc://test')
+                connect='tcp://127.0.0.1:{}'.format(port))
 
             yield from asyncio.sleep(0.001, loop=self.loop)
 
@@ -400,13 +403,14 @@ class RpcTests(unittest.TestCase):
     def test_malformed_args(self):
         @asyncio.coroutine
         def go():
+            port = find_unused_port()
             server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
-                bind='inproc://test',
+                bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                connect='inproc://test')
+                connect='tcp://127.0.0.1:{}'.format(port))
 
             with log_hook('aiozmq.rpc', self.err_queue):
                 tr.write([struct.pack('=HHLd', 1, 2, 3, 4),
@@ -428,13 +432,14 @@ class RpcTests(unittest.TestCase):
     def test_malformed_kwargs(self):
         @asyncio.coroutine
         def go():
+            port = find_unused_port()
             server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
-                bind='inproc://test',
+                bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                connect='inproc://test')
+                connect='tcp://127.0.0.1:{}'.format(port))
 
             with log_hook('aiozmq.rpc', self.err_queue):
                 tr.write([struct.pack('=HHLd', 1, 2, 3, 4),
@@ -456,12 +461,13 @@ class RpcTests(unittest.TestCase):
     def test_unknown_format_at_client(self):
         @asyncio.coroutine
         def go():
+            port = find_unused_port()
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                bind='inproc://test')
+                bind='tcp://127.0.0.1:{}'.format(port))
 
             client = yield from aiozmq.rpc.connect_rpc(
-                connect='inproc://test',
+                connect='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
 
             with log_hook('aiozmq.rpc', self.err_queue):
@@ -482,12 +488,14 @@ class RpcTests(unittest.TestCase):
     def test_malformed_answer_at_client(self):
         @asyncio.coroutine
         def go():
+            port = find_unused_port()
+
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                bind='inproc://test')
+                bind='tcp://127.0.0.1:{}'.format(port))
 
             client = yield from aiozmq.rpc.connect_rpc(
-                connect='inproc://test',
+                connect='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
 
             with log_hook('aiozmq.rpc', self.err_queue):
@@ -510,12 +518,13 @@ class RpcTests(unittest.TestCase):
     def test_unknown_req_id_at_client(self):
         @asyncio.coroutine
         def go():
+            port = find_unused_port()
             tr, pr = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                bind='inproc://test')
+                bind='tcp://127.0.0.1:{}'.format(port))
 
             client = yield from aiozmq.rpc.connect_rpc(
-                connect='inproc://test',
+                connect='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
 
             with log_hook('aiozmq.rpc', self.err_queue):
