@@ -72,6 +72,7 @@ class PubSubTests(unittest.TestCase):
         if self.server:
             self.close(self.server)
         self.loop.close()
+        asyncio.set_event_loop(None)
 
     def close(self, service):
         service.close()
@@ -279,8 +280,6 @@ class PubSubTests(unittest.TestCase):
         port = find_unused_port()
 
         asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
-        self.addCleanup(asyncio.set_event_loop_policy, None)
-        self.addCleanup(asyncio.set_event_loop, None)
         queue = asyncio.Queue()
 
         @asyncio.coroutine

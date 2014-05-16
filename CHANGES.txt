@@ -1,6 +1,14 @@
 CHANGES
 -------
 
+0.3.0 (XXXX-XX-XX)
+^^^^^^^^^^^^^^^^^^
+
+* Fix unstable test execution, change ZmqEventLoop to use global
+  shared zmq.Context by default.
+
+* Process cancellation on rpc servers and clients.
+
 0.2.0 (2014-04-18)
 ^^^^^^^^^^^^^^^^^^
 

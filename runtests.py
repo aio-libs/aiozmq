@@ -30,6 +30,7 @@ import unittest
 import traceback
 import textwrap
 import importlib.machinery
+
 try:
     import coverage
 except ImportError:
@@ -264,13 +265,15 @@ def runtests():
             while True:
                 tests = finder.load_tests()
                 result = runner_factory(verbosity=v,
-                                        failfast=failfast).run(tests)
+                                        failfast=failfast,
+                                        warnings="always").run(tests)
                 if not result.wasSuccessful():
                     sys.exit(1)
         else:
             tests = finder.load_tests()
             result = runner_factory(verbosity=v,
-                                    failfast=failfast).run(tests)
+                                    failfast=failfast,
+                                    warnings="always").run(tests)
             sys.exit(not result.wasSuccessful())
     finally:
         if args.coverage:

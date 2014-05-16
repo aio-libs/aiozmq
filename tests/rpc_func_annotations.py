@@ -3,6 +3,7 @@ import asyncio
 
 import aiozmq
 import aiozmq.rpc
+from aiozmq._test_util import find_unused_port
 
 
 def my_checker(val):
@@ -62,23 +63,25 @@ class FuncAnnotationsTests(unittest.TestCase):
         if self.server is not None:
             self.close(self.server)
         self.loop.close()
+        asyncio.set_event_loop(None)
 
     def close(self, service):
         service.close()
         self.loop.run_until_complete(service.wait_closed())
 
     def make_rpc_pair(self):
+        port = find_unused_port()
 
         @asyncio.coroutine
         def create():
             server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(),
+                bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
 
-            addr = yield from server.transport.bind('tcp://127.0.0.1:*')
-
             client = yield from aiozmq.rpc.connect_rpc(
-                connect=addr, loop=self.loop)
+                connect='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())
@@ -88,13 +91,13 @@ class FuncAnnotationsTests(unittest.TestCase):
     def test_valid_annotations(self):
 
         msg = "Expected 'bad_arg' annotation to be callable"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             @aiozmq.rpc.method
             def test(good_arg: int, bad_arg: 0):
                 pass
 
         msg = "Expected return annotation to be callable"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             @aiozmq.rpc.method
             def test2() -> 'bad annotation':
                 pass

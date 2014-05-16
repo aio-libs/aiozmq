@@ -13,8 +13,10 @@ install:
   - test $USE_MSGPACK == 1 && pip install msgpack-python || true
   - pip install pyflakes
   - pip install pep8
+  #- pip install coveralls
 
 script:
+  - python -c "import zmq; print('ZMQ version:', zmq.zmq_version())"
   - pep8 aiozmq examples tests benchmarks
   - pyflakes .
   - python runtests.py -v

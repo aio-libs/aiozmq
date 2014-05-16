@@ -51,16 +51,15 @@ class ZmqEventLoopTests(unittest.TestCase):
 
     def tearDown(self):
         self.loop.close()
+        asyncio.set_event_loop(None)
 
     def test_req_rep(self):
-        port = find_unused_port()
-
         @asyncio.coroutine
         def connect_req():
             tr1, pr1 = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.REQ,
-                bind='tcp://127.0.0.1:{}'.format(port))
+                bind='inproc://test')
             self.assertEqual('CONNECTED', pr1.state)
             yield from pr1.connected
             return tr1, pr1
@@ -72,7 +71,7 @@ class ZmqEventLoopTests(unittest.TestCase):
             tr2, pr2 = yield from self.loop.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.REP,
-                connect='tcp://127.0.0.1:{}'.format(port))
+                connect='inproc://test')
             self.assertEqual('CONNECTED', pr2.state)
             yield from pr2.connected
             return tr2, pr2
@@ -139,7 +138,7 @@ class ZmqEventLoopTests(unittest.TestCase):
         # Sorry, sleep is required to get rid of sporadic hangs
         # without that 0MQ not always establishes tcp connection
         # and waiting for message from sub socket hangs.
-        time.sleep(0.1)
+        time.sleep(0.01)
         self.loop.run_until_complete(communicate())
 
         @asyncio.coroutine

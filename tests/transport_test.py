@@ -19,6 +19,7 @@ class TransportTests(unittest.TestCase):
     def setUp(self):
         self.loop = test_utils.TestLoop()
         self.sock = mock.Mock()
+        self.sock.closed = False
         self.proto = test_utils.make_test_protocol(aiozmq.ZmqProtocol)
         self.tr = _ZmqTransportImpl(self.loop, zmq.SUB, self.sock, self.proto)
         self.exc_handler = mock.Mock()
