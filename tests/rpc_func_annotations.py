@@ -3,6 +3,7 @@ import asyncio
 
 import aiozmq
 import aiozmq.rpc
+from aiozmq._test_util import find_unused_port
 
 
 def my_checker(val):
@@ -69,17 +70,18 @@ class FuncAnnotationsTests(unittest.TestCase):
         self.loop.run_until_complete(service.wait_closed())
 
     def make_rpc_pair(self):
+        port = find_unused_port()
 
         @asyncio.coroutine
         def create():
             server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(),
+                bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
 
-            yield from server.transport.bind('inproc://test')
-
             client = yield from aiozmq.rpc.connect_rpc(
-                connect='inproc://test', loop=self.loop)
+                connect='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())
