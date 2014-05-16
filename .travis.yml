@@ -16,7 +16,7 @@ install:
   #- pip install coveralls
 
 script:
-  - python -c "import zmq; print("ZMQ version:", zmq.zmq_version())"
+  - python -c "import zmq; print('ZMQ version:', zmq.zmq_version())"
   - pep8 aiozmq examples tests benchmarks
   - pyflakes .
   - python runtests.py -v
