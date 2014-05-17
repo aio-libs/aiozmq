@@ -6,4 +6,6 @@ names but not nicks only.
 
 Alexey Popravka
 Anton Kasyanov
+Artem Dudarev
+Nikita Ofitserov
 Oleg Baranovskiy
