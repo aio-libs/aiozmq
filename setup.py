@@ -67,7 +67,4 @@ setup(name='aiozmq',
       install_requires=install_requires,
       tests_require=tests_require,
       extras_require=extras_require,
-      #test_suite = 'nose.collector',
-      provides = ['aiozmq', 'aiozmq.rpc'],
-      requires = ['pyzmq'],
       include_package_data = True)
