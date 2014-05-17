@@ -59,8 +59,9 @@ sockets layer.
 
    :param zmq.Context zmq_context: explicit context to use for ZeroMQ
      socket creation inside :meth:`ZmqEventLoop.create_zmq_connection`
-     calls.  :mod:`aiozmq` shares global context if *zmq_context*
-     parameter is ``None``.
+     calls.  :mod:`aiozmq` shares global context returned by
+     :meth:`zmq.Context.instance` call if *zmq_context* parameter is
+     ``None``.
 
    .. method:: create_zmq_connection(protocol_factory, zmq_type, *, \
                                bind=None, connect=None, zmq_sock=None)
@@ -444,14 +445,9 @@ other threads by default have no event loop.
 :class:`ZmqEventLoopPolicy` implements an
 :class:`asyncio.AbstractEventLoopPolicy` interface.
 
-.. class:: ZmqEventLoopPolicy(*, io_threads=1)
+.. class:: ZmqEventLoopPolicy()
 
    Create policy for ZeroMQ event loops.
-
-   :param int io_threads: number of I/O threads for event loops
-                          created by this policy.
-
-      .. seealso:: :class:`ZmqEventLoop` constructor.
 
    .. note::
 
