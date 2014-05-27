@@ -71,6 +71,22 @@ class ZmqTransport(BaseTransport):
         """Return the current size of the write buffer."""
         raise NotImplementedError
 
+    def pause_reading(self):
+        """Pause the receiving end.
+
+        No data will be passed to the protocol's msg_received()
+        method until resume_reading() is called.
+        """
+        raise NotImplementedError
+
+    def resume_reading(self):
+        """Resume the receiving end.
+
+        Data received will once again be passed to the protocol's
+        msg_received() method.
+        """
+        raise NotImplementedError
+
     def bind(self, endpoint):
         """Bind transpot to endpoint.
 

@@ -173,6 +173,7 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         self._bindings = set()
         self._connections = set()
         self._subscriptions = set()
+        self._paused = False
 
         self._loop.add_reader(self._zmq_sock, self._read_ready)
         self._loop.call_soon(self._protocol.connection_made, self)
@@ -278,7 +279,8 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
             self._loop.remove_writer(self._zmq_sock)
         if not self._closing:
             self._closing = True
-            self._loop.remove_reader(self._zmq_sock)
+            if not self._paused:
+                self._loop.remove_reader(self._zmq_sock)
         self._loop.call_soon(self._call_connection_lost, exc)
 
     def _call_connection_lost(self, exc):
@@ -319,6 +321,22 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
 
     def get_write_buffer_size(self):
         return self._buffer_size
+
+    def pause_reading(self):
+        if self._closing:
+            raise RuntimeError('Cannot pause_reading() when closing')
+        if self._paused:
+            raise RuntimeError('Already paused')
+        self._paused = True
+        self._loop.remove_reader(self._zmq_sock)
+
+    def resume_reading(self):
+        if not self._paused:
+            raise RuntimeError('Not paused')
+        self._paused = False
+        if self._closing:
+            return
+        self._loop.add_reader(self._zmq_sock, self._read_ready)
 
     def bind(self, endpoint):
         fut = asyncio.Future(loop=self._loop)

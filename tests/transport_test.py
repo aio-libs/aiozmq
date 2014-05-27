@@ -371,3 +371,15 @@ class TransportTests(unittest.TestCase):
         self.tr.unsubscribe(b'val')
         self.assertFalse(self.tr.subscriptions())
         self.sock.setsockopt.assert_called_with(zmq.UNSUBSCRIBE, b'val')
+
+    def test_pause_resume_reading(self):
+        self.assertFalse(self.tr._paused)
+        self.loop.assert_reader(self.sock, self.tr._read_ready)
+        self.tr.pause_reading()
+        self.assertTrue(self.tr._paused)
+        self.assertNotIn(self.sock, self.loop.readers)
+        self.tr.resume_reading()
+        self.assertFalse(self.tr._paused)
+        self.loop.assert_reader(self.sock, self.tr._read_ready)
+        with self.assertRaises(RuntimeError):
+            self.tr.resume_reading()

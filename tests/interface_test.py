@@ -12,6 +12,8 @@ class ZmqTransportTests(unittest.TestCase):
         self.assertRaises(NotImplementedError, tr.setsockopt, 1, 2)
         self.assertRaises(NotImplementedError, tr.set_write_buffer_limits)
         self.assertRaises(NotImplementedError, tr.get_write_buffer_size)
+        self.assertRaises(NotImplementedError, tr.pause_reading)
+        self.assertRaises(NotImplementedError, tr.resume_reading)
         self.assertRaises(NotImplementedError, tr.bind, 'endpoint')
         self.assertRaises(NotImplementedError, tr.unbind, 'endpoint')
         self.assertRaises(NotImplementedError, tr.bindings)
