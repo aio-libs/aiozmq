@@ -100,7 +100,7 @@ class ZmqTransport(BaseTransport):
 
         endpoint is a string in format transport://address as ZeroMQ requires.
 
-        For tcp connections endpoint should specify IPv4 or IPv6 address,
+        For TCP connections endpoint should specify IPv4 or IPv6 address,
         not DNS name.
         Use yield from get_event_loop().getaddrinfo(host, port)
         for translating DNS into address.
