@@ -4,8 +4,9 @@ Acknowledgements
 The list of contributors to *aiozmq*, at least of persons with real
 names but not nicks only.
 
-Alexey Popravka
-Anton Kasyanov
-Artem Dudarev
-Nikita Ofitserov
 Oleg Baranovskiy
+Artem Dudarev
+Anton Kasyanov
+Nikita Ofitserov
+Alain Péteut
+Alexey Popravka

@@ -13,7 +13,7 @@ if PY_VER >= (3, 4):
 elif PY_VER >= (3, 3):
     install_requires.append('asyncio')
 else:
-    raise RuntimeError("aiozmq doesn't suppport Python earllier than 3.3")
+    raise RuntimeError("aiozmq doesn't support Python earlier than 3.3")
 
 tests_require = install_requires + ['msgpack-python>=0.4.0']
 
