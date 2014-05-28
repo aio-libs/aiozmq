@@ -258,7 +258,8 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         if self._closing:
             return
         self._closing = True
-        self._loop.remove_reader(self._zmq_sock)
+        if not self._paused:
+            self._loop.remove_reader(self._zmq_sock)
         if not self._buffer:
             self._loop.call_soon(self._call_connection_lost, None)
 
