@@ -1,8 +1,10 @@
 CHANGES
 -------
 
-0.4.0 (XXXX-XX-XX)
+0.4.0 (2014-05-28)
 ^^^^^^^^^^^^^^^^^^
+
+* Implement pause_reading/resume_reading methods in ZmqTransport.
 
 0.3.0 (2014-05-17)
 ^^^^^^^^^^^^^^^^^^
