@@ -619,13 +619,13 @@ Table of predefined translators:
 +---------+-------------------------------+
 | Ordinal | Class                         |
 +=========+===============================+
-+ 123     | :class:`datetime.tzinfo`      |
+| 123     | :class:`datetime.tzinfo`      |
 +---------+-------------------------------+
-+ 124     | :class:`datetime.timedelta`   |
+| 124     | :class:`datetime.timedelta`   |
 +---------+-------------------------------+
-+ 125     | :class:`datetime.time`        |
+| 125     | :class:`datetime.time`        |
 +---------+-------------------------------+
-+ 126     | :class:`datetime.datetime`    |
+| 126     | :class:`datetime.datetime`    |
 +---------+-------------------------------+
 | 127     | :class:`datetime.date`        |
 +---------+-------------------------------+
