@@ -19,6 +19,7 @@ class TransportTests(unittest.TestCase):
     def setUp(self):
         self.loop = test_utils.TestLoop()
         self.sock = mock.Mock()
+        self.sock.closed = False
         self.proto = test_utils.make_test_protocol(aiozmq.ZmqProtocol)
         self.tr = _ZmqTransportImpl(self.loop, zmq.SUB, self.sock, self.proto)
         self.exc_handler = mock.Mock()
@@ -148,6 +149,27 @@ class TransportTests(unittest.TestCase):
         self.assertIsNone(self.tr._loop)
         self.sock.close.assert_called_with()
 
+    def test_close_already_closed_socket(self):
+        self.tr._zmq_sock.closed = True
+        self.tr.close()
+
+        self.assertTrue(self.tr._closing)
+        self.assertEqual(1, self.loop.remove_reader_count[self.sock])
+        self.assertFalse(self.tr._buffer)
+        self.assertEqual(0, self.tr._buffer_size)
+        self.assertIsNotNone(self.tr._protocol)
+        self.assertIsNotNone(self.tr._zmq_sock)
+        self.assertIsNotNone(self.tr._loop)
+        self.assertFalse(self.sock.close.called)
+
+        test_utils.run_briefly(self.loop)
+
+        self.proto.connection_lost.assert_called_with(None)
+        self.assertIsNone(self.tr._protocol)
+        self.assertIsNone(self.tr._zmq_sock)
+        self.assertIsNone(self.tr._loop)
+        self.assertFalse(self.sock.close.called)
+
     def test_close_with_waiting_buffer(self):
         self.tr._buffer = deque([(b'data',)])
         self.tr._buffer_size = 4
@@ -193,6 +215,28 @@ class TransportTests(unittest.TestCase):
         self.assertIsNone(self.tr._zmq_sock)
         self.assertIsNone(self.tr._loop)
         self.proto.connection_lost.assert_called_with(None)
+        self.sock.close.assert_called_with()
+
+    def test_close_paused(self):
+        self.tr.pause_reading()
+        self.assertEqual(1, self.loop.remove_reader_count[self.sock])
+        self.tr.close()
+
+        self.assertTrue(self.tr._closing)
+        self.assertEqual(1, self.loop.remove_reader_count[self.sock])
+        self.assertFalse(self.tr._buffer)
+        self.assertEqual(0, self.tr._buffer_size)
+        self.assertIsNotNone(self.tr._protocol)
+        self.assertIsNotNone(self.tr._zmq_sock)
+        self.assertIsNotNone(self.tr._loop)
+        self.assertFalse(self.sock.close.called)
+
+        test_utils.run_briefly(self.loop)
+
+        self.proto.connection_lost.assert_called_with(None)
+        self.assertIsNone(self.tr._protocol)
+        self.assertIsNone(self.tr._zmq_sock)
+        self.assertIsNone(self.tr._loop)
         self.sock.close.assert_called_with()
 
     def test_write_eof(self):
@@ -278,6 +322,28 @@ class TransportTests(unittest.TestCase):
         self.assertIsNone(self.tr._loop)
         self.assertTrue(self.proto.connection_lost.called)
         self.assertTrue(self.sock.close.called)
+
+    def test_abort_paused(self):
+        self.tr.pause_reading()
+        self.assertEqual(1, self.loop.remove_reader_count[self.sock])
+        self.tr.abort()
+
+        self.assertTrue(self.tr._closing)
+        self.assertEqual(1, self.loop.remove_reader_count[self.sock])
+        self.assertFalse(self.tr._buffer)
+        self.assertEqual(0, self.tr._buffer_size)
+        self.assertIsNotNone(self.tr._protocol)
+        self.assertIsNotNone(self.tr._zmq_sock)
+        self.assertIsNotNone(self.tr._loop)
+        self.assertFalse(self.sock.close.called)
+
+        test_utils.run_briefly(self.loop)
+
+        self.proto.connection_lost.assert_called_with(None)
+        self.assertIsNone(self.tr._protocol)
+        self.assertIsNone(self.tr._zmq_sock)
+        self.assertIsNone(self.tr._loop)
+        self.sock.close.assert_called_with()
 
     def test__read_ready_got_EAGAIN(self):
         self.sock.recv_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
@@ -449,3 +515,34 @@ class TransportTests(unittest.TestCase):
              'exception': exc,
              'protocol': self.proto,
              'message': 'protocol.resume_writing() failed'})
+
+    def test_pause_resume_reading(self):
+        self.assertFalse(self.tr._paused)
+        self.loop.assert_reader(self.sock, self.tr._read_ready)
+        self.tr.pause_reading()
+        self.assertTrue(self.tr._paused)
+        self.assertNotIn(self.sock, self.loop.readers)
+        self.tr.resume_reading()
+        self.assertFalse(self.tr._paused)
+        self.loop.assert_reader(self.sock, self.tr._read_ready)
+
+    def test_pause_closing(self):
+        self.tr.close()
+        with self.assertRaises(RuntimeError):
+            self.tr.pause_reading()
+
+    def test_pause_paused(self):
+        self.tr.pause_reading()
+        with self.assertRaises(RuntimeError):
+            self.tr.pause_reading()
+
+    def test_resume_not_paused(self):
+        with self.assertRaises(RuntimeError):
+            self.tr.resume_reading()
+
+    def test_resume_closed(self):
+        self.assertIn(self.sock, self.loop.readers)
+        self.tr.pause_reading()
+        self.tr.close()
+        self.tr.resume_reading()
+        self.assertNotIn(self.sock, self.loop.readers)

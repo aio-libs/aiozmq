@@ -13,12 +13,11 @@ if PY_VER >= (3, 4):
 elif PY_VER >= (3, 3):
     install_requires.append('asyncio')
 else:
-    raise RuntimeError("aiozmq doesn't suppport Python earllier than 3.3")
+    raise RuntimeError("aiozmq doesn't support Python earlier than 3.3")
 
 tests_require = install_requires + ['msgpack-python>=0.4.0']
 
-extras_require = {'rpc': ['msgpack-python>=0.4.0'],
-                  'bench': ['numpy>=1.8', 'scipy>=0.13', 'matplotlib>=1.3']}
+extras_require = {'rpc': ['msgpack-python>=0.4.0']}
 
 
 def read(f):
@@ -39,10 +38,12 @@ def read_version():
 classifiers=[
     'License :: OSI Approved :: BSD License',
     'Intended Audience :: Developers',
-    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.3',
     'Programming Language :: Python :: 3.4',
     'Operating System :: POSIX',
+    'Operating System :: MacOS :: MacOS X',
+    'Operating System :: Microsoft :: Windows',
     'Environment :: Web Environment',
     'Development Status :: 4 - Beta',
 ]
@@ -53,7 +54,7 @@ setup(name='aiozmq',
       description=('ZeroMQ integration with asyncio.'),
       long_description='\n\n'.join((read('README.rst'), read('CHANGES.txt'))),
       classifiers=classifiers,
-      platforms=['POSIX'],
+      platforms=['POSIX', 'Windows', 'MacOS X'],
       author='Nikolay Kim',
       author_email='fafhrd91@gmail.com',
       maintainer='Andrew Svetlov',
@@ -65,7 +66,4 @@ setup(name='aiozmq',
       install_requires=install_requires,
       tests_require=tests_require,
       extras_require=extras_require,
-      #test_suite = 'nose.collector',
-      provides = ['aiozmq', 'aiozmq.rpc'],
-      requires = ['pyzmq'],
       include_package_data = True)

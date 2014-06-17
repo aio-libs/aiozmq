@@ -14,8 +14,10 @@ install:
   - pip install pyflakes
   - pip install pep8
   - pip install docutils
+  #- pip install coveralls
 
 script:
+  - python -c "import zmq; print('ZMQ version:', zmq.zmq_version())"
   - pep8 aiozmq examples tests benchmarks
   - pyflakes .
   - python runtests.py -v

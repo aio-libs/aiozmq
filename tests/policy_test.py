@@ -1,17 +1,16 @@
 import asyncio
+import sys
 import threading
 import unittest
 from unittest import mock
+
 import aiozmq
 
 
 class PolicyTests(unittest.TestCase):
 
     def setUp(self):
-        self.policy = aiozmq.ZmqEventLoopPolicy(io_threads=5)
-
-    def test_ctor(self):
-        self.assertEqual(5, self.policy._io_threads)
+        self.policy = aiozmq.ZmqEventLoopPolicy()
 
     def test_get_event_loop(self):
         self.assertIsNone(self.policy._local._loop)
@@ -68,6 +67,8 @@ class PolicyTests(unittest.TestCase):
         loop.close()
         old_loop.close()
 
+    @unittest.skipIf(sys.platform == 'win32',
+                     "Windows doesn't support child watchers")
     def test_get_child_watcher(self):
         self.assertIsNone(self.policy._watcher)
 
@@ -79,6 +80,8 @@ class PolicyTests(unittest.TestCase):
         self.assertIs(watcher, self.policy.get_child_watcher())
         self.assertIsNone(watcher._loop)
 
+    @unittest.skipIf(sys.platform == 'win32',
+                     "Windows doesn't support child watchers")
     def test_get_child_watcher_after_set(self):
         watcher = asyncio.FastChildWatcher()
 
@@ -86,6 +89,8 @@ class PolicyTests(unittest.TestCase):
         self.assertIs(self.policy._watcher, watcher)
         self.assertIs(watcher, self.policy.get_child_watcher())
 
+    @unittest.skipIf(sys.platform == 'win32',
+                     "Windows doesn't support child watchers")
     def test_get_child_watcher_with_mainloop_existing(self):
         loop = self.policy.get_event_loop()
 
@@ -97,6 +102,8 @@ class PolicyTests(unittest.TestCase):
 
         loop.close()
 
+    @unittest.skipIf(sys.platform == 'win32',
+                     "Windows doesn't support child watchers")
     def test_get_child_watcher_thread(self):
 
         def f():
@@ -115,6 +122,8 @@ class PolicyTests(unittest.TestCase):
         th.start()
         th.join()
 
+    @unittest.skipIf(sys.platform == 'win32',
+                     "Windows doesn't support child watchers")
     def test_child_watcher_replace_mainloop_existing(self):
         loop = self.policy.get_event_loop()
 
@@ -134,6 +143,8 @@ class PolicyTests(unittest.TestCase):
         loop.close()
         new_loop.close()
 
+    @unittest.skipIf(sys.platform == 'win32',
+                     "Windows doesn't support child watchers")
     def test_get_child_watcher_to_override_existing_one(self):
         watcher = asyncio.FastChildWatcher()
 

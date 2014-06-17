@@ -1,8 +1,18 @@
 CHANGES
 -------
 
-0.3.0 (XXXX-XX-XX)
+0.4.0 (2014-05-28)
 ^^^^^^^^^^^^^^^^^^
+
+* Implement pause_reading/resume_reading methods in ZmqTransport.
+
+0.3.0 (2014-05-17)
+^^^^^^^^^^^^^^^^^^
+
+* Add limited support for Windows.
+
+* Fix unstable test execution, change ZmqEventLoop to use global
+  shared zmq.Context by default.
 
 * Process cancellation on rpc servers and clients.
 

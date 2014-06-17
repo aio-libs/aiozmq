@@ -256,6 +256,8 @@ class _ServerProtocol(_BaseServerProtocol):
                             return_annotation=None):
         self.pending_waiters.discard(fut)
         self.try_log(fut, name, args, kwargs)
+        if self.transport is None:
+            return
         try:
             ret = fut.result()
             if return_annotation is not None:

@@ -104,6 +104,7 @@ class Service(asyncio.AbstractServer):
     def __init__(self, loop, proto):
         self._loop = loop
         self._proto = proto
+        self._closing = False
 
     @property
     def transport(self):
@@ -118,6 +119,9 @@ class Service(asyncio.AbstractServer):
         return transport
 
     def close(self):
+        if self._closing:
+            return
+        self._closing = True
         if self._proto.transport is None:
             return
         self._proto.transport.close()

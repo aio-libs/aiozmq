@@ -72,11 +72,19 @@ class ZmqTransport(BaseTransport):
         raise NotImplementedError
 
     def pause_reading(self):
-        """Pause reading."""
+        """Pause the receiving end.
+
+        No data will be passed to the protocol's msg_received()
+        method until resume_reading() is called.
+        """
         raise NotImplementedError
 
     def resume_reading(self):
-        """Resume reading."""
+        """Resume the receiving end.
+
+        Data received will once again be passed to the protocol's
+        msg_received() method.
+        """
         raise NotImplementedError
 
     def bind(self, endpoint):
@@ -108,7 +116,7 @@ class ZmqTransport(BaseTransport):
 
         endpoint is a string in format transport://address as ZeroMQ requires.
 
-        For tcp connections endpoint should specify IPv4 or IPv6 address,
+        For TCP connections endpoint should specify IPv4 or IPv6 address,
         not DNS name.
         Use yield from get_event_loop().getaddrinfo(host, port)
         for translating DNS into address.

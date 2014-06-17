@@ -34,6 +34,9 @@ from asyncio import test_utils
 
 import aiozmq
 
+if sys.platform == 'win32':
+    raise unittest.SkipTest("don't check")
+
 
 def data_file(filename):
     fullname = os.path.join(os.path.dirname(__file__), filename)
@@ -232,6 +235,7 @@ class EventLoopTestsMixin:
 
         self.loop.close()
         gc.collect()
+        asyncio.set_event_loop(None)
         super().tearDown()
 
     def test_run_until_complete_nesting(self):
