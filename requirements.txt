@@ -17,3 +17,6 @@ jedi
 rope_py3k
 pyenchant
 sphinxcontrib-spelling
+ipython
+ipdb
+-e .
