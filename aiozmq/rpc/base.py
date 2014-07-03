@@ -156,12 +156,14 @@ class _BaseProtocol(interface.ZmqProtocol):
 class _BaseServerProtocol(_BaseProtocol):
 
     def __init__(self, loop, handler, *,
-                 translation_table=None, log_exceptions=False):
+                 translation_table=None, log_exceptions=False,
+                 exclude_log_exceptions=()):
         super().__init__(loop, translation_table=translation_table)
         if not isinstance(handler, AbstractHandler):
             raise TypeError('handler must implement AbstractHandler ABC')
         self.handler = handler
         self.log_exceptions = log_exceptions
+        self.exclude_log_exceptions = exclude_log_exceptions
         self.pending_waiters = set()
 
     def connection_lost(self, exc):
@@ -230,8 +232,11 @@ class _BaseServerProtocol(_BaseProtocol):
     def try_log(self, fut, name, args, kwargs):
         try:
             fut.result()
-        except Exception:
+        except Exception as exc:
             if self.log_exceptions:
+                for e in self.exclude_log_exceptions:
+                    if isinstance(exc, e):
+                        return
                 logger.exception(textwrap.dedent("""\
                     An exception from method %r call occurred.
                     args = %s

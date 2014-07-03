@@ -139,7 +139,13 @@ The basic usage is::
       Usually you like to pass :class:`AttrHandler` instance.
 
     :param bool log_exceptions:
-       log exceptions from remote calls if *True*.
+       log exceptions from remote calls if ``True``.
+
+       .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
+
+    :param sequence exclude_log_exceptions: sequence of exception
+       types that should not to be logged if *log_exceptions* is
+       ``True``.
 
        .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
 
@@ -240,7 +246,13 @@ The basic usage is::
       Usually you like to pass :class:`AttrHandler` instance.
 
     :param bool log_exceptions:
-       log exceptions from remote calls if *True*.
+       log exceptions from remote calls if ``True``.
+
+       .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
+
+    :param sequence exclude_log_exceptions: sequence of exception
+       types that should not to be logged if *log_exceptions* is
+       ``True``.
 
        .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
 
@@ -340,7 +352,13 @@ The basic usage is::
       Usually you like to pass :class:`AttrHandler` instance.
 
     :param bool log_exceptions:
-       log exceptions from remote calls if *True*.
+       log exceptions from remote calls if ``True``.
+
+       .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
+
+    :param sequence exclude_log_exceptions: sequence of exception
+       types that should not to be logged if *log_exceptions* is
+       ``True``.
 
        .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
 
@@ -665,6 +683,20 @@ If, say, you make PubSub server as::
 
 then exceptions raised from *handler* remote calls will be logged by
 standard :attr:`aiozmq.rpc.logger`.
+
+But sometimes you don't want to log exceptions of some types.
+
+Say, you use your own exceptions as part of public API to report about
+expected failures. In this case you probably want to pass that
+exceptions over the log, but record all other unexpected errors.
+
+For that case you can use *exclude_log_exceptions* parameter::
+
+   server =  yield from rpc.serve_rpc(handler,
+                                      bind='tcp://127.0.0.1:7777',
+                                      log_exceptions=True,
+                                      exclude_log_exceptions=(MyError,
+                                                              OtherError))
 
 
 Exceptions
