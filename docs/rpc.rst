@@ -121,7 +121,8 @@ The basic usage is::
     :return: :class:`RPCClient` instance.
 
 .. function:: serve_rpc(handler, *, bind=None, connect=None, loop=None, \
-                        log_exceptions=False, translation_table=None)
+                        log_exceptions=False, exclude_log_exceptions=(), \
+                        translation_table=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds *RPC*
     server instance.
@@ -228,7 +229,8 @@ The basic usage is::
 
 
 .. function:: serve_pipeline(handler, *, connect=None, bind=None, loop=None, \
-                        log_exceptions=False, translation_table=None)
+                             log_exceptions=False, exclude_log_exceptions=(), \
+                             translation_table=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds *pipeline*
     server instance.
@@ -334,7 +336,8 @@ The basic usage is::
 
 
 .. function:: serve_pubsub(handler, *, connect=None, bind=None, subscribe=None,\
-              loop=None, log_exceptions=False, translation_table=None)
+                           loop=None, log_exceptions=False, \
+                           exclude_log_exceptions=(), translation_table=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds *pubsub*
     server instance.
