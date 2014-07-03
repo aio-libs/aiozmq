@@ -82,7 +82,8 @@ class PipelineTests(unittest.TestCase):
     def exception_handler(self, loop, context):
         self.err_queue.put_nowait(context)
 
-    def make_pipeline_pair(self, log_exceptions=False):
+    def make_pipeline_pair(self, log_exceptions=False,
+                           exclude_log_exceptions=()):
 
         @asyncio.coroutine
         def create():
@@ -90,7 +91,8 @@ class PipelineTests(unittest.TestCase):
                 MyHandler(self.queue, self.loop),
                 bind='tcp://127.0.0.1:*',
                 loop=self.loop,
-                log_exceptions=log_exceptions)
+                log_exceptions=log_exceptions,
+                exclude_log_exceptions=exclude_log_exceptions)
             connect = next(iter(server.transport.bindings()))
             client = yield from aiozmq.rpc.connect_pipeline(
                 connect=connect,

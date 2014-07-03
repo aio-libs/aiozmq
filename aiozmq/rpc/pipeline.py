@@ -45,24 +45,29 @@ def connect_pipeline(*, connect=None, bind=None, loop=None,
 
 @asyncio.coroutine
 def serve_pipeline(handler, *, connect=None, bind=None, loop=None,
-                   translation_table=None, log_exceptions=False):
+                   translation_table=None, log_exceptions=False,
+                   exclude_log_exceptions=()):
     """A coroutine that creates and connects/binds Pipeline server instance.
 
     Usually for this function you need to use *bind* parameter, but
     ZeroMQ does not forbid to use *connect*.
 
     handler -- an object which processes incoming pipeline calls.
-    Usually you like to pass AttrHandler instance.
+               Usually you like to pass AttrHandler instance.
 
     log_exceptions -- log exceptions from remote calls if True.
 
     translation_table -- an optional table for custom value translators.
 
-    loop -- an optional parameter to point
-       ZmqEventLoop instance.  If loop is None then default
-       event loop will be given by asyncio.get_event_loop() call.
+    exclude_log_exceptions -- sequence of exception classes than should not
+                              be logged.
+
+    loop -- an optional parameter to point ZmqEventLoop instance.  If
+            loop is None then default event loop will be given by
+            asyncio.get_event_loop() call.
 
     Returns Service instance.
+
     """
     if loop is None:
         loop = asyncio.get_event_loop()
@@ -70,7 +75,8 @@ def serve_pipeline(handler, *, connect=None, bind=None, loop=None,
     trans, proto = yield from loop.create_zmq_connection(
         lambda: _ServerProtocol(loop, handler,
                                 translation_table=translation_table,
-                                log_exceptions=log_exceptions),
+                                log_exceptions=log_exceptions,
+                                exclude_log_exceptions=exclude_log_exceptions),
         zmq.PULL, connect=connect, bind=bind)
     return Service(loop, proto)
 

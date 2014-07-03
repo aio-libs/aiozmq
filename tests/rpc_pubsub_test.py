@@ -78,7 +78,8 @@ class PubSubTests(unittest.TestCase):
         service.close()
         self.loop.run_until_complete(service.wait_closed())
 
-    def make_pubsub_pair(self, subscribe=None, log_exceptions=False):
+    def make_pubsub_pair(self, subscribe=None, log_exceptions=False,
+                         exclude_log_exceptions=()):
 
         @asyncio.coroutine
         def create():
@@ -87,7 +88,8 @@ class PubSubTests(unittest.TestCase):
                 subscribe=subscribe,
                 bind='tcp://127.0.0.1:*',
                 loop=self.loop,
-                log_exceptions=log_exceptions)
+                log_exceptions=log_exceptions,
+                exclude_log_exceptions=exclude_log_exceptions)
             connect = next(iter(server.transport.bindings()))
             client = yield from aiozmq.rpc.connect_pubsub(
                 connect=connect,

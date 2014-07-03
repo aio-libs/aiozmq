@@ -68,6 +68,10 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         ret.cancel()
         return ret
 
+    @aiozmq.rpc.method
+    def exc2(self, arg):
+        raise ValueError("bad arg", arg)
+
 
 class Protocol(aiozmq.ZmqProtocol):
 
@@ -130,7 +134,7 @@ class RpcTests(unittest.TestCase):
         self.loop.run_until_complete(server.wait_closed())
 
     def make_rpc_pair(self, *, error_table=None, timeout=None,
-                      log_exceptions=False):
+                      log_exceptions=False, exclude_log_exceptions=()):
         @asyncio.coroutine
         def create():
             port = find_unused_port()
@@ -138,7 +142,8 @@ class RpcTests(unittest.TestCase):
                 MyHandler(self.loop),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop,
-                log_exceptions=log_exceptions)
+                log_exceptions=log_exceptions,
+                exclude_log_exceptions=exclude_log_exceptions)
             client = yield from aiozmq.rpc.connect_rpc(
                 connect='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop, error_table=error_table, timeout=timeout)
@@ -624,6 +629,27 @@ class RpcTests(unittest.TestCase):
             yield from asyncio.sleep(0.01, loop=self.loop)
             self.assertEqual(0, len(server._proto.pending_waiters))
             del waiter
+
+        self.loop.run_until_complete(communicate())
+
+    @mock.patch('aiozmq.rpc.base.logger')
+    def test_exclude_log_exceptions(self, m_log):
+        client, server = self.make_rpc_pair(
+            log_exceptions=True,
+            exclude_log_exceptions=(MyException,))
+
+        @asyncio.coroutine
+        def communicate():
+            with self.assertRaises(RuntimeError):
+                yield from client.call.exc(1)
+            m_log.exception.assert_called_with(
+                'An exception from method %r call occurred.\n'
+                'args = %s\nkwargs = %s\n',
+                mock.ANY, mock.ANY, mock.ANY)
+            m_log.reset_mock()
+            with self.assertRaises(ValueError):
+                yield from client.call.exc2()
+            self.assertFalse(m_log.called)
 
         self.loop.run_until_complete(communicate())
 

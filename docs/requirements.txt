@@ -1,0 +1,3 @@
+pyzmq
+sphinxcontrib-spelling
+pyenchant

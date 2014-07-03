@@ -72,24 +72,29 @@ def connect_rpc(*, connect=None, bind=None, loop=None,
 
 @asyncio.coroutine
 def serve_rpc(handler, *, connect=None, bind=None, loop=None,
-              translation_table=None, log_exceptions=False):
+              translation_table=None, log_exceptions=False,
+              exclude_log_exceptions=()):
     """A coroutine that creates and connects/binds RPC server instance.
 
     Usually for this function you need to use *bind* parameter, but
     ZeroMQ does not forbid to use *connect*.
 
-    handler -- an object which processes incoming RPC calls.
-    Usually you like to pass AttrHandler instance.
+    handler -- an object which processes incoming RPC calls.  Usually
+               you like to pass AttrHandler instance.
 
     log_exceptions -- log exceptions from remote calls if True.
+
+    exclude_log_exceptions -- sequence of exception classes than should not
+                              be logged.
 
     translation_table -- an optional table for custom value translators.
 
     loop -- an optional parameter to point ZmqEventLoop instance.  If
-    loop is None then default event loop will be given by
-    asyncio.get_event_loop call.
+            loop is None then default event loop will be given by
+            asyncio.get_event_loop call.
 
     Returns Service instance.
+
     """
     if loop is None:
         loop = asyncio.get_event_loop()
@@ -97,7 +102,8 @@ def serve_rpc(handler, *, connect=None, bind=None, loop=None,
     transp, proto = yield from loop.create_zmq_connection(
         lambda: _ServerProtocol(loop, handler,
                                 translation_table=translation_table,
-                                log_exceptions=log_exceptions),
+                                log_exceptions=log_exceptions,
+                                exclude_log_exceptions=exclude_log_exceptions),
         zmq.ROUTER, connect=connect, bind=bind)
     return Service(loop, proto)
 
@@ -211,10 +217,12 @@ class _ServerProtocol(_BaseServerProtocol):
     RESP_SUFFIX = struct.Struct('=Ld?')
 
     def __init__(self, loop, handler, *,
-                 translation_table=None, log_exceptions=False):
+                 translation_table=None, log_exceptions=False,
+                 exclude_log_exceptions=()):
         super().__init__(loop, handler,
                          translation_table=translation_table,
-                         log_exceptions=log_exceptions)
+                         log_exceptions=log_exceptions,
+                         exclude_log_exceptions=exclude_log_exceptions)
         self.prefix = self.RESP_PREFIX.pack(os.getpid() % 0x10000,
                                             random.randrange(0x10000))
 
