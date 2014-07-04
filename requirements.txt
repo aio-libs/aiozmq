@@ -15,5 +15,7 @@ coverage>=3.7
 elpy
 jedi
 rope_py3k
-pyenchant
-sphinxcontrib-spelling
+# pyenchant
+# sphinxcontrib-spelling
+sphinx
+readthedocs-sphinx-ext
