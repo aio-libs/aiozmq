@@ -19,11 +19,11 @@ handlers_dict = {'a': a,
 
 @asyncio.coroutine
 def go():
-    server = yield from aiozmq.rpc.start_server(
+    server = yield from aiozmq.rpc.serve_rpc(
         handlers_dict, bind='tcp://*:*')
     server_addr = next(iter(server.transport.bindings()))
 
-    client = yield from aiozmq.rpc.open_client(
+    client = yield from aiozmq.rpc.connect_rpc(
         connect=server_addr)
 
     ret = yield from client.call.a()
