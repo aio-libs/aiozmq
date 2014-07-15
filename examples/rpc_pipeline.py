@@ -3,26 +3,26 @@ import aiozmq
 import aiozmq.rpc
 
 
-class ServerHandler(aiozmq.rpc.AttrHandler):
+class Handler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
-    def remote_func(self, a: int, b: int):
+    def handle_some_event(self, a: int, b: int):
         pass
 
 
 @asyncio.coroutine
 def go():
-    server = yield from aiozmq.rpc.serve_pipeline(
-        ServerHandler(), bind='tcp://*:*')
-    server_addr = next(iter(server.transport.bindings()))
+    listener = yield from aiozmq.rpc.serve_pipeline(
+        Handler(), bind='tcp://*:*')
+    listener_addr = next(iter(listener.transport.bindings()))
 
-    client = yield from aiozmq.rpc.connect_pipeline(
-        connect=server_addr)
+    notifier = yield from aiozmq.rpc.connect_pipeline(
+        connect=listener_addr)
 
-    yield from client.notify.remote_func(1, 2)
+    yield from notifier.notify.handle_some_event(1, 2)
 
-    server.close()
-    client.close()
+    listener.close()
+    notifier.close()
 
 
 def main():
