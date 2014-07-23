@@ -1,6 +1,11 @@
 CHANGES
 -------
 
+0.5.0 (XXXX-XX-XX)
+^^^^^^^^^^^^^^^^^^
+
+* Support zmq devices in aiozmq.rpc.serve_rpc()
+
 0.4.1 (2014-07-03)
 ^^^^^^^^^^^^^^^^^^
 

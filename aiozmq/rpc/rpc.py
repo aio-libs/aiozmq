@@ -228,7 +228,7 @@ class _ServerProtocol(_BaseServerProtocol):
 
     def msg_received(self, data):
         try:
-            peer, header, bname, bargs, bkwargs = data
+            *pre, header, bname, bargs, bkwargs = data
             pid, rnd, req_id, timestamp = self.REQ.unpack(header)
 
             name = bname.decode('utf-8')
@@ -243,7 +243,7 @@ class _ServerProtocol(_BaseServerProtocol):
         except (NotFoundError, ParametersError) as exc:
             fut = asyncio.Future(loop=self.loop)
             fut.add_done_callback(partial(self.process_call_result,
-                                          req_id=req_id, peer=peer,
+                                          req_id=req_id, pre=pre,
                                           name=name, args=args, kwargs=kwargs))
             fut.set_exception(exc)
         else:
@@ -257,13 +257,13 @@ class _ServerProtocol(_BaseServerProtocol):
                 except Exception as exc:
                     fut.set_exception(exc)
             fut.add_done_callback(partial(self.process_call_result,
-                                          req_id=req_id, peer=peer,
+                                          req_id=req_id, pre=pre,
                                           return_annotation=ret_ann,
                                           name=name,
                                           args=args,
                                           kwargs=kwargs))
 
-    def process_call_result(self, fut, *, req_id, peer, name,
+    def process_call_result(self, fut, *, req_id, pre, name,
                             args, kwargs,
                             return_annotation=None):
         self.pending_waiters.discard(fut)
@@ -276,7 +276,7 @@ class _ServerProtocol(_BaseServerProtocol):
                 ret = return_annotation(ret)
             prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
                                                          time.time(), False)
-            self.transport.write([peer, prefix, self.packer.packb(ret)])
+            self.transport.write(pre + [prefix, self.packer.packb(ret)])
         except asyncio.CancelledError:
             return
         except Exception as exc:
@@ -285,4 +285,4 @@ class _ServerProtocol(_BaseServerProtocol):
             exc_type = exc.__class__
             exc_info = (exc_type.__module__ + '.' + exc_type.__name__,
                         exc.args, repr(exc))
-            self.transport.write([peer, prefix, self.packer.packb(exc_info)])
+            self.transport.write(pre + [prefix, self.packer.packb(exc_info)])
