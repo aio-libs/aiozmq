@@ -6,10 +6,12 @@ import zmq
 from .selector import ZmqSelector
 from .core import ZmqEventLoop, ZmqEventLoopPolicy
 from .interface import ZmqTransport, ZmqProtocol
+from .loopless import create_zmq_connection
 
 
 __all__ = ('ZmqSelector', 'ZmqEventLoop', 'ZmqEventLoopPolicy',
            'ZmqTransport', 'ZmqProtocol',
+           'create_zmq_connection',
            'version_info', 'version')
 
 __version__ = '0.5.0a'
@@ -48,4 +50,5 @@ if zmq.zmq_version_info()[0] < 3:  # pragma no cover
 
 
 # make pyflakes happy
-(ZmqSelector, ZmqEventLoop, ZmqEventLoopPolicy, ZmqTransport, ZmqProtocol)
+(ZmqSelector, ZmqEventLoop, ZmqEventLoopPolicy, ZmqTransport, ZmqProtocol,
+ create_zmq_connection)
