@@ -138,7 +138,9 @@ class TestsFinder:
                                                verbose=self._verbose)]
         for mod in mods:
             for name in set(dir(mod)):
-                if name.endswith('Tests'):
+                obj = getattr(mod, name)
+                if (isinstance(obj, type) and
+                        issubclass(obj, unittest.TestCase)):
                     self._test_factories.append(getattr(mod, name))
 
     def load_tests(self):
