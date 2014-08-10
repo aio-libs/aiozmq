@@ -23,15 +23,15 @@ else:
 __all__ = ['ZmqEventLoop', 'ZmqEventLoopPolicy']
 
 
-class ZmqEventLoop(SelectorEventLoop):
-    """ZeroMQ event loop.
+class ZmqEventLoopMixin:
+    """ZeroMQ event loop mixin.
 
-    Follows asyncio.AbstractEventLoop specification, in addition implements
-    create_zmq_connection method for working with ZeroMQ sockets.
+    Extends event loop with create_zmq_connection method for working with ZeroMQ sockets.
     """
-
-    def __init__(self, *, zmq_context=None):
-        super().__init__(selector=ZmqSelector())
+    def __init__(self, *args, **kwargs):
+        zmq_context = kwargs.pop('zmq_context', None)
+        # Call event loop class' __init__
+        super().__init__(*args, **kwargs)
         if zmq_context is None:
             self._zmq_context = zmq.Context.instance()
         else:
@@ -104,7 +104,7 @@ class ZmqEventLoop(SelectorEventLoop):
         protocol = protocol_factory()
         waiter = asyncio.Future(loop=self)
         transport = _ZmqTransportImpl(self, zmq_type,
-                                      zmq_sock, protocol, waiter)
+                                      zmq_sock, protocol, self._read_hook, waiter)
         yield from waiter
 
         try:
@@ -133,6 +133,22 @@ class ZmqEventLoop(SelectorEventLoop):
             zmq_sock.close()
             raise
 
+    @staticmethod
+    def _read_hook(sock):
+        """Re-implement this in subclasses to customize reading from ZMQ socket.
+        """
+        return sock.recv_multipart(zmq.NOBLOCK)
+
+
+class ZmqEventLoop(ZmqEventLoopMixin, SelectorEventLoop):
+    """ZeroMQ event loop.
+
+    Follows asyncio.AbstractEventLoop specification, in addition implements
+    create_zmq_connection method for working with ZeroMQ sockets.
+    """
+    def __init__(self):
+        super().__init__(selector=ZmqSelector())
+
 
 class _EndpointsSet(Set):
 
@@ -160,7 +176,7 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
 
     _TCP_RE = re.compile('^tcp://(.+):(\d+)|\*$')
 
-    def __init__(self, loop, zmq_type, zmq_sock, protocol, waiter=None):
+    def __init__(self, loop, zmq_type, zmq_sock, protocol, read_hook, waiter=None):
         super().__init__(None)
         self._extra['zmq_socket'] = zmq_sock
         self._loop = loop
@@ -179,11 +195,12 @@ class _ZmqTransportImpl(ZmqTransport, _FlowControlMixin):
         self._loop.call_soon(self._protocol.connection_made, self)
         if waiter is not None:
             self._loop.call_soon(waiter.set_result, None)
+        self._read_hook = read_hook
 
     def _read_ready(self):
         try:
             try:
-                data = self._zmq_sock.recv_multipart(zmq.NOBLOCK)
+                data = self._read_hook(self._zmq_sock)
             except zmq.ZMQError as exc:
                 if exc.errno in (errno.EAGAIN, errno.EINTR):
                     return

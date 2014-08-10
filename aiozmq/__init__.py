@@ -4,7 +4,7 @@ import sys
 import zmq
 
 from .selector import ZmqSelector
-from .core import ZmqEventLoop, ZmqEventLoopPolicy
+from .core import ZmqEventLoop, ZmqEventLoopPolicy, ZmqEventLoopMixin
 from .interface import ZmqTransport, ZmqProtocol
 
 
