@@ -139,7 +139,6 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
                 self._loop.call_soon(self._read_ready)
 
     def _do_read(self):
-        print('DO READ')
         try:
             try:
                 data = self._zmq_sock.recv_multipart(zmq.NOBLOCK)
@@ -154,7 +153,6 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
             self._protocol.msg_received(data)
 
     def _do_write(self):
-        print('DO WRITE')
         if not self._buffer:
             return
         try:
@@ -178,7 +176,6 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
                     self._call_connection_lost(None)
 
     def write(self, data):
-        print('WRITE')
         if not data:
             return
         for part in data:
@@ -193,10 +190,7 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
                     self._zmq_sock.send_multipart(data, zmq.DONTWAIT)
                     return
                 except zmq.ZMQError as exc:
-                    if exc.errno in (errno.EAGAIN, errno.EINTR):
-                        self._loop.add_writer(self._zmq_sock,
-                                              self._write_ready)
-                    else:
+                    if exc.errno not in (errno.EAGAIN, errno.EINTR):
                         raise OSError(exc.errno, exc.strerror) from exc
             except Exception as exc:
                 self._fatal_error(exc,
@@ -211,9 +205,9 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
         if self._closing:
             return
         self._closing = True
-        if not self._paused:
-            self._loop.remove_reader(self._fd)
         if not self._buffer:
+            if not self._paused:
+                self._loop.remove_reader(self._fd)
             self._loop.call_soon(self._call_connection_lost, None)
 
     def _force_close(self, exc):

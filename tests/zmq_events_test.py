@@ -18,6 +18,7 @@ class Protocol(aiozmq.ZmqProtocol):
         self.closed = asyncio.Future(loop=loop)
         self.state = 'INITIAL'
         self.received = asyncio.Queue(loop=loop)
+        self.paused = False
 
     def connection_made(self, transport):
         self.transport = transport
@@ -32,16 +33,15 @@ class Protocol(aiozmq.ZmqProtocol):
         self.transport = None
 
     def pause_writing(self):
-        print("PAUSE")
+        self.paused = True
 
     def resume_writing(self):
-        print("RESUME")
+        self.paused = False
 
     def msg_received(self, data):
         assert isinstance(data, list), data
         assert self.state == 'CONNECTED', self.state
         self.received.put_nowait(data)
-        print("MSG RECEIVED", self.received.qsize())
 
 
 class BaseZmqEventLoopTestsMixin:
@@ -74,10 +74,10 @@ class BaseZmqEventLoopTestsMixin:
         self.assertEqual('CONNECTED', pr2.state)
         yield from pr2.connected
 
-        return (tr1, pr1, tr2, pr1)
+        return tr1, pr1, tr2, pr2
 
     @asyncio.coroutine
-    def make_pub_sub(self, subscribe=b'node_id'):
+    def make_pub_sub(self):
         port = find_unused_port()
 
         tr1, pr1 = yield from aiozmq.create_zmq_connection(
@@ -95,10 +95,8 @@ class BaseZmqEventLoopTestsMixin:
             loop=self.loop)
         self.assertEqual('CONNECTED', pr2.state)
         yield from pr2.connected
-        if subscribe:
-            tr2.setsockopt(zmq.SUBSCRIBE, subscribe)
 
-        return tr1, pr1, tr2, pr1
+        return tr1, pr1, tr2, pr2
 
     def test_req_rep(self):
         @asyncio.coroutine
@@ -155,6 +153,7 @@ class BaseZmqEventLoopTestsMixin:
         @asyncio.coroutine
         def go():
             tr1, pr1, tr2, pr2 = yield from self.make_pub_sub()
+            tr2.setsockopt(zmq.SUBSCRIBE, b'node_id')
 
             for i in range(5):
                 tr1.write([b'node_id', b'publish'])
@@ -195,36 +194,9 @@ class BaseZmqEventLoopTestsMixin:
         self.loop.run_until_complete(coro())
 
     def test_dealer_router(self):
-        port = find_unused_port()
-
         @asyncio.coroutine
-        def connect_req():
-            tr1, pr1 = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.DEALER,
-                bind='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop)
-            self.assertEqual('CONNECTED', pr1.state)
-            yield from pr1.connected
-            return tr1, pr1
-
-        tr1, pr1 = self.loop.run_until_complete(connect_req())
-
-        @asyncio.coroutine
-        def connect_rep():
-            tr2, pr2 = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.ROUTER,
-                connect='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop)
-            self.assertEqual('CONNECTED', pr2.state)
-            yield from pr2.connected
-            return tr2, pr2
-
-        tr2, pr2 = self.loop.run_until_complete(connect_rep())
-
-        @asyncio.coroutine
-        def communicate():
+        def go():
+            tr1, pr1, tr2, pr2 = yield from self.make_dealer_router()
             tr1.write([b'request'])
             request = yield from pr2.received.get()
             self.assertEqual([mock.ANY, b'request'], request)
@@ -232,10 +204,6 @@ class BaseZmqEventLoopTestsMixin:
             answer = yield from pr1.received.get()
             self.assertEqual([b'answer'], answer)
 
-        self.loop.run_until_complete(communicate())
-
-        @asyncio.coroutine
-        def closing():
             tr1.close()
             tr2.close()
 
@@ -244,7 +212,7 @@ class BaseZmqEventLoopTestsMixin:
             yield from pr2.closed
             self.assertEqual('CLOSED', pr2.state)
 
-        self.loop.run_until_complete(closing())
+        self.loop.run_until_complete(go())
 
     def test_binds(self):
         port1 = find_unused_port()
@@ -623,32 +591,51 @@ class BaseZmqEventLoopTestsMixin:
 
         self.loop.run_until_complete(go())
 
-    def xtest_transfer_big_data(self):
+    def test_transfer_big_data(self):
 
         @asyncio.coroutine
         def go():
-            tr1, pr1, tr2, pr2 = yield from self.make_pub_sub(subscribe=False)
+            tr1, pr1, tr2, pr2 = yield from self.make_dealer_router()
 
             start = 65
-            cnt = 2
-            data = [chr(i).encode('ascii')*10
+            cnt = 26
+            data = [chr(i).encode('ascii')*1000
                     for i in range(start, start+cnt)]
-            print(data)
 
-            for i in range(5):
+            for i in range(10000):
                 tr1.write(data)
-                try:
-                    request = yield from asyncio.wait_for(pr2.received.get(),
-                                                          0.1,
-                                                          loop=self.loop)
-                    self.assertEqual(data, request)
-                    break
-                except asyncio.TimeoutError:
-                    pass
-            else:
-                raise AssertionError("Cannot get message in subscriber")
+
+            request = yield from pr2.received.get()
+            self.assertEqual([mock.ANY] + data, request)
 
             tr1.close()
+            tr2.close()
+
+        self.loop.run_until_complete(go())
+
+    def test_transfer_big_data_send_after_closing(self):
+
+        @asyncio.coroutine
+        def go():
+            tr1, pr1, tr2, pr2 = yield from self.make_dealer_router()
+
+            start = 65
+            cnt = 26
+            data = [chr(i).encode('ascii')*1000
+                    for i in range(start, start+cnt)]
+
+            self.assertFalse(pr1.paused)
+
+            for i in range(10000):
+                tr1.write(data)
+
+            self.assertTrue(tr1._buffer)
+            self.assertTrue(pr1.paused)
+            tr1.close()
+
+            for i in range(10000):
+                request = yield from pr2.received.get()
+                self.assertEqual([mock.ANY] + data, request)
             tr2.close()
 
         self.loop.run_until_complete(go())
