@@ -141,8 +141,8 @@ class ZmqEventLoopTests(unittest.TestCase):
                     break
                 except asyncio.TimeoutError:
                     pass
-                else:
-                    raise AssertionError("Cannot get message in subscriber")
+            else:
+                raise AssertionError("Cannot get message in subscriber")
 
         self.loop.run_until_complete(communicate())
 
