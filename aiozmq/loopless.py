@@ -1,6 +1,5 @@
 import asyncio
 import errno
-import re
 import zmq
 
 from collections import Iterable
@@ -108,9 +107,7 @@ def create_zmq_connection(protocol_factory, zmq_type, *,
 
 class _ZmqLooplessTransportImpl(_BaseTransport):
 
-    _TCP_RE = re.compile('^tcp://(.+):(\d+)|\*$')
-
-    def __init__(self, loop, zmq_type, zmq_sock, protocol, waiter=None):
+    def __init__(self, loop, zmq_type, zmq_sock, protocol, waiter):
         super().__init__(loop, zmq_type, zmq_sock, protocol)
 
         fd = zmq_sock.getsockopt(zmq.FD)
@@ -118,8 +115,7 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
         self._loop.add_reader(fd, self._read_ready)
 
         self._loop.call_soon(self._protocol.connection_made, self)
-        if waiter is not None:
-            self._loop.call_soon(waiter.set_result, None)
+        self._loop.call_soon(waiter.set_result, None)
 
     def _read_ready(self):
         events = self._zmq_sock.getsockopt(zmq.EVENTS)
@@ -143,6 +139,7 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
                 self._loop.call_soon(self._read_ready)
 
     def _do_read(self):
+        print('DO READ')
         try:
             try:
                 data = self._zmq_sock.recv_multipart(zmq.NOBLOCK)
@@ -157,6 +154,7 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
             self._protocol.msg_received(data)
 
     def _do_write(self):
+        print('DO WRITE')
         if not self._buffer:
             return
         try:
@@ -180,6 +178,7 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
                     self._call_connection_lost(None)
 
     def write(self, data):
+        print('WRITE')
         if not data:
             return
         for part in data:
