@@ -289,8 +289,8 @@ def runtests():
             result = runner_factory(verbosity=v,
                                     failfast=failfast,
                                     warnings="always").run(tests)
-            success = not result.wasSuccessful()
-            sys.exit(not result.wasSuccessful())
+            success = result.wasSuccessful()
+            sys.exit(not success)
     finally:
         if args.coverage:
             cov.stop()
