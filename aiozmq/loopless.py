@@ -118,6 +118,8 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
         self._loop.call_soon(waiter.set_result, None)
 
     def _read_ready(self):
+        if self._zmq_sock is None:
+            return
         events = self._zmq_sock.getsockopt(zmq.EVENTS)
         try_again = False
         if events & zmq.POLLIN:
