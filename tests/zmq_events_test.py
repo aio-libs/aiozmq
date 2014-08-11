@@ -614,14 +614,14 @@ class BaseZmqEventLoopTestsMixin:
 
             self.assertFalse(pr1.paused)
 
-            for i in range(2000):
+            for i in range(10000):
                 tr1.write(data)
 
             self.assertTrue(tr1._buffer)
             self.assertTrue(pr1.paused)
             tr1.close()
 
-            for i in range(2000):
+            for i in range(10000):
                 request = yield from pr2.received.get()
                 self.assertEqual([mock.ANY] + data, request)
             tr2.close()
