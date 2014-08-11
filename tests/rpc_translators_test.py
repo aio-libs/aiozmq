@@ -3,6 +3,7 @@ import asyncio
 import aiozmq
 import aiozmq.rpc
 import msgpack
+import zmq
 
 from aiozmq._test_util import find_unused_port
 
@@ -50,6 +51,7 @@ class RpcTranslatorsTests(unittest.TestCase):
             self.close(self.server)
         self.loop.close()
         asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
 
     def close(self, server):
         server.close()

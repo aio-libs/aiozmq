@@ -1,5 +1,6 @@
 import unittest
 import asyncio
+import zmq
 
 import aiozmq
 import aiozmq.rpc
@@ -64,6 +65,7 @@ class FuncAnnotationsTests(unittest.TestCase):
             self.close(self.server)
         self.loop.close()
         asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
 
     def close(self, service):
         service.close()

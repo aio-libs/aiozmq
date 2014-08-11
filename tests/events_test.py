@@ -19,6 +19,7 @@ import sys
 import threading
 import time
 import errno
+import zmq
 import unittest
 
 from aiozmq._test_util import (find_unused_port,
@@ -237,6 +238,7 @@ class EventLoopTestsMixin:
         gc.collect()
         asyncio.set_event_loop(None)
         super().tearDown()
+        # zmq.Context.instance().term()
 
     def test_run_until_complete_nesting(self):
         @asyncio.coroutine

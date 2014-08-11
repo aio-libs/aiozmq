@@ -275,7 +275,6 @@ def runtests():
     if catchbreak:
         installHandler()
     try:
-        print("Threads count:", threading.active_count())
         if args.forever:
             while True:
                 tests = finder.load_tests()
@@ -291,7 +290,6 @@ def runtests():
                                     warnings="always").run(tests)
             sys.exit(not result.wasSuccessful())
     finally:
-        print("Threads postcount:", threading.active_count())
         if args.coverage:
             cov.stop()
             cov.save()
@@ -303,7 +301,7 @@ def runtests():
             here = os.path.dirname(os.path.abspath(__file__))
             print("\nFor html report:")
             print("open file://{}/htmlcov/index.html".format(here))
-        print("Done!")
+        os._exit(not result.wasSuccessful())
 
 
 if __name__ == '__main__':

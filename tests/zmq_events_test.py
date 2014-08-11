@@ -46,14 +46,6 @@ class Protocol(aiozmq.ZmqProtocol):
 
 class BaseZmqEventLoopTestsMixin:
 
-    def setUp(self):
-        self.loop = aiozmq.ZmqEventLoop()
-        asyncio.set_event_loop(None)
-
-    def tearDown(self):
-        self.loop.close()
-        asyncio.set_event_loop(None)
-
     @asyncio.coroutine
     def make_dealer_router(self):
         port = find_unused_port()
@@ -370,31 +362,27 @@ class BaseZmqEventLoopTestsMixin:
 
         @asyncio.coroutine
         def connect():
-            tr, pr = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.SUB,
-                connect='badaddr',
-                loop=self.loop)
-            yield from pr.connected
-            return tr, pr
+            with self.assertRaises(OSError):
+                yield from aiozmq.create_zmq_connection(
+                    lambda: Protocol(self.loop),
+                    zmq.SUB,
+                    connect='badaddr',
+                    loop=self.loop)
 
-        with self.assertRaises(OSError):
-            self.loop.run_until_complete(connect())
+        self.loop.run_until_complete(connect())
 
     def test_create_zmq_connection_dns_in_connect(self):
 
         @asyncio.coroutine
         def connect():
-            tr, pr = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.SUB,
-                connect='tcp://example.com:5555',
-                loop=self.loop)
-            yield from pr.connected
-            return tr, pr
+            with self.assertRaises(ValueError):
+                yield from aiozmq.create_zmq_connection(
+                    lambda: Protocol(self.loop),
+                    zmq.SUB,
+                    connect='tcp://example.com:5555',
+                    loop=self.loop)
 
-        with self.assertRaises(ValueError):
-            self.loop.run_until_complete(connect())
+        self.loop.run_until_complete(connect())
 
     def test_getsockopt_badopt(self):
         port = find_unused_port()
@@ -650,6 +638,7 @@ class ZmqEventLoopTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
     def tearDown(self):
         self.loop.close()
         asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
 
 
 class ZmqLooplessTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
@@ -661,3 +650,4 @@ class ZmqLooplessTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
     def tearDown(self):
         self.loop.close()
         asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()

@@ -2,6 +2,7 @@ import asyncio
 import sys
 import threading
 import unittest
+import zmq
 from unittest import mock
 
 import aiozmq
@@ -24,6 +25,7 @@ class PolicyTests(unittest.TestCase):
         self.assertIs(self.policy._local._loop, loop)
         self.assertIs(loop, self.policy.get_event_loop())
         loop.close()
+        # zmq.Context.instance().term()
 
     def test_get_event_loop_calls_set_event_loop(self):
         with mock.patch.object(

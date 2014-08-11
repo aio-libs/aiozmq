@@ -3,6 +3,7 @@ import asyncio
 import aiozmq
 import aiozmq.rpc
 import logging
+import zmq
 
 from unittest import mock
 from aiozmq._test_util import find_unused_port, log_hook
@@ -73,6 +74,7 @@ class PubSubTests(unittest.TestCase):
             self.close(self.server)
         self.loop.close()
         asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
 
     def close(self, service):
         service.close()
