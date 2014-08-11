@@ -274,6 +274,7 @@ class RpcTests(unittest.TestCase):
 
     def test_default_event_loop(self):
         asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
+        self.addCleanup(asyncio.set_event_loop_policy, None)
 
         @asyncio.coroutine
         def create():
