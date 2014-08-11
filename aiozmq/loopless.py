@@ -177,31 +177,15 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
             if not self._buffer and self._closing:
                     self._call_connection_lost(None)
 
-    def write(self, data):
-        if not data:
-            return
-        for part in data:
-            if not isinstance(part, (bytes, bytearray, memoryview)):
-                raise TypeError('data argument must be iterable of '
-                                'byte-ish (%r)' % data)
-        data_len = sum(len(part) for part in data)
-
-        if not self._buffer:
-            try:
-                try:
-                    self._zmq_sock.send_multipart(data, zmq.DONTWAIT)
-                    return
-                except zmq.ZMQError as exc:
-                    if exc.errno not in (errno.EAGAIN, errno.EINTR):
-                        raise OSError(exc.errno, exc.strerror) from exc
-            except Exception as exc:
-                self._fatal_error(exc,
-                                  'Fatal write error on zmq socket transport')
-                return
-
-        self._buffer.append((data_len, data))
-        self._buffer_size += data_len
-        self._maybe_pause_protocol()
+    def _do_send(self, data):
+        try:
+            self._zmq_sock.send_multipart(data, zmq.DONTWAIT)
+            return True
+        except zmq.ZMQError as exc:
+            if exc.errno not in (errno.EAGAIN, errno.EINTR):
+                raise OSError(exc.errno, exc.strerror) from exc
+            else:
+                return False
 
     def close(self):
         if self._closing:
