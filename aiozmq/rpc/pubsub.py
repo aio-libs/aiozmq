@@ -3,6 +3,8 @@ import zmq
 from functools import partial
 from collections import Iterable
 
+from aiozmq import create_zmq_connection
+
 from .log import logger
 from .base import (
     NotFoundError,
@@ -34,9 +36,9 @@ def connect_pubsub(*, connect=None, bind=None, loop=None,
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    transp, proto = yield from loop.create_zmq_connection(
+    transp, proto = yield from create_zmq_connection(
         lambda: _ClientProtocol(loop, translation_table=translation_table),
-        zmq.PUB, connect=connect, bind=bind)
+        zmq.PUB, connect=connect, bind=bind, loop=loop)
     return PubSubClient(loop, proto)
 
 
@@ -75,12 +77,12 @@ def serve_pubsub(handler, *, subscribe=None, connect=None, bind=None,
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    transp, proto = yield from loop.create_zmq_connection(
+    transp, proto = yield from create_zmq_connection(
         lambda: _ServerProtocol(loop, handler,
                                 translation_table=translation_table,
                                 log_exceptions=log_exceptions,
                                 exclude_log_exceptions=exclude_log_exceptions),
-        zmq.SUB, connect=connect, bind=bind)
+        zmq.SUB, connect=connect, bind=bind, loop=loop)
     serv = PubSubService(loop, proto)
     if subscribe is not None:
         if isinstance(subscribe, (str, bytes)):

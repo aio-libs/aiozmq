@@ -13,6 +13,8 @@ import zmq
 from collections import ChainMap
 from functools import partial
 
+from aiozmq import create_zmq_connection
+
 from .log import logger
 
 from .base import (
@@ -63,10 +65,10 @@ def connect_rpc(*, connect=None, bind=None, loop=None,
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    transp, proto = yield from loop.create_zmq_connection(
+    transp, proto = yield from create_zmq_connection(
         lambda: _ClientProtocol(loop, error_table=error_table,
                                 translation_table=translation_table),
-        zmq.DEALER, connect=connect, bind=bind)
+        zmq.DEALER, connect=connect, bind=bind, loop=loop)
     return RPCClient(loop, proto, timeout=timeout)
 
 
@@ -99,12 +101,12 @@ def serve_rpc(handler, *, connect=None, bind=None, loop=None,
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    transp, proto = yield from loop.create_zmq_connection(
+    transp, proto = yield from create_zmq_connection(
         lambda: _ServerProtocol(loop, handler,
                                 translation_table=translation_table,
                                 log_exceptions=log_exceptions,
                                 exclude_log_exceptions=exclude_log_exceptions),
-        zmq.ROUTER, connect=connect, bind=bind)
+        zmq.ROUTER, connect=connect, bind=bind, loop=loop)
     return Service(loop, proto)
 
 
