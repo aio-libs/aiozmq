@@ -2,7 +2,6 @@ import asyncio
 import sys
 import threading
 import unittest
-import zmq
 from unittest import mock
 
 import aiozmq

@@ -3,7 +3,6 @@ import asyncio
 import aiozmq
 import aiozmq.rpc
 import logging
-import zmq
 
 from unittest import mock
 from aiozmq._test_util import find_unused_port, log_hook

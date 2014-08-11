@@ -19,7 +19,6 @@ import sys
 import threading
 import time
 import errno
-import zmq
 import unittest
 
 from aiozmq._test_util import (find_unused_port,

@@ -3,7 +3,6 @@ import asyncio
 import aiozmq
 import aiozmq.rpc
 import msgpack
-import zmq
 
 from aiozmq._test_util import find_unused_port
 

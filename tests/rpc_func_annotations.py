@@ -1,6 +1,5 @@
 import unittest
 import asyncio
-import zmq
 
 import aiozmq
 import aiozmq.rpc

@@ -3,7 +3,6 @@ import asyncio
 import aiozmq
 import aiozmq.rpc
 import logging
-import zmq
 
 from unittest import mock
 from asyncio.test_utils import run_briefly
