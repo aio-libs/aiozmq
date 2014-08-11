@@ -122,7 +122,7 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
             return
         events = self._zmq_sock.getsockopt(zmq.EVENTS)
         try_again = False
-        if events & zmq.POLLIN:
+        if not self._paused and events & zmq.POLLIN:
             self._do_read()
             try_again = True
         if self._buffer and events & zmq.POLLOUT:
@@ -216,7 +216,6 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
         if self._paused:
             raise RuntimeError('Already paused')
         self._paused = True
-        self._loop.remove_reader(self._fd)
 
     def resume_reading(self):
         if not self._paused:
@@ -224,4 +223,4 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
         self._paused = False
         if self._closing:
             return
-        self._loop.add_reader(self._fd, self._read_ready)
+        self._read_ready()
