@@ -193,17 +193,21 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
             return
         self._closing = True
         if not self._buffer:
+            self._conn_lost += 1
             if not self._paused:
                 self._loop.remove_reader(self._fd)
             self._loop.call_soon(self._call_connection_lost, None)
 
     def _force_close(self, exc):
+        if self._conn_lost:
+            return
         if self._buffer:
             self._buffer.clear()
             self._buffer_size = 0
         if not self._closing:
             self._closing = True
         self._loop.remove_reader(self._fd)
+        self._conn_lost += 1
         self._loop.call_soon(self._call_connection_lost, exc)
 
     def pause_reading(self):

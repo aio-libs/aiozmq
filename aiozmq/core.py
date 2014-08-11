@@ -12,6 +12,7 @@ from collections import deque, Iterable
 from ipaddress import ip_address
 
 from .interface import ZmqTransport
+from .log import logger
 from .selector import ZmqSelector
 from .util import _EndpointsSet
 
@@ -98,6 +99,7 @@ class ZmqEventLoop(SelectorEventLoop):
 class _BaseTransport(ZmqTransport, _FlowControlMixin):
 
     _TCP_RE = re.compile('^tcp://(.+):(\d+)|\*$')
+    LOG_THRESHOLD_FOR_CONNLOST_WRITES = 5
 
     def __init__(self, loop, zmq_type, zmq_sock, protocol):
         super().__init__(None)
@@ -113,6 +115,7 @@ class _BaseTransport(ZmqTransport, _FlowControlMixin):
         self._connections = set()
         self._subscriptions = set()
         self._paused = False
+        self._conn_lost = 0
 
     def write(self, data):
         if not data:
@@ -122,6 +125,12 @@ class _BaseTransport(ZmqTransport, _FlowControlMixin):
                 raise TypeError('data argument must be iterable of '
                                 'byte-ish (%r)' % data)
         data_len = sum(len(part) for part in data)
+
+        if self._conn_lost:
+            if self._conn_lost >= self.LOG_THRESHOLD_FOR_CONNLOST_WRITES:
+                logger.warning('write to closed ZMQ socket.')
+            self._conn_lost += 1
+            return
 
         if not self._buffer:
             try:
@@ -360,9 +369,12 @@ class _ZmqTransportImpl(_BaseTransport):
         if not self._paused:
             self._loop.remove_reader(self._zmq_sock)
         if not self._buffer:
+            self._conn_lost += 1
             self._loop.call_soon(self._call_connection_lost, None)
 
     def _force_close(self, exc):
+        if self._conn_lost:
+            return
         if self._buffer:
             self._buffer.clear()
             self._buffer_size = 0
@@ -371,6 +383,7 @@ class _ZmqTransportImpl(_BaseTransport):
             self._closing = True
             if not self._paused:
                 self._loop.remove_reader(self._zmq_sock)
+        self._conn_lost += 1
         self._loop.call_soon(self._call_connection_lost, exc)
 
     def pause_reading(self):
