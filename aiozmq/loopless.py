@@ -175,7 +175,8 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
             self._maybe_resume_protocol()
 
             if not self._buffer and self._closing:
-                    self._call_connection_lost(None)
+                self._loop.remove_reader(self._fd)
+                self._call_connection_lost(None)
 
     def _do_send(self, data):
         try:
