@@ -274,6 +274,7 @@ def runtests():
         logger.setLevel(logging.DEBUG)
     if catchbreak:
         installHandler()
+    success = False
     try:
         if args.forever:
             while True:
@@ -288,6 +289,7 @@ def runtests():
             result = runner_factory(verbosity=v,
                                     failfast=failfast,
                                     warnings="always").run(tests)
+            success = not result.wasSuccessful()
             sys.exit(not result.wasSuccessful())
     finally:
         if args.coverage:
@@ -301,7 +303,7 @@ def runtests():
             here = os.path.dirname(os.path.abspath(__file__))
             print("\nFor html report:")
             print("open file://{}/htmlcov/index.html".format(here))
-        os._exit(not result.wasSuccessful())
+        os._exit(not success)
 
 
 if __name__ == '__main__':
