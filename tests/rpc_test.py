@@ -10,6 +10,7 @@ import zmq
 import msgpack
 import struct
 
+from aiozmq import create_zmq_connection
 from aiozmq._test_util import find_unused_port, log_hook
 from aiozmq.rpc.log import logger
 
@@ -375,9 +376,10 @@ class RpcTestsMixin:
                 MyHandler(self.loop),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
-            tr, pr = yield from self.loop.create_zmq_connection(
+            tr, pr = yield from create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                connect='tcp://127.0.0.1:{}'.format(port))
+                connect='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
 
             yield from asyncio.sleep(0.001, loop=self.loop)
 
@@ -404,9 +406,10 @@ class RpcTestsMixin:
                 MyHandler(self.loop),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
-            tr, pr = yield from self.loop.create_zmq_connection(
+            tr, pr = yield from create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                connect='tcp://127.0.0.1:{}'.format(port))
+                connect='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
 
             with log_hook('aiozmq.rpc', self.err_queue):
                 tr.write([struct.pack('=HHLd', 1, 2, 3, 4),
@@ -433,9 +436,10 @@ class RpcTestsMixin:
                 MyHandler(self.loop),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
-            tr, pr = yield from self.loop.create_zmq_connection(
+            tr, pr = yield from create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                connect='tcp://127.0.0.1:{}'.format(port))
+                connect='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
 
             with log_hook('aiozmq.rpc', self.err_queue):
                 tr.write([struct.pack('=HHLd', 1, 2, 3, 4),
@@ -458,9 +462,10 @@ class RpcTestsMixin:
         @asyncio.coroutine
         def go():
             port = find_unused_port()
-            tr, pr = yield from self.loop.create_zmq_connection(
+            tr, pr = yield from create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                bind='tcp://127.0.0.1:{}'.format(port))
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
 
             client = yield from aiozmq.rpc.connect_rpc(
                 connect='tcp://127.0.0.1:{}'.format(port),
@@ -486,9 +491,10 @@ class RpcTestsMixin:
         def go():
             port = find_unused_port()
 
-            tr, pr = yield from self.loop.create_zmq_connection(
+            tr, pr = yield from create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                bind='tcp://127.0.0.1:{}'.format(port))
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
 
             client = yield from aiozmq.rpc.connect_rpc(
                 connect='tcp://127.0.0.1:{}'.format(port),
@@ -515,9 +521,10 @@ class RpcTestsMixin:
         @asyncio.coroutine
         def go():
             port = find_unused_port()
-            tr, pr = yield from self.loop.create_zmq_connection(
+            tr, pr = yield from create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                bind='tcp://127.0.0.1:{}'.format(port))
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
 
             client = yield from aiozmq.rpc.connect_rpc(
                 connect='tcp://127.0.0.1:{}'.format(port),

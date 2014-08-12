@@ -6,6 +6,7 @@ import logging
 import platform
 import socket
 import sys
+import time
 import unittest
 
 
@@ -231,6 +232,7 @@ class TestHandler(logging.Handler):
         self.queue = queue
 
     def emit(self, record):
+        time.sleep(0)
         self.queue.put_nowait(record)
 
 
