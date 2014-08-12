@@ -171,6 +171,22 @@ class _BaseTransport(ZmqTransport, _FlowControlMixin):
             self._protocol = None
             self._loop = None
 
+    def pause_reading(self):
+        if self._closing:
+            raise RuntimeError('Cannot pause_reading() when closing')
+        if self._paused:
+            raise RuntimeError('Already paused')
+        self._paused = True
+        self._do_pause_reading()
+
+    def resume_reading(self):
+        if not self._paused:
+            raise RuntimeError('Not paused')
+        self._paused = False
+        if self._closing:
+            return
+        self._do_resume_reading()
+
     def getsockopt(self, option):
         while True:
             try:
@@ -386,20 +402,10 @@ class _ZmqTransportImpl(_BaseTransport):
         self._conn_lost += 1
         self._loop.call_soon(self._call_connection_lost, exc)
 
-    def pause_reading(self):
-        if self._closing:
-            raise RuntimeError('Cannot pause_reading() when closing')
-        if self._paused:
-            raise RuntimeError('Already paused')
-        self._paused = True
+    def _do_pause_reading(self):
         self._loop.remove_reader(self._zmq_sock)
 
-    def resume_reading(self):
-        if not self._paused:
-            raise RuntimeError('Not paused')
-        self._paused = False
-        if self._closing:
-            return
+    def _do_resume_reading(self):
         self._loop.add_reader(self._zmq_sock, self._read_ready)
 
 
