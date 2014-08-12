@@ -46,7 +46,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         yield from f
 
 
-class PipelineTests(unittest.TestCase):
+class PipelineTestsMixin:
 
     @classmethod
     def setUpClass(self):
@@ -58,23 +58,6 @@ class PipelineTests(unittest.TestCase):
     def tearDownClass(self):
         logger = logging.getLogger()
         logger.setLevel(self.log_level)
-
-    def setUp(self):
-        self.loop = aiozmq.ZmqEventLoop()
-        asyncio.set_event_loop(None)
-        self.client = self.server = None
-        self.queue = asyncio.Queue(loop=self.loop)
-        self.err_queue = asyncio.Queue(loop=self.loop)
-        self.loop.set_exception_handler(self.exception_handler)
-
-    def tearDown(self):
-        if self.client is not None:
-            self.close(self.client)
-        if self.server is not None:
-            self.close(self.server)
-        self.loop.close()
-        asyncio.set_event_loop(None)
-        # zmq.Context.instance().term()
 
     def close(self, service):
         service.close()
@@ -247,3 +230,43 @@ class PipelineTests(unittest.TestCase):
             fut.cancel()
 
         self.loop.run_until_complete(communicate())
+
+
+class LoopPipelineTests(unittest.TestCase, PipelineTestsMixin):
+
+    def setUp(self):
+        self.loop = aiozmq.ZmqEventLoop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+        self.queue = asyncio.Queue(loop=self.loop)
+        self.err_queue = asyncio.Queue(loop=self.loop)
+        self.loop.set_exception_handler(self.exception_handler)
+
+    def tearDown(self):
+        if self.client is not None:
+            self.close(self.client)
+        if self.server is not None:
+            self.close(self.server)
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
+
+
+class LooplessPipelineTests(unittest.TestCase, PipelineTestsMixin):
+
+    def setUp(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+        self.queue = asyncio.Queue(loop=self.loop)
+        self.err_queue = asyncio.Queue(loop=self.loop)
+        self.loop.set_exception_handler(self.exception_handler)
+
+    def tearDown(self):
+        if self.client is not None:
+            self.close(self.client)
+        if self.server is not None:
+            self.close(self.server)
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()

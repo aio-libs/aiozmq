@@ -19,21 +19,7 @@ class RootHandler(aiozmq.rpc.AttrHandler):
     ns = MyHandler()
 
 
-class RpcNamespaceTests(unittest.TestCase):
-
-    def setUp(self):
-        self.loop = aiozmq.ZmqEventLoop()
-        asyncio.set_event_loop(None)
-        self.client = self.server = None
-
-    def tearDown(self):
-        if self.client is not None:
-            self.close(self.client)
-        if self.server is not None:
-            self.close(self.server)
-        self.loop.close()
-        asyncio.set_event_loop(None)
-        # zmq.Context.instance().term()
+class RpcNamespaceTestsMixin:
 
     def close(self, service):
         service.close()
@@ -97,3 +83,37 @@ class RpcNamespaceTests(unittest.TestCase):
                 yield from client.call.ns(1)
 
         self.loop.run_until_complete(communicate())
+
+
+class LoopRpcNamespaceTests(unittest.TestCase, RpcNamespaceTestsMixin):
+
+    def setUp(self):
+        self.loop = aiozmq.ZmqEventLoop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+
+    def tearDown(self):
+        if self.client is not None:
+            self.close(self.client)
+        if self.server is not None:
+            self.close(self.server)
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
+
+
+class LooplessRpcNamespaceTests(unittest.TestCase, RpcNamespaceTestsMixin):
+
+    def setUp(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+
+    def tearDown(self):
+        if self.client is not None:
+            self.close(self.client)
+        if self.server is not None:
+            self.close(self.server)
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()

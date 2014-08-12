@@ -46,7 +46,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         yield from f
 
 
-class PubSubTests(unittest.TestCase):
+class PubSubTestsMixin:
 
     @classmethod
     def setUpClass(self):
@@ -58,22 +58,6 @@ class PubSubTests(unittest.TestCase):
     def tearDownClass(self):
         logger = logging.getLogger()
         logger.setLevel(self.log_level)
-
-    def setUp(self):
-        self.loop = aiozmq.ZmqEventLoop()
-        asyncio.set_event_loop(None)
-        self.client = self.server = None
-        self.queue = asyncio.Queue(loop=self.loop)
-        self.err_queue = asyncio.Queue(loop=self.loop)
-
-    def tearDown(self):
-        if self.client:
-            self.close(self.client)
-        if self.server:
-            self.close(self.server)
-        self.loop.close()
-        asyncio.set_event_loop(None)
-        # zmq.Context.instance().term()
 
     def close(self, service):
         service.close()
@@ -393,3 +377,41 @@ class PubSubTests(unittest.TestCase):
             fut.cancel()
 
         self.loop.run_until_complete(communicate())
+
+
+class LoopPubSubTests(unittest.TestCase, PubSubTestsMixin):
+
+    def setUp(self):
+        self.loop = aiozmq.ZmqEventLoop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+        self.queue = asyncio.Queue(loop=self.loop)
+        self.err_queue = asyncio.Queue(loop=self.loop)
+
+    def tearDown(self):
+        if self.client:
+            self.close(self.client)
+        if self.server:
+            self.close(self.server)
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
+
+
+class LooplessPubSubTests(unittest.TestCase, PubSubTestsMixin):
+
+    def setUp(self):
+        self.loop = aiozmq.ZmqEventLoop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+        self.queue = asyncio.Queue(loop=self.loop)
+        self.err_queue = asyncio.Queue(loop=self.loop)
+
+    def tearDown(self):
+        if self.client:
+            self.close(self.client)
+        if self.server:
+            self.close(self.server)
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()

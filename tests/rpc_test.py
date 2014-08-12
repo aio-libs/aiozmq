@@ -106,7 +106,7 @@ class Protocol(aiozmq.ZmqProtocol):
         self.received.put_nowait(data)
 
 
-class RpcTests(unittest.TestCase):
+class RpcTestsMixin:
 
     @classmethod
     def setUpClass(self):
@@ -118,17 +118,6 @@ class RpcTests(unittest.TestCase):
     def tearDownClass(self):
         root_logger = logging.getLogger()
         root_logger.setLevel(self.log_level)
-
-    def setUp(self):
-        self.loop = aiozmq.ZmqEventLoop()
-        asyncio.set_event_loop(None)
-        self.client = self.server = None
-        self.err_queue = asyncio.Queue(loop=self.loop)
-
-    def tearDown(self):
-        self.loop.close()
-        asyncio.set_event_loop(None)
-        # zmq.Context.instance().term()
 
     def close(self, server):
         server.close()
@@ -654,6 +643,34 @@ class RpcTests(unittest.TestCase):
             self.assertFalse(m_log.called)
 
         self.loop.run_until_complete(communicate())
+
+
+class LoopRpcTests(unittest.TestCase, RpcTestsMixin):
+
+    def setUp(self):
+        self.loop = aiozmq.ZmqEventLoop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+        self.err_queue = asyncio.Queue(loop=self.loop)
+
+    def tearDown(self):
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
+
+
+class LoopLessRpcTests(unittest.TestCase, RpcTestsMixin):
+
+    def setUp(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+        self.err_queue = asyncio.Queue(loop=self.loop)
+
+    def tearDown(self):
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
 
 
 class AbstractHandlerTests(unittest.TestCase):
