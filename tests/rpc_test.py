@@ -321,16 +321,7 @@ class RpcTestsMixin:
                 t1 = time.monotonic()
                 self.assertTrue(0.08 <= t1-t0 <= 0.12, t1-t0)
 
-                ret = yield from self.err_queue.get()
-                # TODO: make a test for several unexpected calls
-                # This test should to do that but result is a bit suspicious
-                # self.assertEqual(1, self.err_queue.qsize())
-                self.assertEqual(logging.DEBUG, ret.levelno)
-                self.assertEqual("The future for request #%08x "
-                                 "has been cancelled, "
-                                 "skip the received result.", ret.msg)
-                self.assertEqual((1,), ret.args)
-                self.assertIsNone(ret.exc_info)
+                # NB: dont check log records, they are not necessary present
 
         self.loop.run_until_complete(communicate())
 
