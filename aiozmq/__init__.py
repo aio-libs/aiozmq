@@ -4,9 +4,8 @@ import sys
 import zmq
 
 from .selector import ZmqSelector
-from .core import ZmqEventLoop, ZmqEventLoopPolicy
+from .core import ZmqEventLoop, ZmqEventLoopPolicy, create_zmq_connection
 from .interface import ZmqTransport, ZmqProtocol
-from .loopless import create_zmq_connection
 
 
 __all__ = ('ZmqSelector', 'ZmqEventLoop', 'ZmqEventLoopPolicy',
