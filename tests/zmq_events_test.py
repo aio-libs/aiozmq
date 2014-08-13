@@ -628,6 +628,77 @@ class BaseZmqEventLoopTestsMixin:
 
         self.loop.run_until_complete(go())
 
+    def test_default_event_loop(self):
+        asyncio.set_event_loop(self.loop)
+        port = find_unused_port()
+        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
+            lambda: Protocol(self.loop),
+            zmq.REQ,
+            bind='tcp://127.0.0.1:{}'.format(port)))
+        self.assertIs(self.loop, tr1._loop)
+        tr1.close()
+
+    def test_close_closing(self):
+        port = find_unused_port()
+        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
+            lambda: Protocol(self.loop),
+            zmq.REQ,
+            bind='tcp://127.0.0.1:{}'.format(port),
+            loop=self.loop))
+        tr1.close()
+        self.assertTrue(tr1._closing)
+        tr1.close()
+        self.assertTrue(tr1._closing)
+
+    def test_pause_reading(self):
+        port = find_unused_port()
+        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
+            lambda: Protocol(self.loop),
+            zmq.REQ,
+            bind='tcp://127.0.0.1:{}'.format(port),
+            loop=self.loop))
+        self.assertFalse(tr1._paused)
+        tr1.pause_reading()
+        self.assertTrue(tr1._paused)
+        tr1.resume_reading()
+        self.assertFalse(tr1._paused)
+        tr1.close()
+
+    def test_pause_reading_closed(self):
+        port = find_unused_port()
+        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
+            lambda: Protocol(self.loop),
+            zmq.REQ,
+            bind='tcp://127.0.0.1:{}'.format(port),
+            loop=self.loop))
+        tr1.close()
+        with self.assertRaises(RuntimeError):
+            tr1.pause_reading()
+
+    def test_pause_reading_paused(self):
+        port = find_unused_port()
+        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
+            lambda: Protocol(self.loop),
+            zmq.REQ,
+            bind='tcp://127.0.0.1:{}'.format(port),
+            loop=self.loop))
+        tr1.pause_reading()
+        self.assertTrue(tr1._paused)
+        with self.assertRaises(RuntimeError):
+            tr1.pause_reading()
+        tr1.close()
+
+    def test_resume_reading_not_paused(self):
+        port = find_unused_port()
+        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
+            lambda: Protocol(self.loop),
+            zmq.REQ,
+            bind='tcp://127.0.0.1:{}'.format(port),
+            loop=self.loop))
+        with self.assertRaises(RuntimeError):
+            tr1.resume_reading()
+        tr1.close()
+
 
 class ZmqEventLoopTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
 
