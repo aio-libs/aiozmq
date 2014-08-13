@@ -14,10 +14,8 @@ ZeroMQ integration with asyncio (:pep:`3156`).
 Features
 --------
 
-- Implements :mod:`asyncio` event loop for :term:`ZeroMQ` sockets via
-  :class:`~aiozmq.ZmqEventLoop`.
-- Implements installable policy for ZeroMQ event loop (see
-  :ref:`install-aiozmq-policy`), **required** for ZeroMQ sockets layer.
+- Implements :func:`~aiozmq.create_zmq_connection` coroutine for
+  making 0MQ connections.
 - Provides :class:`~aiozmq.ZmqTransport` and :class:`~aiozmq.ZmqProtocol`
 - Provides RPC :ref:`aiozmq-rpc-rpc`, :ref:`aiozmq-rpc-pushpull` and
   :ref:`aiozmq-rpc-pubsub` patterns for *remote calls*.
@@ -95,16 +93,7 @@ Feel free to improve this package and send a pull request to GitHub_.
 Getting Started
 ---------------
 
-At first you need to install aiozmq *policy* to use ZeroMQ socket layer::
-
-    import asyncio
-    import aiozmq
-
-    asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
-
-For details please take a look on :ref:`install-aiozmq-policy`.
-
-After that you probably would like to use RPC::
+Example of RPC usage::
 
     import aiozmq.rpc
 

@@ -9,103 +9,54 @@
 .. currentmodule:: aiozmq
 
 
-.. _install-aiozmq-policy:
-
-Installing ZeroMQ event loop
-----------------------------
-
-To use :term:`ZeroMQ` layer you **should** install proper event loop
-first.
-
-The recommended way is to setup *global event loop policy*::
-
-    import asyncio
-    import aiozmq
-
-    asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
-
-That installs :class:`ZmqEventLoopPolicy` globally. After installing
-you can get event loop instance from main thread by
-:func:`asyncio.get_event_loop` call::
-
-    loop = asyncio.get_event_loop()
-
-If you need to execute event loop in your own (not main) thread you have to
-set it up first::
-
-     import threading
-
-     def thread_func():
-         loop = asyncio.new_event_loop()
-         asyncio.set_event_loop()
-
-         loop.run_forever()
-
-     thread = threading.Thread(target=thread_func)
-     thread.start()
-
-
-ZmqEventLoop
+create_zmq_connection
 ---------------------
 
+.. function:: create_zmq_connection(protocol_factory, zmq_type, *, \
+                            bind=None, connect=None, zmq_sock=None)
 
-Event loop with :term:`ZeroMQ` support.
+   Create a ZeroMQ connection.
 
-Follows :class:`asyncio.AbstractEventLoop` specification and has
-:meth:`~ZmqEventLoop.create_zmq_connection` method for :term:`ZeroMQ`
-sockets layer.
+   This method is a :ref:`coroutine <coroutine>`.
 
-.. class:: ZmqEventLoop(*, zmq_context=None)
+   If you don't use *bind* or *connect* params you can do it
+   later by :meth:`ZmqTransport.bind` and :meth:`ZmqTransport.connect`
+   calls.
 
-   :param zmq.Context zmq_context: explicit context to use for ZeroMQ
-     socket creation inside :meth:`ZmqEventLoop.create_zmq_connection`
-     calls.  :mod:`aiozmq` shares global context returned by
-     :meth:`zmq.Context.instance` call if *zmq_context* parameter is
-     ``None``.
+   :param callable protocol_factory: a factory that instantiates
+     :class:`~ZmqProtocol` object.
 
-   .. method:: create_zmq_connection(protocol_factory, zmq_type, *, \
-                               bind=None, connect=None, zmq_sock=None)
+   :param int zmq_type: a type of :term:`ZeroMQ` socket
+     (*zmq.REQ*, *zmq.REP*, *zmq.PUB*, *zmq.SUB*, zmq.PAIR*,
+     *zmq.DEALER*, *zmq.ROUTER*, *zmq.PULL*, *zmq.PUSH*, etc.)
 
-        Create a ZeroMQ connection.
+   :param bind: endpoints specification.
 
-        If you don't use *bind* or *connect* params you can do it
-        later by :meth:`ZmqTransport.bind` and :meth:`ZmqTransport.connect`
-        calls.
+     Every :term:`endpoint` generates call to
+     :meth:`ZmqTransport.bind` for accepting connections from
+     specified endpoint.
 
-        :param callable protocol_factory: a factory that instantiates
-          :class:`~ZmqProtocol` object.
+     Other side should use *connect* parameter to connect to this
+     transport.
+   :type bind: str or iterable of strings
 
-        :param int zmq_type: a type of :term:`ZeroMQ` socket
-          (*zmq.REQ*, *zmq.REP*, *zmq.PUB*, *zmq.SUB*, zmq.PAIR*,
-          *zmq.DEALER*, *zmq.ROUTER*, *zmq.PULL*, *zmq.PUSH*, etc.)
+   :param connect: endpoints specification.
 
-        :param bind: endpoints specification.
+     Every :term:`endpoint` generates call to
+     :meth:`ZmqTransport.connect` for connecting transport to
+     specified endpoint.
 
-          Every :term:`endpoint` generates call to
-          :meth:`ZmqTransport.bind` for accepting connections from
-          specified endpoint.
+     Other side should use bind parameter to wait for incoming
+     connections.
+   :type connect: str or iterable of strings
 
-          Other side should use *connect* parameter to connect to this
-          transport.
-        :type bind: str or iterable of strings
+   :param zmq.Socket zmq_sock: a preexisting zmq socket that
+                               will be passed to returned
+                               transport.
 
-        :param connect: endpoints specification.
-
-          Every :term:`endpoint` generates call to
-          :meth:`ZmqTransport.connect` for connecting transport to
-          specified endpoint.
-
-          Other side should use bind parameter to wait for incoming
-          connections.
-        :type connect: str or iterable of strings
-
-        :param zmq.Socket zmq_sock: a preexisting zmq socket that
-                                    will be passed to returned
-                                    transport.
-
-        :return: a pair of ``(transport, protocol)``
-          where transport supports :class:`~ZmqTransport` interface.
-        :rtype: :class:`tuple`
+   :return: a pair of ``(transport, protocol)``
+     where transport supports :class:`~ZmqTransport` interface.
+   :rtype: :class:`tuple`
 
 
 ZmqTransport
@@ -447,8 +398,97 @@ ZmqProtocol
       :param list data: the multipart list of bytes with at least one item.
 
 
+Exception policy
+----------------
+
+Every call to :class:`zmq.Socket` method can raise
+:class:`zmq.ZMQError` exception. But all methods of
+:class:`ZmqEventLoop` and :class:`ZmqTransport` translate ZMQError
+into :class:`OSError` (or descendat) with errno and strerror borrowed
+from underlying ZMQError values.
+
+The reason for translation is that Python 3.3 implements :pep:`3151`
+**--- Reworking the OS and IO Exception Hierarchy** which gets rid of
+exceptions zoo and uses :class:`OSError` and descendants for all
+exceptions generated by system function calls.
+
+:mod:`aiozmq` implements the same pattern. Internally it looks like::
+
+       try:
+           return self._zmq_sock.getsockopt(option)
+       except zmq.ZMQError as exc:
+           raise OSError(exc.errno, exc.strerror)
+
+Also public methods of :mod:`aiozmq` will never raise
+:exc:`InterruptedError` (aka *EINTR*), they process interruption
+internally.
+
+Getting aiozmq version
+----------------------
+
+.. data:: version
+
+   a text version of the library::
+
+       '0.1.0 , Python 3.3.2+ (default, Feb 28 2014, 00:52:16) \n[GCC 4.8.1]'
+
+.. data:: version_info
+
+   a named tuple with version information, useful for comparison::
+
+       VersionInfo(major=0, minor=1, micro=0, releaselevel='alpha', serial=0)
+
+   The Python itself uses the same schema (:const:`sys.version_info`).
+
+
+.. _install-aiozmq-policy:
+
+Installing ZeroMQ event loop
+----------------------------
+
+.. deprecated:: 0.5
+
+   :mod:`aiozmq` works with any *asyncio* event loop, it doesn't
+   require dedicated event loop policy.
+
+To use :term:`ZeroMQ` layer you **should** install proper event loop
+first.
+
+The recommended way is to setup *global event loop policy*::
+
+    import asyncio
+    import aiozmq
+
+    asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
+
+That installs :class:`ZmqEventLoopPolicy` globally. After installing
+you can get event loop instance from main thread by
+:func:`asyncio.get_event_loop` call::
+
+    loop = asyncio.get_event_loop()
+
+If you need to execute event loop in your own (not main) thread you have to
+set it up first::
+
+     import threading
+
+     def thread_func():
+         loop = asyncio.new_event_loop()
+         asyncio.set_event_loop()
+
+         loop.run_forever()
+
+     thread = threading.Thread(target=thread_func)
+     thread.start()
+
+
 ZmqEventLoopPolicy
 ---------------------------
+
+.. deprecated:: 0.5
+
+   :mod:`aiozmq` works with any *asyncio* event loop, it doesn't
+   require dedicated event loop policy.
 
 ZeroMQ policy implementation for accessing the event loop.
 
@@ -516,44 +556,69 @@ other threads by default have no event loop.
       :raise TypeError: if watcher is not instance of
          :class:`asyncio.AbstractChildWatcher`
 
-Exception policy
-----------------
+ZmqEventLoop
+---------------------
 
-Every call to :class:`zmq.Socket` method can raise
-:class:`zmq.ZMQError` exception. But all methods of
-:class:`ZmqEventLoop` and :class:`ZmqTransport` translate ZMQError
-into :class:`OSError` (or descendat) with errno and strerror borrowed
-from underlying ZMQError values.
+.. deprecated:: 0.5
 
-The reason for translation is that Python 3.3 implements :pep:`3151`
-**--- Reworking the OS and IO Exception Hierarchy** which gets rid of
-exceptions zoo and uses :class:`OSError` and descendants for all
-exceptions generated by system function calls.
+   :mod:`aiozmq` works with any *asyncio* event loop, it doesn't
+   require dedicated event loop object.
 
-:mod:`aiozmq` implements the same pattern. Internally it looks like::
 
-       try:
-           return self._zmq_sock.getsockopt(option)
-       except zmq.ZMQError as exc:
-           raise OSError(exc.errno, exc.strerror)
+Event loop with :term:`ZeroMQ` support.
 
-Also public methods of :mod:`aiozmq` will never raise
-:exc:`InterruptedError` (aka *EINTR*), they process interruption
-internally.
+Follows :class:`asyncio.AbstractEventLoop` specification and has
+:meth:`~ZmqEventLoop.create_zmq_connection` method for :term:`ZeroMQ`
+sockets layer.
 
-Getting aiozmq version
-----------------------
+.. class:: ZmqEventLoop(*, zmq_context=None)
 
-.. data:: version
+   :param zmq.Context zmq_context: explicit context to use for ZeroMQ
+     socket creation inside :meth:`ZmqEventLoop.create_zmq_connection`
+     calls.  :mod:`aiozmq` shares global context returned by
+     :meth:`zmq.Context.instance` call if *zmq_context* parameter is
+     ``None``.
 
-   a text version of the library::
+   .. method:: create_zmq_connection(protocol_factory, zmq_type, *, \
+                               bind=None, connect=None, zmq_sock=None)
 
-       '0.1.0 , Python 3.3.2+ (default, Feb 28 2014, 00:52:16) \n[GCC 4.8.1]'
+        Create a ZeroMQ connection.
 
-.. data:: version_info
+        If you don't use *bind* or *connect* params you can do it
+        later by :meth:`ZmqTransport.bind` and :meth:`ZmqTransport.connect`
+        calls.
 
-   a named tuple with version information, useful for comparison::
+        :param callable protocol_factory: a factory that instantiates
+          :class:`~ZmqProtocol` object.
 
-       VersionInfo(major=0, minor=1, micro=0, releaselevel='alpha', serial=0)
+        :param int zmq_type: a type of :term:`ZeroMQ` socket
+          (*zmq.REQ*, *zmq.REP*, *zmq.PUB*, *zmq.SUB*, zmq.PAIR*,
+          *zmq.DEALER*, *zmq.ROUTER*, *zmq.PULL*, *zmq.PUSH*, etc.)
 
-   The Python itself uses the same schema (:const:`sys.version_info`).
+        :param bind: endpoints specification.
+
+          Every :term:`endpoint` generates call to
+          :meth:`ZmqTransport.bind` for accepting connections from
+          specified endpoint.
+
+          Other side should use *connect* parameter to connect to this
+          transport.
+        :type bind: str or iterable of strings
+
+        :param connect: endpoints specification.
+
+          Every :term:`endpoint` generates call to
+          :meth:`ZmqTransport.connect` for connecting transport to
+          specified endpoint.
+
+          Other side should use bind parameter to wait for incoming
+          connections.
+        :type connect: str or iterable of strings
+
+        :param zmq.Socket zmq_sock: a preexisting zmq socket that
+                                    will be passed to returned
+                                    transport.
+
+        :return: a pair of ``(transport, protocol)``
+          where transport supports :class:`~ZmqTransport` interface.
+        :rtype: :class:`tuple`
