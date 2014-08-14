@@ -13,7 +13,7 @@ create_zmq_connection
 ---------------------
 
 .. function:: create_zmq_connection(protocol_factory, zmq_type, *, \
-                            bind=None, connect=None, zmq_sock=None)
+                            bind=None, connect=None, zmq_sock=None, loop=None)
 
    Create a ZeroMQ connection.
 
@@ -54,6 +54,10 @@ create_zmq_connection
                                will be passed to returned
                                transport.
 
+   :param asyncio.AbstractEventLoop loop: optional event loop
+                                          instance, ``None`` for
+                                          default event loop.
+
    :return: a pair of ``(transport, protocol)``
      where transport supports :class:`~ZmqTransport` interface.
    :rtype: :class:`tuple`
@@ -68,7 +72,7 @@ ZmqTransport
    :class:`asyncio.BaseTransport` interface.
 
    End user should never create :class:`~ZmqTransport` objects directly,
-   he gets it by ``yield from loop.create_zmq_connection()`` call.
+   he gets it by ``yield from aiozmq.create_zmq_connection()`` call.
 
    .. method:: get_extra_info(key, default=None)
 
@@ -216,9 +220,9 @@ ZmqTransport
 
          Returned endpoints include only ones that has been bound via
          :meth:`ZmqTransport.bind` or
-         :meth:`ZmqEventLoop.create_zmq_connection` calls and do not
+         :func:`create_zmq_connection` calls and do not
          include bindings that have been done on *zmq_sock* before
-         :meth:`ZmqEventLoop.create_zmq_connection` call.
+         :func:`create_zmq_connection` call.
 
    .. method:: connect(endpoint)
 
@@ -265,9 +269,9 @@ ZmqTransport
 
          Returned endpoints include only ones that has been connected
          via :meth:`ZmqTransport.connect` or
-         :meth:`ZmqEventLoop.create_zmq_connection` calls and do not
+         :func:`create_zmq_connection` calls and do not
          include connections that have been done to *zmq_sock* before
-         :meth:`ZmqEventLoop.create_zmq_connection` call.
+         :func:`create_zmq_connection` call.
 
    .. method:: subscribe(value)
 
@@ -326,7 +330,7 @@ ZmqTransport
          Returned subscriptions include only ones that has
          been subscribed via :meth:`ZmqTransport.subscribe` call and do not
          include subscribtions that have been done to zmq_sock before
-         :meth:`ZmqEventLoop.create_zmq_connection` call.
+         :func:`create_zmq_connection` call.
 
       :raise NotImplementedError: the transport is not *SUB*.
 

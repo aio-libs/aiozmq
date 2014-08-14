@@ -1,7 +1,8 @@
 .. _aiozmq-rpc:
 
-:mod:`aiozmq.rpc` --- Remote Procedure Calls
-============================================
+==============================================
+ :mod:`aiozmq.rpc` --- Remote Procedure Calls
+==============================================
 
 .. module:: aiozmq.rpc
    :synopsis: RPC for ZeroMQ transports
@@ -9,7 +10,7 @@
 
 
 Intro
------
+=====
 
 While :ref:`core API <aiozmq-core>` provides a core support for
 :term:`ZeroMQ` transports, the :term:`End User <enduser>` may need
@@ -44,7 +45,7 @@ The :mod:`aiozmq.rpc` supports three pairs of communications:
 .. _aiozmq-rpc-rpc:
 
 Request-Reply
--------------
+=============
 
 This is a **Remote Procedure Call** pattern itself. Client calls a remote
 function on server and waits for the returned value. If the remote function
@@ -99,7 +100,7 @@ The basic usage is::
     :term:`ZeroMQ` does not forbid to use *bind*.
 
     Parameters *bind*, *connect* and *loop* work like that of
-    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
+    :func:`aiozmq.create_zmq_connection`.
 
     :param dict error_table: an optional table for custom exception translators.
 
@@ -131,7 +132,7 @@ The basic usage is::
     :term:`ZeroMQ` does not forbid to use *connect*.
 
     Parameters *bind*, *connect* and *loop* work like that of
-    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
+    :func:`aiozmq.create_zmq_connection`.
 
     :param aiozmq.rpc.AbstractHander handler:
 
@@ -163,7 +164,7 @@ The basic usage is::
 .. _aiozmq-rpc-pushpull:
 
 Push-Pull
----------
+=========
 
 This is a **Notify** aka **Pipeline** pattern. Client calls a remote
 function on the server and **doesn't** wait for the result. If a
@@ -215,7 +216,7 @@ The basic usage is::
     *pipeline* client.
 
     Parameters *bind*, *connect* and *loop* work like that of
-    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
+    :func:`aiozmq.create_zmq_connection`.
 
     Usually for this function you need to use *connect* parameter, but
     :term:`ZeroMQ` does not forbid to use *bind*.
@@ -239,7 +240,7 @@ The basic usage is::
     :term:`ZeroMQ` does not forbid to use *connect*.
 
     Parameters *bind*, *connect* and *loop* work like that of
-    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
+    :func:`aiozmq.create_zmq_connection`.
 
     :param aiozmq.rpc.AbstractHander handler:
 
@@ -272,7 +273,7 @@ The basic usage is::
 .. _aiozmq-rpc-pubsub:
 
 Publish-Subscribe
------------------
+=================
 
 This is **PubSub** pattern. It's very close to :ref:`aiozmq-rpc-pubsub`
 but has some difference:
@@ -325,7 +326,7 @@ The basic usage is::
     :term:`ZeroMQ` does not forbid to use *bind*.
 
     Parameters *bind*, *connect* and *loop* work like that of
-    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
+    :func:`aiozmq.create_zmq_connection`.
 
     :param dict translation_table:
        an optional table for custom value translators.
@@ -346,7 +347,7 @@ The basic usage is::
     :term:`ZeroMQ` does not forbid to use *connect*.
 
     Parameters *bind*, *connect* and *loop* work like that of
-    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
+    :func:`aiozmq.create_zmq_connection`.
 
     :param aiozmq.rpc.AbstractHander handler:
 
@@ -388,7 +389,7 @@ The basic usage is::
 .. _aiozmq-rpc-exception-translation:
 
 Exception translation at client side
-----------------------------------------
+====================================
 
 If a remote server method raises an exception, that exception is passed
 back to the client and raised on the client side, as follows::
@@ -440,7 +441,7 @@ that's up to you.
 .. _aiozmq-rpc-signature-validation:
 
 Signature validation
-------------------------
+====================
 
 The library supports **optional** validation of the remote call signatures.
 
@@ -515,7 +516,7 @@ can create custom trafarets if needed. It's easy, trust me.
 .. _aiozmq-rpc-value-translators:
 
 Value translators
----------------------
+=================
 
 aiozmq.rpc uses :term:`msgpack` for transfering python objects from
 client to server and back.
@@ -669,7 +670,7 @@ Table of predefined translators:
 .. _aiozmq-rpc-log-exceptions:
 
 Logging exceptions from remote calls at server side
----------------------------------------------------
+===================================================
 
 By default :mod:`aiozmq.rpc` does no logging if remote call raises an exception.
 
@@ -703,7 +704,7 @@ For that case you can use *exclude_log_exceptions* parameter::
 
 
 Exceptions
---------------
+==========
 
 .. exception:: Error
 
@@ -749,7 +750,7 @@ Exceptions
 
 
 Clases
-----------
+======
 
 .. decorator:: method
 
@@ -945,7 +946,7 @@ Clases
 
 
 Logger
-------
+======
 
 .. data:: logger
 
