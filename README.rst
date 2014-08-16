@@ -11,12 +11,7 @@ Documentation
 
 See http://aiozmq.readthedocs.org
 
-RPC Example
------------
-
-Simple client-server RPC example
-
-.. code-block:: python
+Simple client-server RPC example::
 
     import asyncio
     import aiozmq.rpc
@@ -48,10 +43,11 @@ Simple client-server RPC example
 Requirements
 ------------
 
-* Python 3.3+
+* Python_ 3.3+
 * pyzmq_ 13.1+
 * asyncio_ or Python 3.4+
 * optional submodule ``aiozmq.rpc`` requires msgpack-python_ 0.4+
+
 
 
 License
@@ -59,6 +55,7 @@ License
 
 aiozmq is offered under the BSD license.
 
+.. _python: https://www.python.org/
 .. _pyzmq: https://pypi.python.org/pypi/pyzmq
 .. _asyncio: https://pypi.python.org/pypi/asyncio
 .. _msgpack-python: https://pypi.python.org/pypi/msgpack-python
