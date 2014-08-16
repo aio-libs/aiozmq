@@ -1,5 +1,6 @@
 import collections
 import asyncio
+from .core import create_zmq_connection
 from .interface import ZmqProtocol
 
 
@@ -8,11 +9,11 @@ class ZmqStreamClosed(Exception):
 
 
 @asyncio.coroutine
-def create_zmq_connection(zmq_type, *, bind=None, connect=None,
-                          loop=None, zmq_sock=None,
-                          high_read=None, low_read=None,
-                          high_write=None, low_write=None):
-    """A wrapper for create_connection() returning a Stream instance.
+def create_zmq_stream(zmq_type, *, bind=None, connect=None,
+                      loop=None, zmq_sock=None,
+                      high_read=None, low_read=None,
+                      high_write=None, low_write=None):
+    """A wrapper for create_zmq_connection() returning a Stream instance.
 
     The arguments are all the usual arguments to create_connection()
     except protocol_factory; most common are positional host and port,
@@ -29,9 +30,13 @@ def create_zmq_connection(zmq_type, *, bind=None, connect=None,
     if loop is None:
         loop = asyncio.get_event_loop()
     stream = ZmqStream(loop=loop, high=high_read, low=low_read)
-    tr, _ = yield from loop.create_zmq_connection(
-        lambda: stream._protocol, zmq_type, bind=bind, connect=connect,
-        zmq_sock=zmq_sock)
+    tr, _ = yield from create_zmq_connection(
+        lambda: stream._protocol,
+        zmq_type,
+        bind=bind,
+        connect=connect,
+        zmq_sock=zmq_sock,
+        loop=loop)
     tr.set_write_buffer_limits(high_write, low_write)
     return stream
 

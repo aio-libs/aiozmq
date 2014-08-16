@@ -19,7 +19,6 @@ Simple client-server RPC example
 .. code-block:: python
 
     import asyncio
-    import aiozmq
     import aiozmq.rpc
 
 
@@ -43,7 +42,6 @@ Simple client-server RPC example
         server.close()
         client.close()
 
-    asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
     asyncio.get_event_loop().run_until_complete(go())
 
 Requirements

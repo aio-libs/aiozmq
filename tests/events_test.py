@@ -237,6 +237,7 @@ class EventLoopTestsMixin:
         gc.collect()
         asyncio.set_event_loop(None)
         super().tearDown()
+        # zmq.Context.instance().term()
 
     def test_run_until_complete_nesting(self):
         @asyncio.coroutine

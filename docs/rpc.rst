@@ -1,7 +1,8 @@
 .. _aiozmq-rpc:
 
-:mod:`aiozmq.rpc` --- Remote Procedure Calls
-============================================
+==============================================
+ :mod:`aiozmq.rpc` --- Remote Procedure Calls
+==============================================
 
 .. module:: aiozmq.rpc
    :synopsis: RPC for ZeroMQ transports
@@ -9,7 +10,7 @@
 
 
 Intro
------
+=====
 
 While :ref:`core API <aiozmq-core>` provides a core support for
 :term:`ZeroMQ` transports, the :term:`End User <enduser>` may need
@@ -44,7 +45,7 @@ The :mod:`aiozmq.rpc` supports three pairs of communications:
 .. _aiozmq-rpc-rpc:
 
 Request-Reply
--------------
+=============
 
 This is a **Remote Procedure Call** pattern itself. Client calls a remote
 function on server and waits for the returned value. If the remote function
@@ -99,7 +100,7 @@ The basic usage is::
     :term:`ZeroMQ` does not forbid to use *bind*.
 
     Parameters *bind*, *connect* and *loop* work like that of
-    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
+    :func:`aiozmq.create_zmq_connection`.
 
     :param dict error_table: an optional table for custom exception translators.
 
@@ -121,7 +122,8 @@ The basic usage is::
     :return: :class:`RPCClient` instance.
 
 .. function:: serve_rpc(handler, *, bind=None, connect=None, loop=None, \
-                        log_exceptions=False, translation_table=None)
+                        log_exceptions=False, exclude_log_exceptions=(), \
+                        translation_table=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds *RPC*
     server instance.
@@ -130,7 +132,7 @@ The basic usage is::
     :term:`ZeroMQ` does not forbid to use *connect*.
 
     Parameters *bind*, *connect* and *loop* work like that of
-    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
+    :func:`aiozmq.create_zmq_connection`.
 
     :param aiozmq.rpc.AbstractHander handler:
 
@@ -139,7 +141,13 @@ The basic usage is::
       Usually you like to pass :class:`AttrHandler` instance.
 
     :param bool log_exceptions:
-       log exceptions from remote calls if *True*.
+       log exceptions from remote calls if ``True``.
+
+       .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
+
+    :param sequence exclude_log_exceptions: sequence of exception
+       types that should not to be logged if *log_exceptions* is
+       ``True``.
 
        .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
 
@@ -156,7 +164,7 @@ The basic usage is::
 .. _aiozmq-rpc-pushpull:
 
 Push-Pull
----------
+=========
 
 This is a **Notify** aka **Pipeline** pattern. Client calls a remote
 function on the server and **doesn't** wait for the result. If a
@@ -208,7 +216,7 @@ The basic usage is::
     *pipeline* client.
 
     Parameters *bind*, *connect* and *loop* work like that of
-    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
+    :func:`aiozmq.create_zmq_connection`.
 
     Usually for this function you need to use *connect* parameter, but
     :term:`ZeroMQ` does not forbid to use *bind*.
@@ -222,7 +230,8 @@ The basic usage is::
 
 
 .. function:: serve_pipeline(handler, *, connect=None, bind=None, loop=None, \
-                        log_exceptions=False, translation_table=None)
+                             log_exceptions=False, exclude_log_exceptions=(), \
+                             translation_table=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds *pipeline*
     server instance.
@@ -231,7 +240,7 @@ The basic usage is::
     :term:`ZeroMQ` does not forbid to use *connect*.
 
     Parameters *bind*, *connect* and *loop* work like that of
-    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
+    :func:`aiozmq.create_zmq_connection`.
 
     :param aiozmq.rpc.AbstractHander handler:
 
@@ -240,7 +249,13 @@ The basic usage is::
       Usually you like to pass :class:`AttrHandler` instance.
 
     :param bool log_exceptions:
-       log exceptions from remote calls if *True*.
+       log exceptions from remote calls if ``True``.
+
+       .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
+
+    :param sequence exclude_log_exceptions: sequence of exception
+       types that should not to be logged if *log_exceptions* is
+       ``True``.
 
        .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
 
@@ -258,7 +273,7 @@ The basic usage is::
 .. _aiozmq-rpc-pubsub:
 
 Publish-Subscribe
------------------
+=================
 
 This is **PubSub** pattern. It's very close to :ref:`aiozmq-rpc-pubsub`
 but has some difference:
@@ -311,7 +326,7 @@ The basic usage is::
     :term:`ZeroMQ` does not forbid to use *bind*.
 
     Parameters *bind*, *connect* and *loop* work like that of
-    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
+    :func:`aiozmq.create_zmq_connection`.
 
     :param dict translation_table:
        an optional table for custom value translators.
@@ -322,7 +337,8 @@ The basic usage is::
 
 
 .. function:: serve_pubsub(handler, *, connect=None, bind=None, subscribe=None,\
-              loop=None, log_exceptions=False, translation_table=None)
+                           loop=None, log_exceptions=False, \
+                           exclude_log_exceptions=(), translation_table=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds *pubsub*
     server instance.
@@ -331,7 +347,7 @@ The basic usage is::
     :term:`ZeroMQ` does not forbid to use *connect*.
 
     Parameters *bind*, *connect* and *loop* work like that of
-    :meth:`aiozmq.ZmqEventLoop.create_zmq_connection`.
+    :func:`aiozmq.create_zmq_connection`.
 
     :param aiozmq.rpc.AbstractHander handler:
 
@@ -340,7 +356,13 @@ The basic usage is::
       Usually you like to pass :class:`AttrHandler` instance.
 
     :param bool log_exceptions:
-       log exceptions from remote calls if *True*.
+       log exceptions from remote calls if ``True``.
+
+       .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
+
+    :param sequence exclude_log_exceptions: sequence of exception
+       types that should not to be logged if *log_exceptions* is
+       ``True``.
 
        .. seealso:: :ref:`aiozmq-rpc-log-exceptions`
 
@@ -367,7 +389,7 @@ The basic usage is::
 .. _aiozmq-rpc-exception-translation:
 
 Exception translation at client side
-----------------------------------------
+====================================
 
 If a remote server method raises an exception, that exception is passed
 back to the client and raised on the client side, as follows::
@@ -419,7 +441,7 @@ that's up to you.
 .. _aiozmq-rpc-signature-validation:
 
 Signature validation
-------------------------
+====================
 
 The library supports **optional** validation of the remote call signatures.
 
@@ -494,7 +516,7 @@ can create custom trafarets if needed. It's easy, trust me.
 .. _aiozmq-rpc-value-translators:
 
 Value translators
----------------------
+=================
 
 aiozmq.rpc uses :term:`msgpack` for transfering python objects from
 client to server and back.
@@ -648,7 +670,7 @@ Table of predefined translators:
 .. _aiozmq-rpc-log-exceptions:
 
 Logging exceptions from remote calls at server side
----------------------------------------------------
+===================================================
 
 By default :mod:`aiozmq.rpc` does no logging if remote call raises an exception.
 
@@ -666,9 +688,23 @@ If, say, you make PubSub server as::
 then exceptions raised from *handler* remote calls will be logged by
 standard :attr:`aiozmq.rpc.logger`.
 
+But sometimes you don't want to log exceptions of some types.
+
+Say, you use your own exceptions as part of public API to report about
+expected failures. In this case you probably want to pass that
+exceptions over the log, but record all other unexpected errors.
+
+For that case you can use *exclude_log_exceptions* parameter::
+
+   server =  yield from rpc.serve_rpc(handler,
+                                      bind='tcp://127.0.0.1:7777',
+                                      log_exceptions=True,
+                                      exclude_log_exceptions=(MyError,
+                                                              OtherError))
+
 
 Exceptions
---------------
+==========
 
 .. exception:: Error
 
@@ -714,7 +750,7 @@ Exceptions
 
 
 Clases
-----------
+======
 
 .. decorator:: method
 
@@ -910,7 +946,7 @@ Clases
 
 
 Logger
-------
+======
 
 .. data:: logger
 

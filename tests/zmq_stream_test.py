@@ -21,12 +21,12 @@ class ZmqStreamTests(unittest.TestCase):
 
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
 
-            s2 = yield from aiozmq.create_zmq_connection(
+            s2 = yield from aiozmq.create_zmq_stream(
                 zmq.ROUTER,
                 connect='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
@@ -45,12 +45,12 @@ class ZmqStreamTests(unittest.TestCase):
 
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
 
-            s2 = yield from aiozmq.create_zmq_connection(
+            s2 = yield from aiozmq.create_zmq_stream(
                 zmq.ROUTER,
                 connect='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
@@ -68,7 +68,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:*',
                 loop=self.loop)
@@ -85,7 +85,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:*',
                 loop=self.loop)
@@ -99,7 +99,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:*',
                 loop=self.loop)
@@ -113,7 +113,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:*')
 
@@ -124,7 +124,7 @@ class ZmqStreamTests(unittest.TestCase):
     def test_set_read_buffer_limits1(self):
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:*',
                 loop=self.loop)
@@ -140,7 +140,7 @@ class ZmqStreamTests(unittest.TestCase):
     def test_set_read_buffer_limits2(self):
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:*',
                 loop=self.loop)
@@ -156,7 +156,7 @@ class ZmqStreamTests(unittest.TestCase):
     def test_set_read_buffer_limits3(self):
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:*',
                 loop=self.loop)
@@ -173,12 +173,12 @@ class ZmqStreamTests(unittest.TestCase):
 
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
 
-            s2 = yield from aiozmq.create_zmq_connection(
+            s2 = yield from aiozmq.create_zmq_stream(
                 zmq.ROUTER,
                 connect='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
@@ -199,7 +199,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:*',
                 loop=self.loop)
@@ -217,7 +217,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:*',
                 loop=self.loop)
@@ -246,7 +246,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:*',
                 loop=self.loop)
@@ -273,7 +273,7 @@ class ZmqStreamTests(unittest.TestCase):
     def test_double_reading(self):
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:*',
                 loop=self.loop)
@@ -297,7 +297,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
@@ -322,7 +322,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
@@ -348,7 +348,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         @asyncio.coroutine
         def go():
-            s1 = yield from aiozmq.create_zmq_connection(
+            s1 = yield from aiozmq.create_zmq_stream(
                 zmq.DEALER,
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)

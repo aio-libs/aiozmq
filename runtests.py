@@ -27,6 +27,7 @@ import re
 import shutil
 import sys
 import unittest
+import threading
 import traceback
 import textwrap
 import importlib.machinery
@@ -138,7 +139,9 @@ class TestsFinder:
                                                verbose=self._verbose)]
         for mod in mods:
             for name in set(dir(mod)):
-                if name.endswith('Tests'):
+                obj = getattr(mod, name)
+                if (isinstance(obj, type) and
+                        issubclass(obj, unittest.TestCase)):
                     self._test_factories.append(getattr(mod, name))
 
     def load_tests(self):
@@ -188,7 +191,18 @@ class TestResult(unittest.TextTestResult):
             del gc.garbage[:]
 
 
-class TestRunner(unittest.TextTestRunner):
+class ThreadCntRunner(unittest.TextTestRunner):
+
+    def run(self, test):
+        cnt1 = threading.active_count()
+        result = super().run(test)
+        cnt2 = threading.active_count()
+        if cnt1 != cnt2:
+            self.stream.writeln("{} extra threads".format(cnt2-cnt1))
+        return result
+
+
+class TestRunner(ThreadCntRunner):
     resultclass = TestResult
 
     def run(self, test):
@@ -237,7 +251,7 @@ def runtests():
     failfast = args.failfast
     catchbreak = args.catchbreak
     findleaks = args.findleaks
-    runner_factory = TestRunner if findleaks else unittest.TextTestRunner
+    runner_factory = TestRunner if findleaks else ThreadCntRunner
 
     if args.coverage:
         cov = coverage.coverage(branch=True,
@@ -260,6 +274,7 @@ def runtests():
         logger.setLevel(logging.DEBUG)
     if catchbreak:
         installHandler()
+    success = False
     try:
         if args.forever:
             while True:
@@ -274,7 +289,8 @@ def runtests():
             result = runner_factory(verbosity=v,
                                     failfast=failfast,
                                     warnings="always").run(tests)
-            sys.exit(not result.wasSuccessful())
+            success = result.wasSuccessful()
+            sys.exit(not success)
     finally:
         if args.coverage:
             cov.stop()
@@ -287,6 +303,7 @@ def runtests():
             here = os.path.dirname(os.path.abspath(__file__))
             print("\nFor html report:")
             print("open file://{}/htmlcov/index.html".format(here))
+        os._exit(not success)
 
 
 if __name__ == '__main__':

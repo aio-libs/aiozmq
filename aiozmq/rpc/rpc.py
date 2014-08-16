@@ -9,6 +9,7 @@ from collections import ChainMap
 from functools import partial
 
 import zmq
+from aiozmq import create_zmq_connection
 
 from .base import (
     GenericError,
@@ -59,42 +60,48 @@ def connect_rpc(*, connect=None, bind=None, loop=None,
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    transp, proto = yield from loop.create_zmq_connection(
+    transp, proto = yield from create_zmq_connection(
         lambda: _ClientProtocol(loop, error_table=error_table,
                                 translation_table=translation_table),
-        zmq.DEALER, connect=connect, bind=bind)
+        zmq.DEALER, connect=connect, bind=bind, loop=loop)
     return RPCClient(loop, proto, timeout=timeout)
 
 
 @asyncio.coroutine
 def serve_rpc(handler, *, connect=None, bind=None, loop=None,
-              translation_table=None, log_exceptions=False):
+              translation_table=None, log_exceptions=False,
+              exclude_log_exceptions=()):
     """A coroutine that creates and connects/binds RPC server instance.
 
     Usually for this function you need to use *bind* parameter, but
     ZeroMQ does not forbid to use *connect*.
 
-    handler -- an object which processes incoming RPC calls.
-    Usually you like to pass AttrHandler instance.
+    handler -- an object which processes incoming RPC calls.  Usually
+               you like to pass AttrHandler instance.
 
     log_exceptions -- log exceptions from remote calls if True.
+
+    exclude_log_exceptions -- sequence of exception classes than should not
+                              be logged.
 
     translation_table -- an optional table for custom value translators.
 
     loop -- an optional parameter to point ZmqEventLoop instance.  If
-    loop is None then default event loop will be given by
-    asyncio.get_event_loop call.
+            loop is None then default event loop will be given by
+            asyncio.get_event_loop call.
 
     Returns Service instance.
+
     """
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    transp, proto = yield from loop.create_zmq_connection(
+    transp, proto = yield from create_zmq_connection(
         lambda: _ServerProtocol(loop, handler,
                                 translation_table=translation_table,
-                                log_exceptions=log_exceptions),
-        zmq.ROUTER, connect=connect, bind=bind)
+                                log_exceptions=log_exceptions,
+                                exclude_log_exceptions=exclude_log_exceptions),
+        zmq.ROUTER, connect=connect, bind=bind, loop=loop)
     return Service(loop, proto)
 
 
@@ -207,16 +214,18 @@ class _ServerProtocol(_BaseServerProtocol):
     RESP_SUFFIX = struct.Struct('=Ld?')
 
     def __init__(self, loop, handler, *,
-                 translation_table=None, log_exceptions=False):
+                 translation_table=None, log_exceptions=False,
+                 exclude_log_exceptions=()):
         super().__init__(loop, handler,
                          translation_table=translation_table,
-                         log_exceptions=log_exceptions)
+                         log_exceptions=log_exceptions,
+                         exclude_log_exceptions=exclude_log_exceptions)
         self.prefix = self.RESP_PREFIX.pack(os.getpid() % 0x10000,
                                             random.randrange(0x10000))
 
     def msg_received(self, data):
         try:
-            peer, header, bname, bargs, bkwargs = data
+            *pre, header, bname, bargs, bkwargs = data
             pid, rnd, req_id, timestamp = self.REQ.unpack(header)
 
             name = bname.decode('utf-8')
@@ -231,7 +240,7 @@ class _ServerProtocol(_BaseServerProtocol):
         except (NotFoundError, ParametersError) as exc:
             fut = asyncio.Future(loop=self.loop)
             fut.add_done_callback(partial(self.process_call_result,
-                                          req_id=req_id, peer=peer,
+                                          req_id=req_id, pre=pre,
                                           name=name, args=args, kwargs=kwargs))
             fut.set_exception(exc)
         else:
@@ -245,13 +254,13 @@ class _ServerProtocol(_BaseServerProtocol):
                 except Exception as exc:
                     fut.set_exception(exc)
             fut.add_done_callback(partial(self.process_call_result,
-                                          req_id=req_id, peer=peer,
+                                          req_id=req_id, pre=pre,
                                           return_annotation=ret_ann,
                                           name=name,
                                           args=args,
                                           kwargs=kwargs))
 
-    def process_call_result(self, fut, *, req_id, peer, name,
+    def process_call_result(self, fut, *, req_id, pre, name,
                             args, kwargs,
                             return_annotation=None):
         self.pending_waiters.discard(fut)
@@ -264,7 +273,7 @@ class _ServerProtocol(_BaseServerProtocol):
                 ret = return_annotation(ret)
             prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
                                                          time.time(), False)
-            self.transport.write([peer, prefix, self.packer.packb(ret)])
+            self.transport.write(pre + [prefix, self.packer.packb(ret)])
         except asyncio.CancelledError:
             return
         except Exception as exc:
@@ -273,4 +282,4 @@ class _ServerProtocol(_BaseServerProtocol):
             exc_type = exc.__class__
             exc_info = (exc_type.__module__ + '.' + exc_type.__name__,
                         exc.args, repr(exc))
-            self.transport.write([peer, prefix, self.packer.packb(exc_info)])
+            self.transport.write(pre + [prefix, self.packer.packb(exc_info)])

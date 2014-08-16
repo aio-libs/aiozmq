@@ -46,7 +46,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         yield from f
 
 
-class PubSubTests(unittest.TestCase):
+class PubSubTestsMixin:
 
     @classmethod
     def setUpClass(self):
@@ -59,26 +59,12 @@ class PubSubTests(unittest.TestCase):
         logger = logging.getLogger()
         logger.setLevel(self.log_level)
 
-    def setUp(self):
-        self.loop = aiozmq.ZmqEventLoop()
-        asyncio.set_event_loop(None)
-        self.client = self.server = None
-        self.queue = asyncio.Queue(loop=self.loop)
-        self.err_queue = asyncio.Queue(loop=self.loop)
-
-    def tearDown(self):
-        if self.client:
-            self.close(self.client)
-        if self.server:
-            self.close(self.server)
-        self.loop.close()
-        asyncio.set_event_loop(None)
-
     def close(self, service):
         service.close()
         self.loop.run_until_complete(service.wait_closed())
 
-    def make_pubsub_pair(self, subscribe=None, log_exceptions=False):
+    def make_pubsub_pair(self, subscribe=None, log_exceptions=False,
+                         exclude_log_exceptions=()):
 
         @asyncio.coroutine
         def create():
@@ -87,7 +73,8 @@ class PubSubTests(unittest.TestCase):
                 subscribe=subscribe,
                 bind='tcp://127.0.0.1:*',
                 loop=self.loop,
-                log_exceptions=log_exceptions)
+                log_exceptions=log_exceptions,
+                exclude_log_exceptions=exclude_log_exceptions)
             connect = next(iter(server.transport.bindings()))
             client = yield from aiozmq.rpc.connect_pubsub(
                 connect=connect,
@@ -280,6 +267,7 @@ class PubSubTests(unittest.TestCase):
         port = find_unused_port()
 
         asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
+        self.addCleanup(asyncio.set_event_loop_policy, None)
         queue = asyncio.Queue()
 
         @asyncio.coroutine
@@ -389,3 +377,41 @@ class PubSubTests(unittest.TestCase):
             fut.cancel()
 
         self.loop.run_until_complete(communicate())
+
+
+class LoopPubSubTests(unittest.TestCase, PubSubTestsMixin):
+
+    def setUp(self):
+        self.loop = aiozmq.ZmqEventLoop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+        self.queue = asyncio.Queue(loop=self.loop)
+        self.err_queue = asyncio.Queue(loop=self.loop)
+
+    def tearDown(self):
+        if self.client:
+            self.close(self.client)
+        if self.server:
+            self.close(self.server)
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
+
+
+class LooplessPubSubTests(unittest.TestCase, PubSubTestsMixin):
+
+    def setUp(self):
+        self.loop = aiozmq.ZmqEventLoop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+        self.queue = asyncio.Queue(loop=self.loop)
+        self.err_queue = asyncio.Queue(loop=self.loop)
+
+    def tearDown(self):
+        if self.client:
+            self.close(self.client)
+        if self.server:
+            self.close(self.server)
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()

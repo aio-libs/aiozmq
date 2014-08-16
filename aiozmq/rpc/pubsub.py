@@ -4,6 +4,8 @@ from functools import partial
 
 import zmq
 
+from aiozmq import create_zmq_connection
+
 from .base import (
     NotFoundError,
     ParametersError,
@@ -25,56 +27,63 @@ def connect_pubsub(*, connect=None, bind=None, loop=None,
 
     translation_table -- an optional table for custom value translators.
 
-    loop -- an optional parameter to point
-       ZmqEventLoop.  If loop is None then default
-       event loop will be given by asyncio.get_event_loop() call.
+    loop -- an optional parameter to point ZmqEventLoop.  If loop is
+            None then default event loop will be given by
+            asyncio.get_event_loop() call.
 
     Returns PubSubClient instance.
+
     """
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    transp, proto = yield from loop.create_zmq_connection(
+    transp, proto = yield from create_zmq_connection(
         lambda: _ClientProtocol(loop, translation_table=translation_table),
-        zmq.PUB, connect=connect, bind=bind)
+        zmq.PUB, connect=connect, bind=bind, loop=loop)
     return PubSubClient(loop, proto)
 
 
 @asyncio.coroutine
 def serve_pubsub(handler, *, subscribe=None, connect=None, bind=None,
-                 loop=None, translation_table=None, log_exceptions=False):
+                 loop=None, translation_table=None, log_exceptions=False,
+                 exclude_log_exceptions=()):
     """A coroutine that creates and connects/binds pubsub server instance.
 
     Usually for this function you need to use *bind* parameter, but
     ZeroMQ does not forbid to use *connect*.
 
     handler -- an object which processes incoming pipeline calls.
-    Usually you like to pass AttrHandler instance.
+               Usually you like to pass AttrHandler instance.
 
     log_exceptions -- log exceptions from remote calls if True.
 
-    subscribe -- subscription specification.
-    Subscribe server to topics.
-    Allowed parameters are str, bytes, iterable of str or bytes.
+    subscribe -- subscription specification.  Subscribe server to
+                 topics.  Allowed parameters are str, bytes, iterable
+                 of str or bytes.
 
     translation_table -- an optional table for custom value translators.
 
-    loop -- an optional parameter to point
-       ZmqEventLoop.  If loop is None then default
-       event loop will be given by asyncio.get_event_loop() call.
+    exclude_log_exceptions -- sequence of exception classes than should not
+                              be logged.
+
+    loop -- an optional parameter to point ZmqEventLoop.  If loop is
+            None then default event loop will be given by
+            asyncio.get_event_loop() call.
 
     Returns PubSubService instance.
     Raises OSError on system error.
     Raises TypeError if arguments have inappropriate type.
+
     """
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    transp, proto = yield from loop.create_zmq_connection(
+    transp, proto = yield from create_zmq_connection(
         lambda: _ServerProtocol(loop, handler,
                                 translation_table=translation_table,
-                                log_exceptions=log_exceptions),
-        zmq.SUB, connect=connect, bind=bind)
+                                log_exceptions=log_exceptions,
+                                exclude_log_exceptions=exclude_log_exceptions),
+        zmq.SUB, connect=connect, bind=bind, loop=loop)
     serv = PubSubService(loop, proto)
     if subscribe is not None:
         if isinstance(subscribe, (str, bytes)):

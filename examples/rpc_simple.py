@@ -1,5 +1,4 @@
 import asyncio
-import aiozmq
 import aiozmq.rpc
 
 
@@ -27,7 +26,6 @@ def go():
 
 
 def main():
-    asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
     asyncio.get_event_loop().run_until_complete(go())
     print("DONE")
 

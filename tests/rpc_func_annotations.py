@@ -50,20 +50,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         return arg
 
 
-class FuncAnnotationsTests(unittest.TestCase):
-
-    def setUp(self):
-        self.loop = aiozmq.ZmqEventLoop()
-        asyncio.set_event_loop(None)
-        self.client = self.server = None
-
-    def tearDown(self):
-        if self.client is not None:
-            self.close(self.client)
-        if self.server is not None:
-            self.close(self.server)
-        self.loop.close()
-        asyncio.set_event_loop(None)
+class FuncAnnotationsTestsMixin:
 
     def close(self, service):
         service.close()
@@ -208,3 +195,39 @@ class FuncAnnotationsTests(unittest.TestCase):
                 yield from client.call.has_default(None)
 
         self.loop.run_until_complete(communicate())
+
+
+class LoopFuncAnnotationsTests(unittest.TestCase,
+                               FuncAnnotationsTestsMixin):
+
+    def setUp(self):
+        self.loop = aiozmq.ZmqEventLoop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+
+    def tearDown(self):
+        if self.client is not None:
+            self.close(self.client)
+        if self.server is not None:
+            self.close(self.server)
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
+
+
+class LooplessFuncAnnotationsTests(unittest.TestCase,
+                                   FuncAnnotationsTestsMixin):
+
+    def setUp(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+
+    def tearDown(self):
+        if self.client is not None:
+            self.close(self.client)
+        if self.server is not None:
+            self.close(self.server)
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()

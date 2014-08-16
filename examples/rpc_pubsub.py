@@ -1,9 +1,8 @@
 import asyncio
-import aiozmq
 import aiozmq.rpc
 
 
-class ServerHandler(aiozmq.rpc.AttrHandler):
+class Handler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
     def remote_func(self, a: int, b: int):
@@ -12,21 +11,20 @@ class ServerHandler(aiozmq.rpc.AttrHandler):
 
 @asyncio.coroutine
 def go():
-    server = yield from aiozmq.rpc.serve_pubsub(
-        ServerHandler(), subscribe='topic', bind='tcp://*:*')
-    server_addr = next(iter(server.transport.bindings()))
+    subscriber = yield from aiozmq.rpc.serve_pubsub(
+        Handler(), subscribe='topic', bind='tcp://*:*')
+    subscriber_addr = next(iter(subscriber.transport.bindings()))
 
-    client = yield from aiozmq.rpc.connect_pubsub(
-        connect=server_addr)
+    publisher = yield from aiozmq.rpc.connect_pubsub(
+        connect=subscriber_addr)
 
-    yield from client.publish('topic').remote_func(1, 2)
+    yield from publisher.publish('topic').remote_func(1, 2)
 
-    server.close()
-    client.close()
+    subscriber.close()
+    publisher.close()
 
 
 def main():
-    asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
     asyncio.get_event_loop().run_until_complete(go())
     print("DONE")
 

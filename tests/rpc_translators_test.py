@@ -50,6 +50,7 @@ class RpcTranslatorsTests(unittest.TestCase):
             self.close(self.server)
         self.loop.close()
         asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
 
     def close(self, server):
         server.close()

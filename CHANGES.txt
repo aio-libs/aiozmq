@@ -1,6 +1,18 @@
 CHANGES
 -------
 
+0.5.0 (XXXX-XX-XX)
+^^^^^^^^^^^^^^^^^^
+
+* Support zmq devices in aiozmq.rpc.serve_rpc()
+
+* Add loopless 0MQ transport
+
+0.4.1 (2014-07-03)
+^^^^^^^^^^^^^^^^^^
+
+* Add exclude_log_exceptions parameter to rpc servers.
+
 0.4.0 (2014-05-28)
 ^^^^^^^^^^^^^^^^^^
 

@@ -10,6 +10,7 @@ import zmq
 import msgpack
 import struct
 
+from aiozmq import create_zmq_connection
 from aiozmq._test_util import find_unused_port, log_hook
 from aiozmq.rpc.log import logger
 
@@ -68,6 +69,10 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         ret.cancel()
         return ret
 
+    @aiozmq.rpc.method
+    def exc2(self, arg):
+        raise ValueError("bad arg", arg)
+
 
 class Protocol(aiozmq.ZmqProtocol):
 
@@ -102,7 +107,7 @@ class Protocol(aiozmq.ZmqProtocol):
         self.received.put_nowait(data)
 
 
-class RpcTests(unittest.TestCase):
+class RpcTestsMixin:
 
     @classmethod
     def setUpClass(self):
@@ -115,22 +120,12 @@ class RpcTests(unittest.TestCase):
         root_logger = logging.getLogger()
         root_logger.setLevel(self.log_level)
 
-    def setUp(self):
-        self.loop = aiozmq.ZmqEventLoop()
-        asyncio.set_event_loop(None)
-        self.client = self.server = None
-        self.err_queue = asyncio.Queue(loop=self.loop)
-
-    def tearDown(self):
-        self.loop.close()
-        asyncio.set_event_loop(None)
-
     def close(self, server):
         server.close()
         self.loop.run_until_complete(server.wait_closed())
 
     def make_rpc_pair(self, *, error_table=None, timeout=None,
-                      log_exceptions=False):
+                      log_exceptions=False, exclude_log_exceptions=()):
         @asyncio.coroutine
         def create():
             port = find_unused_port()
@@ -138,7 +133,8 @@ class RpcTests(unittest.TestCase):
                 MyHandler(self.loop),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop,
-                log_exceptions=log_exceptions)
+                log_exceptions=log_exceptions,
+                exclude_log_exceptions=exclude_log_exceptions)
             client = yield from aiozmq.rpc.connect_rpc(
                 connect='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop, error_table=error_table, timeout=timeout)
@@ -269,6 +265,7 @@ class RpcTests(unittest.TestCase):
 
     def test_default_event_loop(self):
         asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
+        self.addCleanup(asyncio.set_event_loop_policy, None)
 
         @asyncio.coroutine
         def create():
@@ -324,16 +321,7 @@ class RpcTests(unittest.TestCase):
                 t1 = time.monotonic()
                 self.assertTrue(0.08 <= t1-t0 <= 0.12, t1-t0)
 
-                ret = yield from self.err_queue.get()
-                # TODO: make a test for several unexpected calls
-                # This test should to do that but result is a bit suspicious
-                # self.assertEqual(1, self.err_queue.qsize())
-                self.assertEqual(logging.DEBUG, ret.levelno)
-                self.assertEqual("The future for request #%08x "
-                                 "has been cancelled, "
-                                 "skip the received result.", ret.msg)
-                self.assertEqual((1,), ret.args)
-                self.assertIsNone(ret.exc_info)
+                # NB: dont check log records, they are not necessary present
 
         self.loop.run_until_complete(communicate())
 
@@ -379,9 +367,10 @@ class RpcTests(unittest.TestCase):
                 MyHandler(self.loop),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
-            tr, pr = yield from self.loop.create_zmq_connection(
+            tr, pr = yield from create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                connect='tcp://127.0.0.1:{}'.format(port))
+                connect='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
 
             yield from asyncio.sleep(0.001, loop=self.loop)
 
@@ -408,9 +397,10 @@ class RpcTests(unittest.TestCase):
                 MyHandler(self.loop),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
-            tr, pr = yield from self.loop.create_zmq_connection(
+            tr, pr = yield from create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                connect='tcp://127.0.0.1:{}'.format(port))
+                connect='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
 
             with log_hook('aiozmq.rpc', self.err_queue):
                 tr.write([struct.pack('=HHLd', 1, 2, 3, 4),
@@ -437,9 +427,10 @@ class RpcTests(unittest.TestCase):
                 MyHandler(self.loop),
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
-            tr, pr = yield from self.loop.create_zmq_connection(
+            tr, pr = yield from create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                connect='tcp://127.0.0.1:{}'.format(port))
+                connect='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
 
             with log_hook('aiozmq.rpc', self.err_queue):
                 tr.write([struct.pack('=HHLd', 1, 2, 3, 4),
@@ -462,9 +453,10 @@ class RpcTests(unittest.TestCase):
         @asyncio.coroutine
         def go():
             port = find_unused_port()
-            tr, pr = yield from self.loop.create_zmq_connection(
+            tr, pr = yield from create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                bind='tcp://127.0.0.1:{}'.format(port))
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
 
             client = yield from aiozmq.rpc.connect_rpc(
                 connect='tcp://127.0.0.1:{}'.format(port),
@@ -490,9 +482,10 @@ class RpcTests(unittest.TestCase):
         def go():
             port = find_unused_port()
 
-            tr, pr = yield from self.loop.create_zmq_connection(
+            tr, pr = yield from create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                bind='tcp://127.0.0.1:{}'.format(port))
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
 
             client = yield from aiozmq.rpc.connect_rpc(
                 connect='tcp://127.0.0.1:{}'.format(port),
@@ -519,9 +512,10 @@ class RpcTests(unittest.TestCase):
         @asyncio.coroutine
         def go():
             port = find_unused_port()
-            tr, pr = yield from self.loop.create_zmq_connection(
+            tr, pr = yield from create_zmq_connection(
                 lambda: Protocol(self.loop), zmq.DEALER,
-                bind='tcp://127.0.0.1:{}'.format(port))
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
 
             client = yield from aiozmq.rpc.connect_rpc(
                 connect='tcp://127.0.0.1:{}'.format(port),
@@ -626,6 +620,55 @@ class RpcTests(unittest.TestCase):
             del waiter
 
         self.loop.run_until_complete(communicate())
+
+    @mock.patch('aiozmq.rpc.base.logger')
+    def test_exclude_log_exceptions(self, m_log):
+        client, server = self.make_rpc_pair(
+            log_exceptions=True,
+            exclude_log_exceptions=(MyException,))
+
+        @asyncio.coroutine
+        def communicate():
+            with self.assertRaises(RuntimeError):
+                yield from client.call.exc(1)
+            m_log.exception.assert_called_with(
+                'An exception from method %r call occurred.\n'
+                'args = %s\nkwargs = %s\n',
+                mock.ANY, mock.ANY, mock.ANY)
+            m_log.reset_mock()
+            with self.assertRaises(ValueError):
+                yield from client.call.exc2()
+            self.assertFalse(m_log.called)
+
+        self.loop.run_until_complete(communicate())
+
+
+class LoopRpcTests(unittest.TestCase, RpcTestsMixin):
+
+    def setUp(self):
+        self.loop = aiozmq.ZmqEventLoop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+        self.err_queue = asyncio.Queue(loop=self.loop)
+
+    def tearDown(self):
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
+
+
+class LoopLessRpcTests(unittest.TestCase, RpcTestsMixin):
+
+    def setUp(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+        self.err_queue = asyncio.Queue(loop=self.loop)
+
+    def tearDown(self):
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
 
 
 class AbstractHandlerTests(unittest.TestCase):

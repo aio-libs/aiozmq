@@ -12,6 +12,9 @@ class PolicyTests(unittest.TestCase):
     def setUp(self):
         self.policy = aiozmq.ZmqEventLoopPolicy()
 
+    def tearDown(self):
+        asyncio.set_event_loop_policy(None)
+
     def test_get_event_loop(self):
         self.assertIsNone(self.policy._local._loop)
 
@@ -21,6 +24,7 @@ class PolicyTests(unittest.TestCase):
         self.assertIs(self.policy._local._loop, loop)
         self.assertIs(loop, self.policy.get_event_loop())
         loop.close()
+        # zmq.Context.instance().term()
 
     def test_get_event_loop_calls_set_event_loop(self):
         with mock.patch.object(
