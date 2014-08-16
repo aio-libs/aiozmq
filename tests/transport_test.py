@@ -250,15 +250,15 @@ class TransportTests(unittest.TestCase):
 
     def test_write_none(self):
         self.tr.write(None)
-        self.assertFalse(self.sock.called)
+        self.assertFalse(self.sock.send_multipart.called)
 
     def test_write_noniterable(self):
         self.assertRaises(TypeError, self.tr.write, 1)
-        self.assertFalse(self.sock.called)
+        self.assertFalse(self.sock.send_multipart.called)
 
     def test_write_nonbytes(self):
         self.assertRaises(TypeError, self.tr.write, [1])
-        self.assertFalse(self.sock.called)
+        self.assertFalse(self.sock.send_multipart.called)
 
     def test_abort_with_empty_buffer(self):
         self.tr.abort()
@@ -467,3 +467,8 @@ class TransportTests(unittest.TestCase):
         self.tr.close()
         self.tr.resume_reading()
         self.assertNotIn(self.sock, self.loop.readers)
+
+    def test_conn_lost_on_force_close(self):
+        self.tr._conn_lost = 1
+        self.tr._force_close(RuntimeError())
+        self.assertEqual(1, self.tr._conn_lost)

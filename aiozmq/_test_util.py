@@ -222,6 +222,7 @@ def bind_port(sock, host=HOST):  # pragma: no cover
 
 
 def check_errno(errno, exc):
+    assert isinstance(exc, OSError), exc
     assert exc.errno == errno, (exc, errno)
 
 
