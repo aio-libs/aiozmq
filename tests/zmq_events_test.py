@@ -699,6 +699,25 @@ class BaseZmqEventLoopTestsMixin:
             tr1.resume_reading()
         tr1.close()
 
+    @mock.patch('aiozmq.core.logger')
+    def test_warning_on_connection_lost(self, m_log):
+        port = find_unused_port()
+        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
+            lambda: Protocol(self.loop),
+            zmq.REQ,
+            bind='tcp://127.0.0.1:{}'.format(port),
+            loop=self.loop))
+        self.assertEqual(0, tr1._conn_lost)
+        tr1.LOG_THRESHOLD_FOR_CONNLOST_WRITES = 2
+        tr1.close()
+        self.assertEqual(1, tr1._conn_lost)
+        tr1.write([b'data'])
+        self.assertEqual(2, tr1._conn_lost)
+        self.assertFalse(m_log.warning.called)
+        tr1.write([b'data'])
+        self.assertEqual(3, tr1._conn_lost)
+        m_log.warning.assert_called_with('write to closed ZMQ socket.')
+
 
 class ZmqEventLoopTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
 
