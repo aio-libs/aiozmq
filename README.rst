@@ -44,14 +44,14 @@ Simple client-server RPC example
 
     asyncio.get_event_loop().run_until_complete(go())
 
+
 Requirements
 ------------
 
-* Python_ 3.3+
+* Python 3.3+
 * pyzmq_ 13.1+
 * asyncio_ or Python 3.4+
 * optional submodule ``aiozmq.rpc`` requires msgpack-python_ 0.4+
-
 
 
 License
@@ -59,7 +59,6 @@ License
 
 aiozmq is offered under the BSD license.
 
-.. _python: https://www.python.org/downloads/
 .. _pyzmq: https://pypi.python.org/pypi/pyzmq
 .. _asyncio: https://pypi.python.org/pypi/asyncio
 .. _msgpack-python: https://pypi.python.org/pypi/msgpack-python
