@@ -5,7 +5,7 @@ import aiozmq.rpc
 import logging
 
 from unittest import mock
-from aiozmq._test_util import find_unused_port, log_hook
+from aiozmq._test_util import find_unused_port, log_hook, RpcMixin
 
 
 class MyHandler(aiozmq.rpc.AttrHandler):
@@ -46,7 +46,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         yield from f
 
 
-class PubSubTestsMixin:
+class PubSubTestsMixin(RpcMixin):
 
     @classmethod
     def setUpClass(self):
@@ -58,10 +58,6 @@ class PubSubTestsMixin:
     def tearDownClass(self):
         logger = logging.getLogger()
         logger.setLevel(self.log_level)
-
-    def close(self, service):
-        service.close()
-        self.loop.run_until_complete(service.wait_closed())
 
     def make_pubsub_pair(self, subscribe=None, log_exceptions=False,
                          exclude_log_exceptions=()):
@@ -282,6 +278,7 @@ class PubSubTestsMixin:
                 loop=None)
             return client, server
 
+        self.addCleanup(self.loop.close)
         self.loop = loop = asyncio.get_event_loop()
         self.client, self.server = loop.run_until_complete(create())
 
@@ -389,10 +386,8 @@ class LoopPubSubTests(unittest.TestCase, PubSubTestsMixin):
         self.err_queue = asyncio.Queue(loop=self.loop)
 
     def tearDown(self):
-        if self.client:
-            self.close(self.client)
-        if self.server:
-            self.close(self.server)
+        self.close_service(self.client)
+        self.close_service(self.server)
         self.loop.close()
         asyncio.set_event_loop(None)
         # zmq.Context.instance().term()
@@ -408,10 +403,8 @@ class LooplessPubSubTests(unittest.TestCase, PubSubTestsMixin):
         self.err_queue = asyncio.Queue(loop=self.loop)
 
     def tearDown(self):
-        if self.client:
-            self.close(self.client)
-        if self.server:
-            self.close(self.server)
+        self.close_service(self.client)
+        self.close_service(self.server)
         self.loop.close()
         asyncio.set_event_loop(None)
         # zmq.Context.instance().term()
