@@ -60,7 +60,9 @@ class PubSubTestsMixin(RpcMixin):
         logger.setLevel(self.log_level)
 
     def make_pubsub_pair(self, subscribe=None, log_exceptions=False,
-                         exclude_log_exceptions=()):
+                         exclude_log_exceptions=(), use_loop=True):
+
+        loop = self.loop if use_loop else asyncio.get_event_loop()
 
         @asyncio.coroutine
         def create():
@@ -68,13 +70,13 @@ class PubSubTestsMixin(RpcMixin):
                 MyHandler(self.queue, self.loop),
                 subscribe=subscribe,
                 bind='tcp://127.0.0.1:*',
-                loop=self.loop,
+                loop=self.loop if use_loop else None,
                 log_exceptions=log_exceptions,
                 exclude_log_exceptions=exclude_log_exceptions)
             connect = next(iter(server.transport.bindings()))
             client = yield from aiozmq.rpc.connect_pubsub(
                 connect=connect,
-                loop=self.loop)
+                loop=self.loop if use_loop else None)
 
             if subscribe is not None:
                 if not isinstance(subscribe, (str, bytes)):
@@ -85,7 +87,7 @@ class PubSubTestsMixin(RpcMixin):
                     try:
                         yield from client.publish(pub).start()
                         ret = yield from asyncio.wait_for(self.queue.get(),
-                                                          0.1, loop=self.loop)
+                                                          0.1, loop=loop)
                         self.assertEqual(ret, 'started')
                         break
                     except asyncio.TimeoutError:
@@ -94,7 +96,7 @@ class PubSubTestsMixin(RpcMixin):
                     self.fail('Cannot connect')
             return client, server
 
-        self.client, self.server = self.loop.run_until_complete(create())
+        self.client, self.server = loop.run_until_complete(create())
         return self.client, self.server
 
     def test_coro(self):
@@ -260,44 +262,21 @@ class PubSubTestsMixin(RpcMixin):
         self.loop.run_until_complete(go())
 
     def test_default_event_loop(self):
-        port = find_unused_port()
-
         asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
         self.addCleanup(asyncio.set_event_loop_policy, None)
-        queue = asyncio.Queue()
-
-        @asyncio.coroutine
-        def create():
-            server = yield from aiozmq.rpc.serve_pubsub(
-                MyHandler(queue, self.loop),
-                bind='tcp://127.0.0.1:{}'.format(port),
-                loop=None,
-                subscribe='topic')
-            client = yield from aiozmq.rpc.connect_pubsub(
-                connect='tcp://127.0.0.1:{}'.format(port),
-                loop=None)
-            return client, server
 
         self.addCleanup(self.loop.close)
         self.loop = loop = asyncio.get_event_loop()
-        self.client, self.server = loop.run_until_complete(create())
+        # should use the default loop, not closed one
+        self.queue = asyncio.Queue()
+        self.client, self.server = self.make_pubsub_pair(use_loop=False,
+                                                         subscribe='topic')
 
         @asyncio.coroutine
         def communicate():
-            for i in range(3):
-                try:
-                    yield from self.client.publish('topic').start()
-                    ret = yield from asyncio.wait_for(queue.get(),
-                                                      0.1)
-                    self.assertEqual(ret, 'started')
-                    break
-                except asyncio.TimeoutError:
-                    self.assertLess(i, 3)
-            else:
-                self.fail('Cannot connect')
 
             yield from self.client.publish('topic').func(1)
-            ret = yield from queue.get()
+            ret = yield from self.queue.get()
             self.assertEqual(2, ret)
 
         loop.run_until_complete(communicate())
