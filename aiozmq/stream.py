@@ -52,6 +52,7 @@ class ZmqStreamProtocol(ZmqProtocol):
         self._stream = stream
         self._paused = False
         self._drain_waiter = None
+        self._connection_lost = False
 
     def pause_writing(self):
         assert not self._paused
@@ -70,6 +71,7 @@ class ZmqStreamProtocol(ZmqProtocol):
         self._stream.set_transport(transport)
 
     def connection_lost(self, exc):
+        self._connection_lost = True
         if exc is None:
             self._stream.feed_closing()
         else:
@@ -88,6 +90,8 @@ class ZmqStreamProtocol(ZmqProtocol):
             waiter.set_exception(exc)
 
     def _make_drain_waiter(self):
+        if self._connection_lost:
+            raise ConnectionResetError('Connection lost')
         if not self._paused:
             return ()
         waiter = self._drain_waiter
@@ -151,8 +155,8 @@ class ZmqStream:
         completed, which will happen when the buffer is (partially)
         drained and the protocol is resumed.
         """
-        if self._stream is not None and self._stream._exception is not None:
-            raise self._stream._exception
+        if self._exception is not None:
+            raise self._exception
         return self._protocol._make_drain_waiter()
 
     def exception(self):

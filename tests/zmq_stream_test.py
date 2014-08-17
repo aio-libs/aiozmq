@@ -4,7 +4,7 @@ import aiozmq
 import zmq
 from unittest import mock
 
-from aiozmq._test_util import find_unused_port
+from aiozmq._test_util import check_errno, find_unused_port
 
 
 class ZmqStreamTests(unittest.TestCase):
@@ -369,5 +369,25 @@ class ZmqStreamTests(unittest.TestCase):
 
             self.assertEqual(4, s1._queue_len)
             self.assertEqual((4, [b'data']), s1._queue.popleft())
+
+        self.loop.run_until_complete(go())
+
+    def test_error_on_read(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_stream(
+                zmq.REP,
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+
+            s1.write([b'data'])
+            with self.assertRaises(OSError) as ctx:
+                yield from s1.read()
+            check_errno(zmq.EFSM, ctx.exception)
+            with self.assertRaises(OSError) as ctx2:
+                yield from s1.drain()
+            check_errno(zmq.EFSM, ctx2.exception)
 
         self.loop.run_until_complete(go())
