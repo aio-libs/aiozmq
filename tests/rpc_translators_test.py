@@ -4,7 +4,7 @@ import aiozmq
 import aiozmq.rpc
 import msgpack
 
-from aiozmq._test_util import find_unused_port
+from aiozmq._test_util import find_unused_port, RpcMixin
 
 
 class Point:
@@ -36,25 +36,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         yield
 
 
-class RpcTranslatorsTests(unittest.TestCase):
-
-    def setUp(self):
-        self.loop = aiozmq.ZmqEventLoop()
-        asyncio.set_event_loop(None)
-        self.client = self.server = None
-
-    def tearDown(self):
-        if self.client is not None:
-            self.close(self.client)
-        if self.server is not None:
-            self.close(self.server)
-        self.loop.close()
-        asyncio.set_event_loop(None)
-        # zmq.Context.instance().term()
-
-    def close(self, server):
-        server.close()
-        self.loop.run_until_complete(server.wait_closed())
+class RpcTranslatorsMixin(RpcMixin):
 
     def make_rpc_pair(self, *, error_table=None):
         port = find_unused_port()
@@ -86,3 +68,33 @@ class RpcTranslatorsTests(unittest.TestCase):
             self.assertEqual(ret, pt)
 
         self.loop.run_until_complete(communicate())
+
+
+class LoopRpcTranslatorsTests(unittest.TestCase, RpcTranslatorsMixin):
+
+    def setUp(self):
+        self.loop = aiozmq.ZmqEventLoop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+
+    def tearDown(self):
+        self.close_service(self.client)
+        self.close_service(self.server)
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
+
+
+class LooplessRpcTranslatorsTests(unittest.TestCase, RpcTranslatorsMixin):
+
+    def setUp(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(None)
+        self.client = self.server = None
+
+    def tearDown(self):
+        self.close_service(self.client)
+        self.close_service(self.server)
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        # zmq.Context.instance().term()
