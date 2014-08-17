@@ -437,6 +437,85 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.tr.subscriptions())
         self.sock.setsockopt.assert_called_with(zmq.UNSUBSCRIBE, b'val')
 
+    def test__set_write_buffer_limits1(self):
+        self.tr.set_write_buffer_limits(low=10)
+        self.assertEqual(10, self.tr._low_water)
+        self.assertEqual(40, self.tr._high_water)
+
+    def test__set_write_buffer_limits2(self):
+        self.tr.set_write_buffer_limits(high=60)
+        self.assertEqual(15, self.tr._low_water)
+        self.assertEqual(60, self.tr._high_water)
+
+    def test__set_write_buffer_limits3(self):
+        with self.assertRaises(ValueError):
+            self.tr.set_write_buffer_limits(high=1, low=2)
+
+    def test__maybe_pause_protocol(self):
+        self.tr.set_write_buffer_limits(high=10)
+        self.assertFalse(self.tr._protocol_paused)
+        self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
+        self.tr.write([b'binary data'])
+        self.assertEqual(11, self.tr._buffer_size)
+        self.assertTrue(self.tr._protocol_paused)
+        self.proto.pause_writing.assert_called_with()
+
+    def test__maybe_pause_protocol_err(self):
+        self.tr.set_write_buffer_limits(high=10)
+        ceh = self.loop.call_exception_handler = mock.Mock()
+        self.assertFalse(self.tr._protocol_paused)
+        self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
+        self.proto.pause_writing.side_effect = exc = RuntimeError()
+        self.tr.write([b'binary data'])
+        self.assertEqual(11, self.tr._buffer_size)
+        self.assertTrue(self.tr._protocol_paused)
+        ceh.assert_called_with(
+            {'transport': self.tr,
+             'exception': exc,
+             'protocol': self.proto,
+             'message': 'protocol.pause_writing() failed'})
+
+    def test__maybe_pause_protocol_already_paused(self):
+        self.tr.set_write_buffer_limits(high=10)
+        self.tr._protocol_paused = True
+        self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
+        self.tr.write([b'binary data'])
+        self.assertEqual(11, self.tr._buffer_size)
+        self.assertTrue(self.tr._protocol_paused)
+        self.assertFalse(self.proto.pause_writing.called)
+
+    def test__maybe_resume_protocol(self):
+        self.tr.set_write_buffer_limits()
+        self.tr._protocol_paused = True
+        self.tr._buffer_size = 11
+        self.tr._buffer.append((11, [b'binary data']))
+
+        self.tr._write_ready()
+        self.assertEqual(0, self.tr._buffer_size)
+        self.assertFalse(self.tr._buffer)
+
+        self.assertFalse(self.tr._protocol_paused)
+        self.proto.resume_writing.assert_called_with()
+
+    def test__maybe_resume_protocol_err(self):
+        self.tr.set_write_buffer_limits()
+        self.tr._protocol_paused = True
+        self.tr._buffer_size = 11
+        self.tr._buffer.append((11, [b'binary data']))
+        ceh = self.loop.call_exception_handler = mock.Mock()
+        self.proto.resume_writing.side_effect = exc = RuntimeError()
+
+        self.tr._write_ready()
+        self.assertEqual(0, self.tr._buffer_size)
+        self.assertFalse(self.tr._buffer)
+
+        self.assertFalse(self.tr._protocol_paused)
+        ceh.assert_called_with(
+            {'transport': self.tr,
+             'exception': exc,
+             'protocol': self.proto,
+             'message': 'protocol.resume_writing() failed'})
+
     def test_pause_resume_reading(self):
         self.assertFalse(self.tr._paused)
         self.loop.assert_reader(self.sock, self.tr._read_ready)
