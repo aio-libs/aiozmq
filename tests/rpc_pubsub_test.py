@@ -375,7 +375,7 @@ class LoopPubSubTests(unittest.TestCase, PubSubTestsMixin):
 class LooplessPubSubTests(unittest.TestCase, PubSubTestsMixin):
 
     def setUp(self):
-        self.loop = aiozmq.ZmqEventLoop()
+        self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(None)
         self.client = self.server = None
         self.queue = asyncio.Queue(loop=self.loop)
