@@ -499,3 +499,25 @@ class LooplessTransportTests(unittest.TestCase):
         self.tr._do_read()
         self.assertTrue(self.tr._closing)
         self.assertFalse(self.proto.msg_received.called)
+
+    def test_pending_write_without_buffer(self):
+        self.assertFalse(self.tr._buffer)
+        self.tr._do_write()
+        self.assertFalse(self.sock.send_multipart.called)
+
+    def test_incomplete_pending_write(self):
+        self.tr._buffer = [(4, [b'data'])]
+        self.tr._buffer_size = 4
+        self.sock.send_multipart.side_effect = zmq.Again(errno.EAGAIN)
+        self.tr._do_write()
+        self.assertEqual(4, self.tr._buffer_size)
+        self.assertEqual([(4, [b'data'])], self.tr._buffer)
+
+    def test_bad_pending_write(self):
+        self.tr._buffer = [(4, [b'data'])]
+        self.tr._buffer_size = 4
+        self.sock.send_multipart.side_effect = zmq.ZMQError(errno.ENOTSOCK)
+        self.tr._do_write()
+        self.assertEqual(0, self.tr._buffer_size)
+        self.assertEqual([], self.tr._buffer)
+        self.assertTrue(self.tr._closing)
