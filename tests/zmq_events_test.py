@@ -7,7 +7,7 @@ from unittest import mock
 
 import aiozmq
 import zmq
-from aiozmq._test_util import find_unused_port
+from aiozmq._test_util import check_errno, find_unused_port
 
 
 class Protocol(aiozmq.ZmqProtocol):
@@ -704,6 +704,58 @@ class BaseZmqEventLoopTestsMixin:
             tr1.resume_reading()
         tr1.close()
 
+    @mock.patch('aiozmq.core.logger')
+    def test_warning_on_connection_lost(self, m_log):
+        port = find_unused_port()
+        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
+            lambda: Protocol(self.loop),
+            zmq.REQ,
+            bind='tcp://127.0.0.1:{}'.format(port),
+            loop=self.loop))
+        self.assertEqual(0, tr1._conn_lost)
+        tr1.LOG_THRESHOLD_FOR_CONNLOST_WRITES = 2
+        tr1.close()
+        self.assertEqual(1, tr1._conn_lost)
+        tr1.write([b'data'])
+        self.assertEqual(2, tr1._conn_lost)
+        self.assertFalse(m_log.warning.called)
+        tr1.write([b'data'])
+        self.assertEqual(3, tr1._conn_lost)
+        m_log.warning.assert_called_with('write to closed ZMQ socket.')
+
+    def test_close_on_error(self):
+        port = find_unused_port()
+        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
+            lambda: Protocol(self.loop),
+            zmq.REQ,
+            bind='tcp://127.0.0.1:{}'.format(port),
+            loop=self.loop))
+        handler = mock.Mock()
+        self.loop.set_exception_handler(handler)
+        sock = tr1.get_extra_info('zmq_socket')
+        sock.close()
+        tr1.write([b'data'])
+        self.assertTrue(tr1._closing)
+        handler.assert_called_with(
+            self.loop,
+            {'protocol': pr1,
+             'exception': mock.ANY,
+             'transport': tr1,
+             'message': 'Fatal write error on zmq socket transport'})
+        check_errno(88, handler.call_args[0][1]['exception'])
+
+    def test_double_force_close(self):
+        port = find_unused_port()
+        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
+            lambda: Protocol(self.loop),
+            zmq.REQ,
+            bind='tcp://127.0.0.1:{}'.format(port),
+            loop=self.loop))
+        err = RuntimeError('error')
+        tr1._fatal_error(err)
+        tr1._fatal_error(err)
+        self.loop.run_until_complete(pr1.closed)
+
 
 class ZmqEventLoopTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
 
@@ -727,3 +779,18 @@ class ZmqLooplessTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
         self.loop.close()
         asyncio.set_event_loop(None)
         # zmq.Context.instance().term()
+
+    def test_unsubscribe_from_fd_on_error(self):
+        port = find_unused_port()
+        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
+            lambda: Protocol(self.loop),
+            zmq.REQ,
+            bind='tcp://127.0.0.1:{}'.format(port),
+            loop=self.loop))
+        handler = mock.Mock()
+        self.loop.set_exception_handler(handler)
+        sock = tr1.get_extra_info('zmq_socket')
+        sock.close()
+        tr1.write([b'data'])
+        with self.assertRaises(KeyError):
+            self.loop._selector.get_key(tr1._fd)

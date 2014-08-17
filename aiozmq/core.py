@@ -655,8 +655,7 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
         if self._buffer:
             self._buffer.clear()
             self._buffer_size = 0
-        if not self._closing:
-            self._closing = True
+        self._closing = True
         self._loop.remove_reader(self._fd)
         self._conn_lost += 1
         self._loop.call_soon(self._call_connection_lost, exc)
