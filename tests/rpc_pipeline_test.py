@@ -6,7 +6,7 @@ import logging
 
 from unittest import mock
 from asyncio.test_utils import run_briefly
-from aiozmq._test_util import log_hook
+from aiozmq._test_util import log_hook, RpcMixin
 
 
 class MyHandler(aiozmq.rpc.AttrHandler):
@@ -46,7 +46,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         yield from f
 
 
-class PipelineTestsMixin:
+class PipelineTestsMixin(RpcMixin):
 
     @classmethod
     def setUpClass(self):
@@ -59,28 +59,24 @@ class PipelineTestsMixin:
         logger = logging.getLogger()
         logger.setLevel(self.log_level)
 
-    def close(self, service):
-        service.close()
-        self.loop.run_until_complete(service.wait_closed())
-
     def exception_handler(self, loop, context):
         self.err_queue.put_nowait(context)
 
     def make_pipeline_pair(self, log_exceptions=False,
-                           exclude_log_exceptions=()):
+                           exclude_log_exceptions=(), use_loop=True):
 
         @asyncio.coroutine
         def create():
             server = yield from aiozmq.rpc.serve_pipeline(
                 MyHandler(self.queue, self.loop),
                 bind='tcp://127.0.0.1:*',
-                loop=self.loop,
+                loop=self.loop if use_loop else None,
                 log_exceptions=log_exceptions,
                 exclude_log_exceptions=exclude_log_exceptions)
             connect = next(iter(server.transport.bindings()))
             client = yield from aiozmq.rpc.connect_pipeline(
                 connect=connect,
-                loop=self.loop)
+                loop=self.loop if use_loop else None)
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())
@@ -166,20 +162,11 @@ class PipelineTestsMixin:
         asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
         self.addCleanup(asyncio.set_event_loop_policy, None)
 
-        @asyncio.coroutine
-        def create():
-            server = yield from aiozmq.rpc.serve_pipeline(
-                MyHandler(self.queue, self.loop),
-                bind='tcp://127.0.0.1:*',
-                loop=None)
-            connect = next(iter(server.transport.bindings()))
-            client = yield from aiozmq.rpc.connect_pipeline(
-                connect=connect,
-                loop=None)
-            return client, server
-
-        self.loop = loop = asyncio.get_event_loop()
-        self.client, self.server = loop.run_until_complete(create())
+        self.addCleanup(self.loop.close)
+        self.loop = asyncio.get_event_loop()
+        self.client, self.server = self.make_pipeline_pair(use_loop=False)
+        self.assertIs(self.client._loop, self.loop)
+        self.assertIs(self.server._loop, self.loop)
 
     def test_warning_if_remote_return_not_None(self):
         client, server = self.make_pipeline_pair()
@@ -243,10 +230,8 @@ class LoopPipelineTests(unittest.TestCase, PipelineTestsMixin):
         self.loop.set_exception_handler(self.exception_handler)
 
     def tearDown(self):
-        if self.client is not None:
-            self.close(self.client)
-        if self.server is not None:
-            self.close(self.server)
+        self.close_service(self.client)
+        self.close_service(self.server)
         self.loop.close()
         asyncio.set_event_loop(None)
         # zmq.Context.instance().term()
@@ -263,10 +248,8 @@ class LooplessPipelineTests(unittest.TestCase, PipelineTestsMixin):
         self.loop.set_exception_handler(self.exception_handler)
 
     def tearDown(self):
-        if self.client is not None:
-            self.close(self.client)
-        if self.server is not None:
-            self.close(self.server)
+        self.close_service(self.client)
+        self.close_service(self.server)
         self.loop.close()
         asyncio.set_event_loop(None)
         # zmq.Context.instance().term()
