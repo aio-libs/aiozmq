@@ -739,6 +739,18 @@ class BaseZmqEventLoopTestsMixin:
              'message': 'Fatal write error on zmq socket transport'})
         check_errno(88, handler.call_args[0][1]['exception'])
 
+    def test_double_force_close(self):
+        port = find_unused_port()
+        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
+            lambda: Protocol(self.loop),
+            zmq.REQ,
+            bind='tcp://127.0.0.1:{}'.format(port),
+            loop=self.loop))
+        err = RuntimeError('error')
+        tr1._fatal_error(err)
+        tr1._fatal_error(err)
+        self.loop.run_until_complete(pr1.closed)
+
 
 class ZmqEventLoopTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
 

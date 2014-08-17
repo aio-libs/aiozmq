@@ -8,7 +8,7 @@ import errno
 from collections import deque
 
 from asyncio import test_utils
-from aiozmq.core import _ZmqTransportImpl
+from aiozmq.core import _ZmqTransportImpl, _ZmqLooplessTransportImpl
 from unittest import mock
 
 from aiozmq._test_util import check_errno
@@ -472,3 +472,30 @@ class TransportTests(unittest.TestCase):
         self.tr._conn_lost = 1
         self.tr._force_close(RuntimeError())
         self.assertEqual(1, self.tr._conn_lost)
+
+
+class LooplessTransportTests(unittest.TestCase):
+
+    def setUp(self):
+        self.loop = test_utils.TestLoop()
+        self.sock = mock.Mock()
+        self.sock.closed = False
+        self.waiter = asyncio.Future(loop=self.loop)
+        self.proto = test_utils.make_test_protocol(aiozmq.ZmqProtocol)
+        self.tr = _ZmqLooplessTransportImpl(self.loop,
+                                            zmq.SUB, self.sock, self.proto,
+                                            self.waiter)
+        self.exc_handler = mock.Mock()
+        self.loop.set_exception_handler(self.exc_handler)
+
+    def test_incomplete_read(self):
+        self.sock.recv_multipart.side_effect = zmq.Again(errno.EAGAIN)
+        self.tr._do_read()
+        self.assertFalse(self.tr._closing)
+        self.assertFalse(self.proto.msg_received.called)
+
+    def test_bad_read(self):
+        self.sock.recv_multipart.side_effect = zmq.ZMQError(errno.ENOTSOCK)
+        self.tr._do_read()
+        self.assertTrue(self.tr._closing)
+        self.assertFalse(self.proto.msg_received.called)
