@@ -244,3 +244,13 @@ def log_hook(logname, queue):
     logger.addHandler(handler)
     yield
     logger.removeHandler(handler)
+
+
+class RpcMixin:
+
+    def close_service(self, service):
+        if service is None:
+            return
+        loop = service._loop
+        service.close()
+        loop.run_until_complete(service.wait_closed())
