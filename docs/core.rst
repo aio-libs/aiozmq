@@ -62,6 +62,8 @@ create_zmq_connection
      where transport supports :class:`~ZmqTransport` interface.
    :rtype: :class:`tuple`
 
+   .. versionadded:: 0.5
+
 
 ZmqTransport
 ---------------------
