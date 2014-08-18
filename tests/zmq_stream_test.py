@@ -392,3 +392,17 @@ class ZmqStreamTests(unittest.TestCase):
             check_errno(zmq.EFSM, ctx2.exception)
 
         self.loop.run_until_complete(go())
+
+    def test_drain(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_stream(
+                zmq.REP,
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+            ret = s1.drain()
+            self.assertEqual((), ret)
+
+        self.loop.run_until_complete(go())
