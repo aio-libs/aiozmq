@@ -381,7 +381,8 @@ class ZmqStreamTests(unittest.TestCase):
                 zmq.REP,
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
-
+            handler = mock.Mock()
+            self.loop.set_exception_handler(handler)
             s1.write([b'data'])
             with self.assertRaises(OSError) as ctx:
                 yield from s1.read()
