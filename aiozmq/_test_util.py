@@ -242,5 +242,20 @@ def log_hook(logname, queue):
     logger = logging.getLogger(logname)
     handler = TestHandler(queue)
     logger.addHandler(handler)
-    yield
-    logger.removeHandler(handler)
+    level = logger.level
+    logger.setLevel(logging.DEBUG)
+    try:
+        yield
+    finally:
+        logger.removeHandler(handler)
+        logger.level = level
+
+
+class RpcMixin:
+
+    def close_service(self, service):
+        if service is None:
+            return
+        loop = service._loop
+        service.close()
+        loop.run_until_complete(service.wait_closed())

@@ -751,6 +751,8 @@ class BaseZmqEventLoopTestsMixin:
             zmq.REQ,
             bind='tcp://127.0.0.1:{}'.format(port),
             loop=self.loop))
+        handler = mock.Mock()
+        self.loop.set_exception_handler(handler)
         err = RuntimeError('error')
         tr1._fatal_error(err)
         tr1._fatal_error(err)
