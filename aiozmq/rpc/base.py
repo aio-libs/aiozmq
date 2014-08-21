@@ -105,7 +105,6 @@ class Service(asyncio.AbstractServer):
     def __init__(self, loop, proto):
         self._loop = loop
         self._proto = proto
-        self._closing = False
 
     @property
     def transport(self):
@@ -120,9 +119,9 @@ class Service(asyncio.AbstractServer):
         return transport
 
     def close(self):
-        if self._closing:
+        if self._proto.closing:
             return
-        self._closing = True
+        self._proto.closing = True
         if self._proto.transport is None:
             return
         self._proto.transport.close()
@@ -144,6 +143,7 @@ class _BaseProtocol(interface.ZmqProtocol):
         self.done_waiters = []
         self.packer = _Packer(translation_table=translation_table)
         self.pending_waiters = set()
+        self.closing = False
 
     def connection_made(self, transport):
         self.transport = transport
