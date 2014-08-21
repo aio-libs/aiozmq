@@ -204,7 +204,7 @@ class _ServerProtocol(_BaseServerProtocol):
         else:
             if asyncio.iscoroutinefunction(func):
                 fut = asyncio.async(func(*args, **kwargs), loop=self.loop)
-                self.pending_waiters.add(fut)
+                self.add_pending(fut)
             else:
                 fut = asyncio.Future(loop=self.loop)
                 try:
@@ -215,7 +215,7 @@ class _ServerProtocol(_BaseServerProtocol):
                                       name=name, args=args, kwargs=kwargs))
 
     def process_call_result(self, fut, *, name, args, kwargs):
-        self.pending_waiters.discard(fut)
+        self.discard_pending(fut)
         try:
             if fut.result() is not None:
                 logger.warning("PubSub handler %r returned not None", name)

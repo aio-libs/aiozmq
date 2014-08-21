@@ -143,6 +143,7 @@ class _BaseProtocol(interface.ZmqProtocol):
         self.transport = None
         self.done_waiters = []
         self.packer = _Packer(translation_table=translation_table)
+        self.pending_waiters = set()
 
     def connection_made(self, transport):
         self.transport = transport
@@ -151,6 +152,12 @@ class _BaseProtocol(interface.ZmqProtocol):
         self.transport = None
         for waiter in self.done_waiters:
             waiter.set_result(None)
+
+    def add_pending(self, fut):
+        self.pending_waiters.add(fut)
+
+    def discard_pending(self, fut):
+        self.pending_waiters.discard(fut)
 
 
 class _BaseServerProtocol(_BaseProtocol):
@@ -164,7 +171,6 @@ class _BaseServerProtocol(_BaseProtocol):
         self.handler = handler
         self.log_exceptions = log_exceptions
         self.exclude_log_exceptions = exclude_log_exceptions
-        self.pending_waiters = set()
 
     def connection_lost(self, exc):
         super().connection_lost(exc)
