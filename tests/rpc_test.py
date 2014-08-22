@@ -73,6 +73,12 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     def exc2(self, arg):
         raise ValueError("bad arg", arg)
 
+    @aiozmq.rpc.method
+    @asyncio.coroutine
+    def not_so_fast(self):
+        yield from asyncio.sleep(0.001, loop=self.loop)
+        return 'ok'
+
 
 class Protocol(aiozmq.ZmqProtocol):
 
@@ -628,6 +634,19 @@ class RpcTestsMixin(RpcMixin):
             self.assertFalse(m_log.called)
 
         self.loop.run_until_complete(communicate())
+
+    def xtest_wait_closed(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def go():
+            f1 = client.call.not_so_fast()
+            client.close()
+            client.wait_closed()
+            r = yield from f1
+            self.assertEqual('ok', r)
+
+        self.loop.run_until_complete(go())
 
 
 class LoopRpcTests(unittest.TestCase, RpcTestsMixin):

@@ -251,7 +251,7 @@ class _ServerProtocol(_BaseServerProtocol):
         else:
             if asyncio.iscoroutinefunction(func):
                 fut = asyncio.async(func(*args, **kwargs), loop=self.loop)
-                self.pending_waiters.add(fut)
+                self.add_pending(fut)
             else:
                 fut = asyncio.Future(loop=self.loop)
                 try:
@@ -268,7 +268,7 @@ class _ServerProtocol(_BaseServerProtocol):
     def process_call_result(self, fut, *, req_id, pre, name,
                             args, kwargs,
                             return_annotation=None):
-        self.pending_waiters.discard(fut)
+        self.discard_pending(fut)
         self.try_log(fut, name, args, kwargs)
         if self.transport is None:
             return
