@@ -314,6 +314,9 @@ class _BaseTransport(ZmqTransport):
         self._high_water = high
         self._low_water = low
 
+    def get_write_buffer_limits(self):
+        return (self._low_water, self._high_water)
+
     def set_write_buffer_limits(self, high=None, low=None):
         self._set_write_buffer_limits(high=high, low=low)
         self._maybe_pause_protocol()

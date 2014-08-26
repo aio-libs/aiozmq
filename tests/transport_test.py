@@ -451,6 +451,10 @@ class TransportTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.tr.set_write_buffer_limits(high=1, low=2)
 
+    def test_get_write_buffer_limits(self):
+        self.tr.set_write_buffer_limits(low=128, high=256)
+        self.assertEqual((128, 256), self.tr.get_write_buffer_limits())
+
     def test__maybe_pause_protocol(self):
         self.tr.set_write_buffer_limits(high=10)
         self.assertFalse(self.tr._protocol_paused)
