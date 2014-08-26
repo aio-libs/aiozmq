@@ -1,6 +1,12 @@
 CHANGES
 -------
 
+0.6.0 (XXXX-XX-XX)
+^^^^^^^^^^^^^^^^^^
+
+* Add transport.get_write_buffer_limits() method
+
+
 0.5.0 (XXXX-XX-XX)
 ^^^^^^^^^^^^^^^^^^
 
