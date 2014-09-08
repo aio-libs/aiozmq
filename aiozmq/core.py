@@ -197,6 +197,18 @@ class _BaseTransport(ZmqTransport):
 
     _TCP_RE = re.compile('^tcp://(.+):(\d+)|\*$')
     LOG_THRESHOLD_FOR_CONNLOST_WRITES = 5
+    ZMQ_TYPES = {zmq.PUB: 'PUB',
+                 zmq.SUB: 'SUB',
+                 zmq.REP: 'REP',
+                 zmq.REQ: 'REQ',
+                 zmq.PUSH: 'PUSH',
+                 zmq.PULL: 'PULL',
+                 zmq.DEALER: 'DEALER',
+                 zmq.ROUTER: 'ROUTER',
+                 zmq.XPUB: 'XPUB',
+                 zmq.XSUB: 'XSUB',
+                 zmq.PAIR: 'PAIR',
+                 zmq.STREAM: 'STREAM'}
 
     def __init__(self, loop, zmq_type, zmq_sock, protocol):
         super().__init__(None)
@@ -215,6 +227,26 @@ class _BaseTransport(ZmqTransport):
         self._subscriptions = set()
         self._paused = False
         self._conn_lost = 0
+
+    def __repr__(self):
+        info = ['ZmqTransport',
+                'sock={}'.format(self._zmq_sock),
+                'type={}'.format(self.ZMQ_TYPES[self._zmq_type])]
+        try:
+            events = self._zmq_sock.getsockopt(zmq.EVENTS)
+            if events & zmq.POLLIN:
+                info.append('read=polling')
+            else:
+                info.append('read=idle')
+            if events & zmq.POLLOUT:
+                state = 'polling'
+            else:
+                state = 'idle'
+            bufsize = self.get_write_buffer_size()
+            info.append('write=<{}, bufsize={}>'.format(state, bufsize))
+        except zmq.ZMQError:
+            pass
+        return '<{}>'.format(' '.join(info))
 
     def write(self, data):
         if not data:
