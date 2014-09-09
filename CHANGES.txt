@@ -6,6 +6,10 @@ CHANGES
 
 * Add transport.get_write_buffer_limits() method
 
+* Add __repr__ to transport
+
+* Add zmq_type to tr.get_extra_info()
+
 
 0.5.0 (XXXX-XX-XX)
 ^^^^^^^^^^^^^^^^^^
