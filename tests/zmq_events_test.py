@@ -769,11 +769,27 @@ class BaseZmqEventLoopTestsMixin:
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
             yield from pr.connected
-            r = repr(tr)
             self.assertRegex(
-                r,
+                repr(tr),
                 '<ZmqTransport sock=<[^>]+> '
                 'type=DEALER read=idle write=<idle, bufsize=0>>')
+            tr.close()
+
+        self.loop.run_until_complete(coro())
+
+    def test_extra_zmq_type(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def coro():
+            tr, pr = yield from aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+            yield from pr.connected
+
+            self.assertEqual(zmq.DEALER, tr.get_extra_info('zmq_type'))
             tr.close()
 
         self.loop.run_until_complete(coro())

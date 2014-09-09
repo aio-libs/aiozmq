@@ -215,6 +215,7 @@ class _BaseTransport(ZmqTransport):
         self._protocol_paused = False
         self._set_write_buffer_limits()
         self._extra['zmq_socket'] = zmq_sock
+        self._extra['zmq_type'] = zmq_type
         self._loop = loop
         self._zmq_sock = zmq_sock
         self._zmq_type = zmq_type
