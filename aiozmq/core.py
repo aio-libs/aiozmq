@@ -567,8 +567,10 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
 
         self._loop.call_soon(self._protocol.connection_made, self)
         self._loop.call_soon(waiter.set_result, None)
+        self._soon_call = None
 
     def _read_ready(self):
+        self._soon_call = None
         if self._zmq_sock is None:
             return
         events = self._zmq_sock.getsockopt(zmq.EVENTS)
@@ -589,7 +591,7 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
             else:
                 schedule = False
             if schedule:
-                self._loop.call_soon(self._read_ready)
+                self._soon_call = self._loop.call_soon(self._read_ready)
 
     def _do_read(self):
         try:
@@ -628,6 +630,9 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
             if not self._buffer and self._closing:
                 self._loop.remove_reader(self._fd)
                 self._call_connection_lost(None)
+            else:
+                if self._soon_call is None:
+                    self._soon_call = self._loop.call_soon(self._read_ready)
 
     def _do_send(self, data):
         try:
@@ -665,6 +670,12 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
 
     def _do_resume_reading(self):
         self._read_ready()
+
+    def _call_connection_lost(self, exc):
+        try:
+            super()._call_connection_lost(exc)
+        finally:
+            self._soon_call = None
 
 
 class ZmqEventLoopPolicy(asyncio.AbstractEventLoopPolicy):
