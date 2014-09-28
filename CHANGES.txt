@@ -11,7 +11,12 @@ CHANGES
 * Add zmq_type to tr.get_extra_info()
 
 
-0.5.0 (XXXX-XX-XX)
+0.5.1 (2014-09-27)
+^^^^^^^^^^^^^^^^^^
+
+* Fix loopless transport implementation.
+
+0.5.0 (2014-08-23)
 ^^^^^^^^^^^^^^^^^^
 
 * Support zmq devices in aiozmq.rpc.serve_rpc()
