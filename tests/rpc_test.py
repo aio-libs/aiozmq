@@ -635,6 +635,30 @@ class RpcTestsMixin(RpcMixin):
 
         self.loop.run_until_complete(communicate())
 
+    def test_client_restore_after_timeout(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            with log_hook('aiozmq.rpc', self.err_queue):
+
+                ret = yield from client.call.func(1)
+                self.assertEqual(2, ret)
+
+                with self.assertRaises(asyncio.TimeoutError):
+                    yield from client.with_timeout(0.1).call.slow_call()
+
+                ret = yield from client.call.func(2)
+                self.assertEqual(3, ret)
+
+                with self.assertRaises(asyncio.TimeoutError):
+                    yield from client.with_timeout(0.1).call.slow_call()
+
+                ret = yield from client.call.func(3)
+                self.assertEqual(4, ret)
+
+        self.loop.run_until_complete(communicate())
+
     def xtest_wait_closed(self):
         client, server = self.make_rpc_pair()
 
