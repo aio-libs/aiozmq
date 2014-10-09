@@ -651,6 +651,9 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
                 self._zmq_sock.send_multipart(self._buffer[0][1], zmq.DONTWAIT)
             except zmq.ZMQError as exc:
                 if exc.errno in (errno.EAGAIN, errno.EINTR):
+                    if self._soon_call is None:
+                        self._soon_call = self._loop.call_soon(
+                            self._read_ready)
                     return
                 else:
                     raise OSError(exc.errno, exc.strerror) from exc
@@ -673,11 +676,15 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
     def _do_send(self, data):
         try:
             self._zmq_sock.send_multipart(data, zmq.DONTWAIT)
+            if self._soon_call is None:
+                self._soon_call = self._loop.call_soon(self._read_ready)
             return True
         except zmq.ZMQError as exc:
             if exc.errno not in (errno.EAGAIN, errno.EINTR):
                 raise OSError(exc.errno, exc.strerror) from exc
             else:
+                if self._soon_call is None:
+                    self._soon_call = self._loop.call_soon(self._read_ready)
                 return False
 
     def close(self):

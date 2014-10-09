@@ -10,6 +10,10 @@ CHANGES
 
 * Add zmq_type to tr.get_extra_info()
 
+0.5.2 (2014-10-09)
+^^^^^^^^^^^^^^^^^^
+
+* Poll events after sending zmq message for eventless transport
 
 0.5.1 (2014-09-27)
 ^^^^^^^^^^^^^^^^^^
