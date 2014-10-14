@@ -210,9 +210,10 @@ class PubSubTestsMixin(RpcMixin):
 
                 ret = yield from self.err_queue.get()
                 self.assertEqual(logging.ERROR, ret.levelno)
-                self.assertEqual('An exception from method %r call occurred.\n'
-                                 'args = %s\nkwargs = %s\n', ret.msg)
-                self.assertEqual(('func_raise_error', '()', '{}'),
+                self.assertEqual(
+                    'An exception %r from method %r call occurred.\n'
+                    'args = %s\nkwargs = %s\n', ret.msg)
+                self.assertEqual((mock.ANY, 'func_raise_error', '()', '{}'),
                                  ret.args)
                 self.assertIsNotNone(ret.exc_info)
 

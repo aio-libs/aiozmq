@@ -241,11 +241,12 @@ class _BaseServerProtocol(_BaseProtocol):
                     if isinstance(exc, e):
                         return
                 logger.exception(textwrap.dedent("""\
-                    An exception from method %r call occurred.
+                    An exception %r from method %r call occurred.
                     args = %s
                     kwargs = %s
                     """),
-                    name, pprint.pformat(args), pprint.pformat(kwargs))  # noqa
+                    exc, name,
+                    pprint.pformat(args), pprint.pformat(kwargs))  # noqa
 
     def add_pending(self, coro):
         fut = asyncio.async(coro, loop=self.loop)

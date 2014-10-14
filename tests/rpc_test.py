@@ -558,11 +558,11 @@ class RpcTestsMixin(RpcMixin):
 
                 ret = yield from self.err_queue.get()
                 self.assertEqual(logging.ERROR, ret.levelno)
-                self.assertEqual('An exception from method %r '
+                self.assertEqual('An exception %r from method %r '
                                  'call occurred.\n'
                                  'args = %s\nkwargs = %s\n', ret.msg)
                 self.assertEqual(
-                    ('exc', '(1,)', '{}'),
+                    (mock.ANY, 'exc', '(1,)', '{}'),
                     ret.args)
                 self.assertIsNotNone(ret.exc_info)
 
@@ -625,9 +625,9 @@ class RpcTestsMixin(RpcMixin):
             with self.assertRaises(RuntimeError):
                 yield from client.call.exc(1)
             m_log.exception.assert_called_with(
-                'An exception from method %r call occurred.\n'
+                'An exception %r from method %r call occurred.\n'
                 'args = %s\nkwargs = %s\n',
-                mock.ANY, mock.ANY, mock.ANY)
+                mock.ANY, mock.ANY, mock.ANY, mock.ANY)
             m_log.reset_mock()
             with self.assertRaises(ValueError):
                 yield from client.call.exc2()
