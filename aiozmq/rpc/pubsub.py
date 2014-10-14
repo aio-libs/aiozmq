@@ -203,8 +203,7 @@ class _ServerProtocol(_BaseServerProtocol):
             fut.set_exception(exc)
         else:
             if asyncio.iscoroutinefunction(func):
-                fut = asyncio.async(func(*args, **kwargs), loop=self.loop)
-                self.add_pending(fut)
+                fut = self.add_pending(func(*args, **kwargs))
             else:
                 fut = asyncio.Future(loop=self.loop)
                 try:
