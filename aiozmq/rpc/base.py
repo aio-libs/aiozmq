@@ -153,26 +153,21 @@ class _BaseProtocol(interface.ZmqProtocol):
         for waiter in self.done_waiters:
             waiter.set_result(None)
 
-    def add_pending(self, coro):
-        fut = asyncio.async(coro, loop=self.loop)
-        self.pending_waiters.add(fut)
-        return fut
-
-    def discard_pending(self, fut):
-        self.pending_waiters.discard(fut)
-
 
 class _BaseServerProtocol(_BaseProtocol):
 
     def __init__(self, loop, handler, *,
-                 translation_table=None, log_exceptions=False,
-                 exclude_log_exceptions=()):
+                 translation_table=None,
+                 log_exceptions=False,
+                 exclude_log_exceptions=(),
+                 timeout=None):
         super().__init__(loop, translation_table=translation_table)
         if not isinstance(handler, AbstractHandler):
             raise TypeError('handler must implement AbstractHandler')
         self.handler = handler
         self.log_exceptions = log_exceptions
         self.exclude_log_exceptions = exclude_log_exceptions
+        self.timeout = timeout
 
     def connection_lost(self, exc):
         super().connection_lost(exc)
@@ -251,3 +246,11 @@ class _BaseServerProtocol(_BaseProtocol):
                     kwargs = %s
                     """),
                     name, pprint.pformat(args), pprint.pformat(kwargs))  # noqa
+
+    def add_pending(self, coro):
+        fut = asyncio.async(coro, loop=self.loop)
+        self.pending_waiters.add(fut)
+        return fut
+
+    def discard_pending(self, fut):
+        self.pending_waiters.discard(fut)
