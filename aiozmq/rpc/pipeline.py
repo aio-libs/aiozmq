@@ -48,7 +48,7 @@ def connect_pipeline(*, connect=None, bind=None, loop=None,
 @asyncio.coroutine
 def serve_pipeline(handler, *, connect=None, bind=None, loop=None,
                    translation_table=None, log_exceptions=False,
-                   exclude_log_exceptions=()):
+                   exclude_log_exceptions=(), timeout=None):
     """A coroutine that creates and connects/binds Pipeline server instance.
 
     Usually for this function you need to use *bind* parameter, but
@@ -64,6 +64,8 @@ def serve_pipeline(handler, *, connect=None, bind=None, loop=None,
     exclude_log_exceptions -- sequence of exception classes than should not
                               be logged.
 
+    timeout -- timeout for performing handling of async server calls.
+
     loop -- an optional parameter to point ZmqEventLoop instance.  If
             loop is None then default event loop will be given by
             asyncio.get_event_loop() call.
@@ -78,7 +80,8 @@ def serve_pipeline(handler, *, connect=None, bind=None, loop=None,
         lambda: _ServerProtocol(loop, handler,
                                 translation_table=translation_table,
                                 log_exceptions=log_exceptions,
-                                exclude_log_exceptions=exclude_log_exceptions),
+                                exclude_log_exceptions=exclude_log_exceptions,
+                                timeout=timeout),
         zmq.PULL, connect=connect, bind=bind, loop=loop)
     return Service(loop, proto)
 

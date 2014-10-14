@@ -75,7 +75,7 @@ def connect_rpc(*, connect=None, bind=None, loop=None,
 @asyncio.coroutine
 def serve_rpc(handler, *, connect=None, bind=None, loop=None,
               translation_table=None, log_exceptions=False,
-              exclude_log_exceptions=()):
+              exclude_log_exceptions=(), timeout=None):
     """A coroutine that creates and connects/binds RPC server instance.
 
     Usually for this function you need to use *bind* parameter, but
@@ -91,6 +91,8 @@ def serve_rpc(handler, *, connect=None, bind=None, loop=None,
 
     translation_table -- an optional table for custom value translators.
 
+    timeout -- timeout for performing handling of async server calls.
+
     loop -- an optional parameter to point ZmqEventLoop instance.  If
             loop is None then default event loop will be given by
             asyncio.get_event_loop call.
@@ -105,7 +107,8 @@ def serve_rpc(handler, *, connect=None, bind=None, loop=None,
         lambda: _ServerProtocol(loop, handler,
                                 translation_table=translation_table,
                                 log_exceptions=log_exceptions,
-                                exclude_log_exceptions=exclude_log_exceptions),
+                                exclude_log_exceptions=exclude_log_exceptions,
+                                timeout=timeout),
         zmq.ROUTER, connect=connect, bind=bind, loop=loop)
     return Service(loop, proto)
 
