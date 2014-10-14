@@ -4,6 +4,8 @@ CHANGES
 0.6.0 (XXXX-XX-XX)
 ^^^^^^^^^^^^^^^^^^
 
+* Add repr(exception) to rpc server call logs if any
+
 * Add transport.get_write_buffer_limits() method
 
 * Add __repr__ to transport
