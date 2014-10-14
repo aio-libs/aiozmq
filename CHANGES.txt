@@ -4,6 +4,8 @@ CHANGES
 0.6.0 (XXXX-XX-XX)
 ^^^^^^^^^^^^^^^^^^
 
+* Process asyncio specific exceptions as builtins.
+
 * Add repr(exception) to rpc server call logs if any
 
 * Add transport.get_write_buffer_limits() method
