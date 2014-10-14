@@ -219,12 +219,15 @@ class _ServerProtocol(_BaseServerProtocol):
     RESP_SUFFIX = struct.Struct('=Ld?')
 
     def __init__(self, loop, handler, *,
-                 translation_table=None, log_exceptions=False,
-                 exclude_log_exceptions=()):
+                 translation_table=None,
+                 log_exceptions=False,
+                 exclude_log_exceptions=(),
+                 timeout=None):
         super().__init__(loop, handler,
                          translation_table=translation_table,
                          log_exceptions=log_exceptions,
-                         exclude_log_exceptions=exclude_log_exceptions)
+                         exclude_log_exceptions=exclude_log_exceptions,
+                         timeout=timeout)
         self.prefix = self.RESP_PREFIX.pack(os.getpid() % 0x10000,
                                             random.randrange(0x10000))
 
