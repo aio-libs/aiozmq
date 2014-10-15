@@ -290,6 +290,6 @@ class _ServerProtocol(_BaseServerProtocol):
             prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
                                                          time.time(), True)
             exc_type = exc.__class__
-            exc_info = (exc_type.__module__ + '.' + exc_type.__name__,
+            exc_info = (exc_type.__module__ + '.' + exc_type.__qualname__,
                         exc.args, repr(exc))
             self.transport.write(pre + [prefix, self.packer.packb(exc_info)])
