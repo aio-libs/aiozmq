@@ -468,7 +468,7 @@ Installing ZeroMQ event loop
    :mod:`aiozmq` works with any *asyncio* event loop, it doesn't
    require dedicated event loop policy.
 
-To use :term:`ZeroMQ` layer you **should** install proper event loop
+To use :term:`ZeroMQ` layer you **may** install proper event loop
 first.
 
 The recommended way is to setup *global event loop policy*::
