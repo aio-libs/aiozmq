@@ -19,7 +19,7 @@ script:
   - python -c "import zmq; print('ZMQ version:', zmq.zmq_version())"
   - pep8 aiozmq examples tests benchmarks
   - pyflakes .
-  - runtests.py --coverage -v
+  - python runtests.py --coverage -v
 
 after_success:
   - coveralls
