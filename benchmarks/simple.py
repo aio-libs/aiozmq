@@ -372,7 +372,7 @@ def print_and_plot_results(count, results, verbose, plot_file_name):
             loc='upper left', framealpha=0.5)
         ax.get_xaxis().set_visible(False)
         plt.ylabel('Requets per Second', fontsize=16)
-        plt.savefig(plot_file_name, dpi=96)
+        plt.savefig(plot_file_name, dpi=300)
         print("Plot is saved to {}".format(plot_file_name))
         if verbose:
             plt.show()
