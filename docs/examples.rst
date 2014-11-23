@@ -5,6 +5,13 @@ There is a list of examples from `aiozmq/examples <https://github.com/aio-libs/a
 
 Every example is a correct tiny python program.
 
+.. _aiozmq-examples-core-dealer-router:
+
+Simple DEALER-ROUTER pair implemented on Core level
+---------------------------------------------------
+
+.. literalinclude:: ../examples/core_dealer_router.py
+
 .. _aiozmq-examples-rpc-rpc:
 
 Remote Procedure Call
