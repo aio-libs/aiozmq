@@ -73,6 +73,12 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     def exc2(self, arg):
         raise ValueError("bad arg", arg)
 
+    @aiozmq.rpc.method
+    @asyncio.coroutine
+    def not_so_fast(self):
+        yield from asyncio.sleep(0.001, loop=self.loop)
+        return 'ok'
+
 
 class Protocol(aiozmq.ZmqProtocol):
 
@@ -552,11 +558,11 @@ class RpcTestsMixin(RpcMixin):
 
                 ret = yield from self.err_queue.get()
                 self.assertEqual(logging.ERROR, ret.levelno)
-                self.assertEqual('An exception from method %r '
+                self.assertEqual('An exception %r from method %r '
                                  'call occurred.\n'
                                  'args = %s\nkwargs = %s\n', ret.msg)
                 self.assertEqual(
-                    ('exc', '(1,)', '{}'),
+                    (mock.ANY, 'exc', '(1,)', '{}'),
                     ret.args)
                 self.assertIsNotNone(ret.exc_info)
 
@@ -619,15 +625,78 @@ class RpcTestsMixin(RpcMixin):
             with self.assertRaises(RuntimeError):
                 yield from client.call.exc(1)
             m_log.exception.assert_called_with(
-                'An exception from method %r call occurred.\n'
+                'An exception %r from method %r call occurred.\n'
                 'args = %s\nkwargs = %s\n',
-                mock.ANY, mock.ANY, mock.ANY)
+                mock.ANY, mock.ANY, mock.ANY, mock.ANY)
             m_log.reset_mock()
             with self.assertRaises(ValueError):
                 yield from client.call.exc2()
             self.assertFalse(m_log.called)
 
         self.loop.run_until_complete(communicate())
+
+    def test_client_restore_after_timeout(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            with log_hook('aiozmq.rpc', self.err_queue):
+
+                ret = yield from client.call.func(1)
+                self.assertEqual(2, ret)
+
+                with self.assertRaises(asyncio.TimeoutError):
+                    yield from client.with_timeout(0.1).call.slow_call()
+
+                ret = yield from client.call.func(2)
+                self.assertEqual(3, ret)
+
+                with self.assertRaises(asyncio.TimeoutError):
+                    yield from client.with_timeout(0.1).call.slow_call()
+
+                ret = yield from client.call.func(3)
+                self.assertEqual(4, ret)
+
+        self.loop.run_until_complete(communicate())
+
+    def test_client_restore_after_timeout2(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def communicate():
+            with log_hook('aiozmq.rpc', self.err_queue):
+
+                ret = yield from client.call.func(1)
+                self.assertEqual(2, ret)
+
+                with self.assertRaises(asyncio.TimeoutError):
+                    yield from client.with_timeout(0.1).call.slow_call()
+
+                yield from asyncio.sleep(0.3, loop=self.loop)
+
+                ret = yield from client.call.func(2)
+                self.assertEqual(3, ret)
+
+                with self.assertRaises(asyncio.TimeoutError):
+                    yield from client.with_timeout(0.1).call.slow_call()
+
+                ret = yield from client.call.func(3)
+                self.assertEqual(4, ret)
+
+        self.loop.run_until_complete(communicate())
+
+    def xtest_wait_closed(self):
+        client, server = self.make_rpc_pair()
+
+        @asyncio.coroutine
+        def go():
+            f1 = client.call.not_so_fast()
+            client.close()
+            client.wait_closed()
+            r = yield from f1
+            self.assertEqual('ok', r)
+
+        self.loop.run_until_complete(go())
 
 
 class LoopRpcTests(unittest.TestCase, RpcTestsMixin):

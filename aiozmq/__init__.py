@@ -18,7 +18,7 @@ __all__ = ('ZmqSelector', 'ZmqEventLoop', 'ZmqEventLoopPolicy',
            'create_zmq_connection',
            'version_info', 'version')
 
-__version__ = '0.5.0a'
+__version__ = '0.5.3'
 
 version = __version__ + ' , Python ' + sys.version
 
@@ -35,7 +35,7 @@ def _parse_version(ver):
         major = int(match.group('major'))
         minor = int(match.group('minor'))
         micro = int(match.group('micro'))
-        levels = {'rc': 'candidate',
+        levels = {'c': 'candidate',
                   'a': 'alpha',
                   'b': 'beta',
                   None: 'final'}

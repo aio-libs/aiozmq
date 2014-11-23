@@ -104,7 +104,6 @@ class Service(asyncio.AbstractServer):
     def __init__(self, loop, proto):
         self._loop = loop
         self._proto = proto
-        self._closing = False
 
     @property
     def transport(self):
@@ -119,9 +118,9 @@ class Service(asyncio.AbstractServer):
         return transport
 
     def close(self):
-        if self._closing:
+        if self._proto.closing:
             return
-        self._closing = True
+        self._proto.closing = True
         if self._proto.transport is None:
             return
         self._proto.transport.close()
@@ -142,6 +141,8 @@ class _BaseProtocol(interface.ZmqProtocol):
         self.transport = None
         self.done_waiters = []
         self.packer = _Packer(translation_table=translation_table)
+        self.pending_waiters = set()
+        self.closing = False
 
     def connection_made(self, transport):
         self.transport = transport
@@ -155,15 +156,17 @@ class _BaseProtocol(interface.ZmqProtocol):
 class _BaseServerProtocol(_BaseProtocol):
 
     def __init__(self, loop, handler, *,
-                 translation_table=None, log_exceptions=False,
-                 exclude_log_exceptions=()):
+                 translation_table=None,
+                 log_exceptions=False,
+                 exclude_log_exceptions=(),
+                 timeout=None):
         super().__init__(loop, translation_table=translation_table)
         if not isinstance(handler, AbstractHandler):
-            raise TypeError('handler must implement AbstractHandler ABC')
+            raise TypeError('handler must implement AbstractHandler')
         self.handler = handler
         self.log_exceptions = log_exceptions
         self.exclude_log_exceptions = exclude_log_exceptions
-        self.pending_waiters = set()
+        self.timeout = timeout
 
     def connection_lost(self, exc):
         super().connection_lost(exc)
@@ -237,8 +240,17 @@ class _BaseServerProtocol(_BaseProtocol):
                     if isinstance(exc, e):
                         return
                 logger.exception(textwrap.dedent("""\
-                    An exception from method %r call occurred.
+                    An exception %r from method %r call occurred.
                     args = %s
                     kwargs = %s
                     """),
-                    name, pprint.pformat(args), pprint.pformat(kwargs))  # noqa
+                    exc, name,
+                    pprint.pformat(args), pprint.pformat(kwargs))  # noqa
+
+    def add_pending(self, coro):
+        fut = asyncio.async(coro, loop=self.loop)
+        self.pending_waiters.add(fut)
+        return fut
+
+    def discard_pending(self, fut):
+        self.pending_waiters.discard(fut)

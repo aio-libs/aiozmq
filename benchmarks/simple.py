@@ -154,25 +154,26 @@ class ZmqDealerProtocol(aiozmq.ZmqProtocol):
         self.on_close.set_result(exc)
 
 
-def test_core_aiozmq(count):
-    """core aiozmq"""
+def test_core_aiozmq_loopless(count):
+    """core aiozmq loopless"""
     print('.', end='', flush=True)
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
 
     @asyncio.coroutine
     def go():
-        router_closed = asyncio.Future()
-        dealer_closed = asyncio.Future()
-        router, _ = yield from loop.create_zmq_connection(
+        router_closed = asyncio.Future(loop=loop)
+        dealer_closed = asyncio.Future(loop=loop)
+        router, _ = yield from aiozmq.create_zmq_connection(
             lambda: ZmqRouterProtocol(router_closed),
             zmq.ROUTER,
-            bind='tcp://127.0.0.1:*')
+            bind='tcp://127.0.0.1:*', loop=loop)
 
         addr = next(iter(router.bindings()))
-        dealer, _ = yield from loop.create_zmq_connection(
+        dealer, _ = yield from aiozmq.create_zmq_connection(
             lambda: ZmqDealerProtocol(count, dealer_closed),
             zmq.DEALER,
-            connect=addr)
+            connect=addr,
+            loop=loop)
 
         msg = b'func', b'\0'*200
 
@@ -186,7 +187,47 @@ def test_core_aiozmq(count):
         yield from router_closed
         return t2 - t1
 
-    return loop.run_until_complete(go())
+    ret = loop.run_until_complete(go())
+    loop.close()
+    return ret
+
+
+def test_core_aiozmq_legacy(count):
+    """core aiozmq legacy"""
+    print('.', end='', flush=True)
+    loop = aiozmq.ZmqEventLoop()
+
+    @asyncio.coroutine
+    def go():
+        router_closed = asyncio.Future(loop=loop)
+        dealer_closed = asyncio.Future(loop=loop)
+        router, _ = yield from aiozmq.create_zmq_connection(
+            lambda: ZmqRouterProtocol(router_closed),
+            zmq.ROUTER,
+            bind='tcp://127.0.0.1:*', loop=loop)
+
+        addr = next(iter(router.bindings()))
+        dealer, _ = yield from aiozmq.create_zmq_connection(
+            lambda: ZmqDealerProtocol(count, dealer_closed),
+            zmq.DEALER,
+            connect=addr,
+            loop=loop)
+
+        msg = b'func', b'\0'*200
+
+        gc.collect()
+        t1 = time.monotonic()
+        dealer.write(msg)
+        yield from dealer_closed
+        t2 = time.monotonic()
+        gc.collect()
+        router.close()
+        yield from router_closed
+        return t2 - t1
+
+    ret = loop.run_until_complete(go())
+    loop.close()
+    return ret
 
 
 class Handler(aiozmq.rpc.AttrHandler):
@@ -199,14 +240,16 @@ class Handler(aiozmq.rpc.AttrHandler):
 def test_aiozmq_rpc(count):
     """aiozmq.rpc"""
     print('.', end='', flush=True)
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
 
     @asyncio.coroutine
     def go():
         server = yield from aiozmq.rpc.serve_rpc(Handler(),
-                                                 bind='tcp://127.0.0.1:*')
+                                                 bind='tcp://127.0.0.1:*',
+                                                 loop=loop)
         addr = next(iter(server.transport.bindings()))
-        client = yield from aiozmq.rpc.connect_rpc(connect=addr)
+        client = yield from aiozmq.rpc.connect_rpc(connect=addr,
+                                                   loop=loop)
 
         data = b'\0'*200
 
@@ -222,11 +265,15 @@ def test_aiozmq_rpc(count):
         yield from client.wait_closed()
         return t2 - t1
 
-    return loop.run_until_complete(go())
+    ret = loop.run_until_complete(go())
+    loop.close()
+    return ret
 
 
 avail_tests = {f.__name__: f for f in [test_raw_zmq, test_zmq_with_poller,
-                                       test_aiozmq_rpc, test_core_aiozmq,
+                                       test_aiozmq_rpc,
+                                       test_core_aiozmq_legacy,
+                                       test_core_aiozmq_loopless,
                                        test_zmq_with_thread]}
 
 
@@ -325,7 +372,7 @@ def print_and_plot_results(count, results, verbose, plot_file_name):
             loc='upper left', framealpha=0.5)
         ax.get_xaxis().set_visible(False)
         plt.ylabel('Requets per Second', fontsize=16)
-        plt.savefig(plot_file_name, dpi=96)
+        plt.savefig(plot_file_name, dpi=300)
         print("Plot is saved to {}".format(plot_file_name))
         if verbose:
             plt.show()
@@ -353,5 +400,5 @@ def main(argv):
 
 
 if __name__ == '__main__':
-    asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
+    asyncio.set_event_loop(None)
     sys.exit(main(sys.argv))

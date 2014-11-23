@@ -1,7 +1,30 @@
 CHANGES
 -------
 
-0.5.0 (XXXX-XX-XX)
+0.6.0 (XXXX-XX-XX)
+^^^^^^^^^^^^^^^^^^
+
+* Process asyncio specific exceptions as builtins.
+
+* Add repr(exception) to rpc server call logs if any
+
+* Add transport.get_write_buffer_limits() method
+
+* Add __repr__ to transport
+
+* Add zmq_type to tr.get_extra_info()
+
+0.5.2 (2014-10-09)
+^^^^^^^^^^^^^^^^^^
+
+* Poll events after sending zmq message for eventless transport
+
+0.5.1 (2014-09-27)
+^^^^^^^^^^^^^^^^^^
+
+* Fix loopless transport implementation.
+
+0.5.0 (2014-08-23)
 ^^^^^^^^^^^^^^^^^^
 
 * Support zmq devices in aiozmq.rpc.serve_rpc()

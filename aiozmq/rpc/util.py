@@ -35,6 +35,10 @@ def _fill_error_table():
         val = getattr(builtins, name)
         if isinstance(val, type) and issubclass(val, Exception):
             error_table['builtins.'+name] = val
+    for name in dir(asyncio):
+        val = getattr(asyncio, name)
+        if isinstance(val, type) and issubclass(val, Exception):
+            error_table['asyncio.'+name] = val
     error_table['aiozmq.rpc.base.NotFoundError'] = NotFoundError
     error_table['aiozmq.rpc.base.ParametersError'] = ParametersError
     return error_table

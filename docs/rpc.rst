@@ -123,7 +123,7 @@ The basic usage is::
 
 .. function:: serve_rpc(handler, *, bind=None, connect=None, loop=None, \
                         log_exceptions=False, exclude_log_exceptions=(), \
-                        translation_table=None)
+                        translation_table=None, timeout=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds *RPC*
     server instance.
@@ -155,6 +155,14 @@ The basic usage is::
        an optional table for custom value translators.
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
+
+    :param float timeout:
+       timeout for performing handling of async server calls.
+
+       If call handling takes longer than *timeout* then procedure
+       will be cancelled with :exc:`asyncio.TimeoutError`.
+
+       The value should be a bit longer than timeout for client side.
 
     :return: :class:`Service` instance.
 
@@ -231,7 +239,7 @@ The basic usage is::
 
 .. function:: serve_pipeline(handler, *, connect=None, bind=None, loop=None, \
                              log_exceptions=False, exclude_log_exceptions=(), \
-                             translation_table=None)
+                             translation_table=None, timeout=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds *pipeline*
     server instance.
@@ -263,6 +271,14 @@ The basic usage is::
        an optional table for custom value translators.
 
        .. seealso:: :ref:`aiozmq-rpc-value-translators`
+
+    :param float timeout:
+       timeout for performing handling of async server calls.
+
+       If call handling takes longer than *timeout* then procedure
+       will be cancelled with :exc:`asyncio.TimeoutError`.
+
+       The value should be a bit longer than timeout for client side.
 
     :return: :class:`Service` instance.
 
@@ -338,7 +354,8 @@ The basic usage is::
 
 .. function:: serve_pubsub(handler, *, connect=None, bind=None, subscribe=None,\
                            loop=None, log_exceptions=False, \
-                           exclude_log_exceptions=(), translation_table=None)
+                           exclude_log_exceptions=(), translation_table=None,\
+                           timeout=None)
 
     A :ref:`coroutine<coroutine>` that creates and connects/binds *pubsub*
     server instance.
@@ -377,6 +394,14 @@ The basic usage is::
         an optional table for custom value translators.
 
         .. seealso:: :ref:`aiozmq-rpc-value-translators`
+
+    :param float timeout:
+       timeout for performing handling of async server calls.
+
+       If call handling takes longer than *timeout* then procedure
+       will be cancelled with :exc:`asyncio.TimeoutError`.
+
+       The value should be a bit longer than timeout for client side.
 
     :return: :class:`PubSubService` instance.
     :raise OSError: on system error.

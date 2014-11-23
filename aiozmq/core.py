@@ -197,12 +197,25 @@ class _BaseTransport(ZmqTransport):
 
     _TCP_RE = re.compile('^tcp://(.+):(\d+)|\*$')
     LOG_THRESHOLD_FOR_CONNLOST_WRITES = 5
+    ZMQ_TYPES = {zmq.PUB: 'PUB',
+                 zmq.SUB: 'SUB',
+                 zmq.REP: 'REP',
+                 zmq.REQ: 'REQ',
+                 zmq.PUSH: 'PUSH',
+                 zmq.PULL: 'PULL',
+                 zmq.DEALER: 'DEALER',
+                 zmq.ROUTER: 'ROUTER',
+                 zmq.XPUB: 'XPUB',
+                 zmq.XSUB: 'XSUB',
+                 zmq.PAIR: 'PAIR',
+                 zmq.STREAM: 'STREAM'}
 
     def __init__(self, loop, zmq_type, zmq_sock, protocol):
         super().__init__(None)
         self._protocol_paused = False
         self._set_write_buffer_limits()
         self._extra['zmq_socket'] = zmq_sock
+        self._extra['zmq_type'] = zmq_type
         self._loop = loop
         self._zmq_sock = zmq_sock
         self._zmq_type = zmq_type
@@ -215,6 +228,26 @@ class _BaseTransport(ZmqTransport):
         self._subscriptions = set()
         self._paused = False
         self._conn_lost = 0
+
+    def __repr__(self):
+        info = ['ZmqTransport',
+                'sock={}'.format(self._zmq_sock),
+                'type={}'.format(self.ZMQ_TYPES[self._zmq_type])]
+        try:
+            events = self._zmq_sock.getsockopt(zmq.EVENTS)
+            if events & zmq.POLLIN:
+                info.append('read=polling')
+            else:
+                info.append('read=idle')
+            if events & zmq.POLLOUT:
+                state = 'polling'
+            else:
+                state = 'idle'
+            bufsize = self.get_write_buffer_size()
+            info.append('write=<{}, bufsize={}>'.format(state, bufsize))
+        except zmq.ZMQError:
+            pass
+        return '<{}>'.format(' '.join(info))
 
     def write(self, data):
         if not data:
@@ -313,6 +346,9 @@ class _BaseTransport(ZmqTransport):
                              (high, low))
         self._high_water = high
         self._low_water = low
+
+    def get_write_buffer_limits(self):
+        return (self._low_water, self._high_water)
 
     def set_write_buffer_limits(self, high=None, low=None):
         self._set_write_buffer_limits(high=high, low=low)
@@ -567,8 +603,10 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
 
         self._loop.call_soon(self._protocol.connection_made, self)
         self._loop.call_soon(waiter.set_result, None)
+        self._soon_call = None
 
     def _read_ready(self):
+        self._soon_call = None
         if self._zmq_sock is None:
             return
         events = self._zmq_sock.getsockopt(zmq.EVENTS)
@@ -589,7 +627,7 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
             else:
                 schedule = False
             if schedule:
-                self._loop.call_soon(self._read_ready)
+                self._soon_call = self._loop.call_soon(self._read_ready)
 
     def _do_read(self):
         try:
@@ -613,6 +651,9 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
                 self._zmq_sock.send_multipart(self._buffer[0][1], zmq.DONTWAIT)
             except zmq.ZMQError as exc:
                 if exc.errno in (errno.EAGAIN, errno.EINTR):
+                    if self._soon_call is None:
+                        self._soon_call = self._loop.call_soon(
+                            self._read_ready)
                     return
                 else:
                     raise OSError(exc.errno, exc.strerror) from exc
@@ -628,15 +669,22 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
             if not self._buffer and self._closing:
                 self._loop.remove_reader(self._fd)
                 self._call_connection_lost(None)
+            else:
+                if self._soon_call is None:
+                    self._soon_call = self._loop.call_soon(self._read_ready)
 
     def _do_send(self, data):
         try:
             self._zmq_sock.send_multipart(data, zmq.DONTWAIT)
+            if self._soon_call is None:
+                self._soon_call = self._loop.call_soon(self._read_ready)
             return True
         except zmq.ZMQError as exc:
             if exc.errno not in (errno.EAGAIN, errno.EINTR):
                 raise OSError(exc.errno, exc.strerror) from exc
             else:
+                if self._soon_call is None:
+                    self._soon_call = self._loop.call_soon(self._read_ready)
                 return False
 
     def close(self):
@@ -665,6 +713,12 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
 
     def _do_resume_reading(self):
         self._read_ready()
+
+    def _call_connection_lost(self, exc):
+        try:
+            super()._call_connection_lost(exc)
+        finally:
+            self._soon_call = None
 
 
 class ZmqEventLoopPolicy(asyncio.AbstractEventLoopPolicy):

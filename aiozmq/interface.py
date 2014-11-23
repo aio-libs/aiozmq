@@ -67,6 +67,9 @@ class ZmqTransport(BaseTransport):
         """
         raise NotImplementedError
 
+    def get_write_buffer_limits(self):
+        raise NotImplementedError
+
     def get_write_buffer_size(self):
         """Return the current size of the write buffer."""
         raise NotImplementedError

@@ -70,7 +70,7 @@ def connect_rpc(*, connect=None, bind=None, loop=None,
 @asyncio.coroutine
 def serve_rpc(handler, *, connect=None, bind=None, loop=None,
               translation_table=None, log_exceptions=False,
-              exclude_log_exceptions=()):
+              exclude_log_exceptions=(), timeout=None):
     """A coroutine that creates and connects/binds RPC server instance.
 
     Usually for this function you need to use *bind* parameter, but
@@ -86,6 +86,8 @@ def serve_rpc(handler, *, connect=None, bind=None, loop=None,
 
     translation_table -- an optional table for custom value translators.
 
+    timeout -- timeout for performing handling of async server calls.
+
     loop -- an optional parameter to point ZmqEventLoop instance.  If
             loop is None then default event loop will be given by
             asyncio.get_event_loop call.
@@ -100,7 +102,8 @@ def serve_rpc(handler, *, connect=None, bind=None, loop=None,
         lambda: _ServerProtocol(loop, handler,
                                 translation_table=translation_table,
                                 log_exceptions=log_exceptions,
-                                exclude_log_exceptions=exclude_log_exceptions),
+                                exclude_log_exceptions=exclude_log_exceptions,
+                                timeout=timeout),
         zmq.ROUTER, connect=connect, bind=bind, loop=loop)
     return Service(loop, proto)
 
@@ -214,12 +217,15 @@ class _ServerProtocol(_BaseServerProtocol):
     RESP_SUFFIX = struct.Struct('=Ld?')
 
     def __init__(self, loop, handler, *,
-                 translation_table=None, log_exceptions=False,
-                 exclude_log_exceptions=()):
+                 translation_table=None,
+                 log_exceptions=False,
+                 exclude_log_exceptions=(),
+                 timeout=None):
         super().__init__(loop, handler,
                          translation_table=translation_table,
                          log_exceptions=log_exceptions,
-                         exclude_log_exceptions=exclude_log_exceptions)
+                         exclude_log_exceptions=exclude_log_exceptions,
+                         timeout=timeout)
         self.prefix = self.RESP_PREFIX.pack(os.getpid() % 0x10000,
                                             random.randrange(0x10000))
 
@@ -245,8 +251,7 @@ class _ServerProtocol(_BaseServerProtocol):
             fut.set_exception(exc)
         else:
             if asyncio.iscoroutinefunction(func):
-                fut = asyncio.async(func(*args, **kwargs), loop=self.loop)
-                self.pending_waiters.add(fut)
+                fut = self.add_pending(func(*args, **kwargs))
             else:
                 fut = asyncio.Future(loop=self.loop)
                 try:
@@ -263,7 +268,7 @@ class _ServerProtocol(_BaseServerProtocol):
     def process_call_result(self, fut, *, req_id, pre, name,
                             args, kwargs,
                             return_annotation=None):
-        self.pending_waiters.discard(fut)
+        self.discard_pending(fut)
         self.try_log(fut, name, args, kwargs)
         if self.transport is None:
             return
@@ -280,6 +285,6 @@ class _ServerProtocol(_BaseServerProtocol):
             prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
                                                          time.time(), True)
             exc_type = exc.__class__
-            exc_info = (exc_type.__module__ + '.' + exc_type.__name__,
+            exc_info = (exc_type.__module__ + '.' + exc_type.__qualname__,
                         exc.args, repr(exc))
             self.transport.write(pre + [prefix, self.packer.packb(exc_info)])

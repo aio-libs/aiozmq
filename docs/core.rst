@@ -140,6 +140,16 @@ ZmqTransport
         For list of available options please see:
         http://api.zeromq.org/master:zmq-setsockopt
 
+    .. method:: get_write_buffer_limits()
+
+      Get the *high*- and *low*-water limits for write flow control. Return a
+      tuple ``(low, high)`` where *low* and *high* are positive number of
+      bytes.
+
+      Use :meth:`set_write_buffer_limits` to set the limits.
+
+      .. versionadded:: 0.6
+
    .. method:: set_write_buffer_limits(high=None, low=None)
 
       Set the high- and low-water limits for write flow control.
@@ -167,6 +177,7 @@ ZmqTransport
       sub-optimal as it reduces opportunities for doing I/O and
       computation concurrently.
 
+      Use :meth:`get_write_buffer_limits` to get the limits.
 
    .. method:: get_write_buffer_size()
 
@@ -461,7 +472,7 @@ Installing ZeroMQ event loop
    :mod:`aiozmq` works with any *asyncio* event loop, it doesn't
    require dedicated event loop policy.
 
-To use :term:`ZeroMQ` layer you **should** install proper event loop
+To use :term:`ZeroMQ` layer you **may** install proper event loop
 first.
 
 The recommended way is to setup *global event loop policy*::
