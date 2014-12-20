@@ -140,6 +140,7 @@ class ZmqStream:
     def get_extra_info(self, name, default=None):
         return self._transport.get_extra_info(name, default)
 
+    @asyncio.coroutine
     def drain(self):
         """This method has an unusual return value.
 
