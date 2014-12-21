@@ -1,27 +1,42 @@
 import asyncio
 import aiozmq.rpc
+from itertools import count
 
 
 class Handler(aiozmq.rpc.AttrHandler):
 
+    def __init__(self):
+        self.connected = False
+
     @aiozmq.rpc.method
-    def remote_func(self, a: int, b: int):
-        pass
+    def remote_func(self, step, a: int, b: int):
+        self.connected = True
+        print("HANDLER", step, a, b)
 
 
 @asyncio.coroutine
 def go():
+    handler = Handler()
     subscriber = yield from aiozmq.rpc.serve_pubsub(
-        Handler(), subscribe='topic', bind='tcp://*:*')
+        handler, subscribe='topic', bind='tcp://127.0.0.1:*',
+        log_exceptions=True)
     subscriber_addr = next(iter(subscriber.transport.bindings()))
+    print("SERVE", subscriber_addr)
 
     publisher = yield from aiozmq.rpc.connect_pubsub(
         connect=subscriber_addr)
 
-    yield from publisher.publish('topic').remote_func(1, 2)
+    for step in count(0):
+        yield from publisher.publish('topic').remote_func(step, 1, 2)
+        if handler.connected:
+            break
+        else:
+            yield from asyncio.sleep(0.1)
 
     subscriber.close()
+    yield from subscriber.wait_closed()
     publisher.close()
+    yield from publisher.wait_closed()
 
 
 def main():
