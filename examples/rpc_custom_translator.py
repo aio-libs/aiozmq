@@ -43,7 +43,9 @@ def go():
     assert ret == Point(1, 2)
 
     server.close()
+    yield from server.wait_closed()
     client.close()
+    yield from client.wait_closed()
 
 
 def main():

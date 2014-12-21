@@ -22,7 +22,9 @@ def go():
     assert 3 == ret
 
     server.close()
+    yield from server.wait_closed()
     client.close()
+    yield from client.wait_closed()
 
 
 def main():

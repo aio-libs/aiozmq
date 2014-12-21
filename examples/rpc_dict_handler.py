@@ -32,7 +32,9 @@ def go():
     assert 'b' == ret
 
     server.close()
+    yield from server.wait_closed()
     client.close()
+    yield from client.wait_closed()
 
 
 def main():

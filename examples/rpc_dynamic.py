@@ -37,7 +37,9 @@ def go():
     assert (('a', 'b'), 'val') == ret, ret
 
     server.close()
+    yield from server.wait_closed()
     client.close()
+    yield from client.wait_closed()
 
 
 def main():

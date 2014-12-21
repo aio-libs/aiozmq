@@ -39,7 +39,9 @@ def go():
         print("client.rpc.remote_func('a', 'b'): {}".format(exc))
 
     server.close()
+    yield from server.wait_closed()
     client.close()
+    yield from client.wait_closed()
 
 
 def main():
