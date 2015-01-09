@@ -19,7 +19,7 @@ def go():
     handler = Handler()
     listener = yield from aiozmq.rpc.serve_pipeline(
         handler, bind='tcp://*:*')
-    listener_addr = next(iter(listener.transport.bindings()))
+    listener_addr = list(listener.transport.bindings())[0]
 
     notifier = yield from aiozmq.rpc.connect_pipeline(
         connect=listener_addr)

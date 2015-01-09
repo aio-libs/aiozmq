@@ -47,7 +47,7 @@ def go():
         zmq.ROUTER,
         bind='tcp://127.0.0.1:*')
 
-    addr = next(iter(router.bindings()))
+    addr = list(router.bindings())[0]
     queue = asyncio.Queue()
     dealer, _ = yield from aiozmq.create_zmq_connection(
         lambda: ZmqDealerProtocol(queue, dealer_closed),

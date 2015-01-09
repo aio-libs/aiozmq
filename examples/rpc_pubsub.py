@@ -20,7 +20,7 @@ def go():
     subscriber = yield from aiozmq.rpc.serve_pubsub(
         handler, subscribe='topic', bind='tcp://127.0.0.1:*',
         log_exceptions=True)
-    subscriber_addr = next(iter(subscriber.transport.bindings()))
+    subscriber_addr = list(subscriber.transport.bindings())[0]
     print("SERVE", subscriber_addr)
 
     publisher = yield from aiozmq.rpc.connect_pubsub(
