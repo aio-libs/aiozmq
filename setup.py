@@ -35,7 +35,7 @@ def read_version():
         else:
             raise RuntimeError('Cannot find version in aiozmq/__init__.py')
 
-classifiers=[
+classifiers = [
     'License :: OSI Approved :: BSD License',
     'Intended Audience :: Developers',
     'Programming Language :: Python :: 3',
@@ -66,4 +66,9 @@ setup(name='aiozmq',
       install_requires=install_requires,
       tests_require=tests_require,
       extras_require=extras_require,
+      entry_points={
+          'console_scripts': [
+              'aiozmq-proxy = aiozmq.cli.proxy:main',
+              ],
+          },
       include_package_data = True)
