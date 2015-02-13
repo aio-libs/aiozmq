@@ -49,6 +49,7 @@ class ZmqStreamProtocol(ZmqProtocol):
     """
 
     def __init__(self, stream, loop):
+        self._loop = loop
         self._stream = stream
         self._paused = False
         self._drain_waiter = None

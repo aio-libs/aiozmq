@@ -405,3 +405,92 @@ class ZmqStreamTests(unittest.TestCase):
             yield from s1.drain()
 
         self.loop.run_until_complete(go())
+
+    def test_pause_resume_connection(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_stream(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+
+            self.assertFalse(s1._paused)
+            s1._protocol.pause_writing()
+            self.assertTrue(s1._protocol._paused)
+            s1._protocol.resume_writing()
+            self.assertFalse(s1._protocol._paused)
+            s1.close()
+
+        self.loop.run_until_complete(go())
+
+    def test_resume_paused_with_drain(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_stream(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+
+            self.assertFalse(s1._paused)
+            s1._protocol.pause_writing()
+
+            @asyncio.coroutine
+            def f():
+                yield from s1.drain()
+
+            fut = asyncio.async(f(), loop=self.loop)
+            yield from asyncio.sleep(0.01, loop=self.loop)
+
+            self.assertTrue(s1._protocol._paused)
+            s1._protocol.resume_writing()
+            self.assertFalse(s1._protocol._paused)
+
+            yield from fut
+
+            s1.close()
+
+        self.loop.run_until_complete(go())
+
+    def test_close_paused_connection(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_stream(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+
+            s1._protocol.pause_writing()
+            s1.close()
+
+        self.loop.run_until_complete(go())
+
+    def test_close_paused_with_drain(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_stream(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+
+            self.assertFalse(s1._paused)
+            s1._protocol.pause_writing()
+
+            @asyncio.coroutine
+            def f():
+                yield from s1.drain()
+
+            fut = asyncio.async(f(), loop=self.loop)
+            yield from asyncio.sleep(0.01, loop=self.loop)
+
+            s1.close()
+            yield from fut
+
+        self.loop.run_until_complete(go())
