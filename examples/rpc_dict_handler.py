@@ -20,7 +20,7 @@ handlers_dict = {'a': a,
 def go():
     server = yield from aiozmq.rpc.serve_rpc(
         handlers_dict, bind='tcp://*:*')
-    server_addr = next(iter(server.transport.bindings()))
+    server_addr = list(server.transport.bindings())[0]
 
     client = yield from aiozmq.rpc.connect_rpc(
         connect=server_addr)
@@ -32,7 +32,9 @@ def go():
     assert 'b' == ret
 
     server.close()
+    yield from server.wait_closed()
     client.close()
+    yield from client.wait_closed()
 
 
 def main():

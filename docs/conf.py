@@ -65,7 +65,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'aiozmq'
-copyright = '2014, Nikolay Kim and Andrew Svetlov'
+copyright = '2014, 2015, Nikolay Kim and Andrew Svetlov'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
