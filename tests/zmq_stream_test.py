@@ -402,7 +402,6 @@ class ZmqStreamTests(unittest.TestCase):
                 zmq.REP,
                 bind='tcp://127.0.0.1:{}'.format(port),
                 loop=self.loop)
-            ret = s1.drain()
-            self.assertEqual((), ret)
+            yield from s1.drain()
 
         self.loop.run_until_complete(go())
