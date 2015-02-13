@@ -90,7 +90,7 @@ class ZmqStreamProtocol(ZmqProtocol):
             waiter.set_exception(exc)
 
     @asyncio.coroutine
-    def _make_drain_waiter(self):
+    def _drain_helper(self):
         if self._connection_lost:
             raise ConnectionResetError('Connection lost')
         if not self._paused:
@@ -159,7 +159,7 @@ class ZmqStream:
         """
         if self._exception is not None:
             raise self._exception
-        yield from self._protocol._make_drain_waiter()
+        yield from self._protocol._drain_helper()
 
     def exception(self):
         return self._exception
