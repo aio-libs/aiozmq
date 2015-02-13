@@ -1,5 +1,4 @@
 """Private utility functions."""
-
 from collections import ChainMap
 from datetime import datetime, date, time, timedelta, tzinfo
 from functools import partial

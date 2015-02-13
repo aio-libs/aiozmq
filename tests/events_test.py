@@ -1341,7 +1341,10 @@ class EventLoopTestsMixin:
 
     def xtest_remove_fds_after_closing(self):
         loop = self.create_event_loop()
-        callback = lambda: None
+
+        def callback():
+            pass
+
         r, w = test_utils.socketpair()
         self.addCleanup(r.close)
         self.addCleanup(w.close)
@@ -1353,7 +1356,10 @@ class EventLoopTestsMixin:
 
     def xtest_add_fds_after_closing(self):
         loop = self.create_event_loop()
-        callback = lambda: None
+
+        def callback():
+            pass
+
         r, w = test_utils.socketpair()
         self.addCleanup(r.close)
         self.addCleanup(w.close)

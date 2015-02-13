@@ -1,21 +1,15 @@
 """ZeroMQ RPC"""
-
 import asyncio
 import os
 import random
 import struct
-import time
 import sys
-
-import zmq
-
-
+import time
 from collections import ChainMap
 from functools import partial
 
+import zmq
 from aiozmq import create_zmq_connection
-
-from .log import logger
 
 from .base import (
     GenericError,
@@ -26,6 +20,7 @@ from .base import (
     _BaseProtocol,
     _BaseServerProtocol,
     )
+from .log import logger
 from .util import (
     _MethodCall,
     _fill_error_table,
