@@ -494,3 +494,49 @@ class ZmqStreamTests(unittest.TestCase):
             yield from fut
 
         self.loop.run_until_complete(go())
+
+    def test_drain_after_closing(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_stream(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+
+            s1.close()
+            yield from asyncio.sleep(0, loop=self.loop)
+
+            with self.assertRaises(ConnectionResetError):
+                yield from s1.drain()
+
+        self.loop.run_until_complete(go())
+
+    def test_exception_after_drain(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_stream(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+
+            self.assertFalse(s1._paused)
+            s1._protocol.pause_writing()
+
+            @asyncio.coroutine
+            def f():
+                yield from s1.drain()
+
+            fut = asyncio.async(f(), loop=self.loop)
+            yield from asyncio.sleep(0.01, loop=self.loop)
+
+            exc = RuntimeError("exception")
+            s1._protocol.connection_lost(exc)
+            with self.assertRaises(RuntimeError) as cm:
+                yield from fut
+            self.assertIs(cm.exception, exc)
+
+        self.loop.run_until_complete(go())
