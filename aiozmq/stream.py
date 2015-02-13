@@ -89,16 +89,17 @@ class ZmqStreamProtocol(ZmqProtocol):
         else:
             waiter.set_exception(exc)
 
+    @asyncio.coroutine
     def _make_drain_waiter(self):
         if self._connection_lost:
             raise ConnectionResetError('Connection lost')
         if not self._paused:
-            return ()
+            return
         waiter = self._drain_waiter
         assert waiter is None or waiter.cancelled()
         waiter = asyncio.Future(loop=self._loop)
         self._drain_waiter = waiter
-        return waiter
+        yield from waiter
 
     def msg_received(self, msg):
         self._stream.feed_msg(msg)
@@ -158,7 +159,7 @@ class ZmqStream:
         """
         if self._exception is not None:
             raise self._exception
-        return self._protocol._make_drain_waiter()
+        yield from self._protocol._make_drain_waiter()
 
     def exception(self):
         return self._exception
