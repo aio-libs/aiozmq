@@ -39,7 +39,7 @@ Simple high-level client-server RPC example::
 
     asyncio.get_event_loop().run_until_complete(go())
 
-Low-level RPC example::
+Low-level request-reply example::
 
     import asyncio
     import aiozmq
