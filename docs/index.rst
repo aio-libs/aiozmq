@@ -93,6 +93,36 @@ Feel free to improve this package and send a pull request to GitHub_.
 Getting Started
 ---------------
 
+Low-level request-reply example::
+
+    import asyncio
+    import aiozmq
+    import zmq
+
+    @asyncio.coroutine
+    def go():
+        router = yield from aiozmq.create_zmq_stream(
+            zmq.ROUTER,
+            bind='tcp://127.0.0.1:*')
+
+        addr = list(router.transport.bindings())[0]
+        dealer = yield from aiozmq.create_zmq_stream(
+            zmq.DEALER,
+            connect=addr)
+
+        for i in range(10):
+            msg = (b'data', b'ask', str(i).encode('utf-8'))
+            dealer.write(msg)
+            data = yield from router.read()
+            router.write(data)
+            answer = yield from dealer.read()
+            print(answer)
+        dealer.close()
+        router.close()
+
+    asyncio.get_event_loop().run_until_complete(go())
+
+
 Example of RPC usage::
 
     import aiozmq.rpc
@@ -117,8 +147,9 @@ Example of RPC usage::
 
     asyncio.get_event_loop().run_until_complete(go())
 
-.. note:: To execute the example you need to :ref:`install
+.. note:: To execute the last example you need to :ref:`install
    msgpack<aiozmq-install-msgpack>` first.
+
 
 Indices and tables
 ==================
@@ -129,7 +160,8 @@ Indices and tables
 
 .. toctree::
 
-   core
+   stream
    rpc
+   core
    examples
    glossary

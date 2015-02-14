@@ -1,7 +1,7 @@
 .. _aiozmq-core:
 
-:mod:`aiozmq` --- Core API
-==========================
+Core API
+========
 
 
 .. module:: aiozmq
@@ -66,7 +66,7 @@ create_zmq_connection
 
 
 ZmqTransport
----------------------
+------------
 
 .. class:: ZmqTransport
 

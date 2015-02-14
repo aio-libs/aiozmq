@@ -19,13 +19,11 @@ def create_zmq_stream(zmq_type, *, bind=None, connect=None,
     except protocol_factory; most common are positional host and port,
     with various optional keyword arguments following.
 
-    Additional optional keyword arguments are loop (to set the event loop
-    instance to use) and limit (to set the buffer limit passed to the
-    StreamReader).
+    Additional optional keyword arguments are loop (to set the event
+    loop instance to use) and high_read, low_read, high_write,
+    low_write -- high and low watermarks for reading and writing
+    respectively.
 
-    (If you want to customize the StreamReader and/or
-    StreamReaderProtocol classes, just copy the code -- there's
-    really nothing special here except some convenience.)
     """
     if loop is None:
         loop = asyncio.get_event_loop()
@@ -109,12 +107,15 @@ class ZmqStreamProtocol(ZmqProtocol):
 class ZmqStream:
     """Wraps a ZmqTransport.
 
-    This exposes write(), getsockopt(), setsockopt(), connect(),
-    disconnect(), connections(), bind(), unbind(), bindings(),
-    subscribe(), unsubscribe(), subscriptions(), get_extra_info() and
-    close().  It adds drain() which returns an optional Future on
-    which you can wait for flow control.  It also adds a transport
-    property which references the ZmqTransport directly.
+    Has write() method and read() coroutine for writing and reading
+    ZMQ messages.
+
+    It adds drain() coroutine which can be used for waiting for flow
+    control.
+
+    It also adds a transport property which references the
+    ZmqTransport directly.
+
     """
 
     def __init__(self, loop, *, high=None, low=None):
@@ -144,19 +145,12 @@ class ZmqStream:
 
     @asyncio.coroutine
     def drain(self):
-        """This method has an unusual return value.
+        """Flush the write buffer.
 
         The intended use is to write
 
           w.write(data)
           yield from w.drain()
-
-        When there's nothing to wait for, drain() returns (), and the
-        yield-from continues immediately.  When the transport buffer
-        is full (the protocol is paused), drain() creates and returns
-        a Future and the yield-from will block until that Future is
-        completed, which will happen when the buffer is (partially)
-        drained and the protocol is resumed.
         """
         if self._exception is not None:
             raise self._exception

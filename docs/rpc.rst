@@ -1,8 +1,8 @@
 .. _aiozmq-rpc:
 
-==============================================
- :mod:`aiozmq.rpc` --- Remote Procedure Calls
-==============================================
+======================
+Remote Procedure Calls
+======================
 
 .. module:: aiozmq.rpc
    :synopsis: RPC for ZeroMQ transports

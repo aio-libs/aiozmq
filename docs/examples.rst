@@ -12,6 +12,13 @@ Simple DEALER-ROUTER pair implemented on Core level
 
 .. literalinclude:: ../examples/core_dealer_router.py
 
+.. _aiozmq-examples-stream-dealer-router:
+
+DEALER-ROUTER pair implemented with streams
+-------------------------------------------
+
+.. literalinclude:: ../examples/stream_dealer_router.py
+
 .. _aiozmq-examples-rpc-rpc:
 
 Remote Procedure Call
