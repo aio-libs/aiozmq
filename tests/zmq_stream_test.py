@@ -540,3 +540,25 @@ class ZmqStreamTests(unittest.TestCase):
             self.assertIs(cm.exception, exc)
 
         self.loop.run_until_complete(go())
+
+    def test_double_read_of_closed_stream(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            s2 = yield from aiozmq.create_zmq_stream(
+                zmq.ROUTER,
+                connect='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+
+            self.assertFalse(s2.at_closing())
+            s2.close()
+            with self.assertRaises(aiozmq.ZmqStreamClosed):
+                yield from s2.read()
+            self.assertTrue(s2.at_closing())
+
+            with self.assertRaises(aiozmq.ZmqStreamClosed):
+                yield from s2.read()
+            self.assertTrue(s2.at_closing())
+
+        self.loop.run_until_complete(go())

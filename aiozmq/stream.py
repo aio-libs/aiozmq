@@ -235,6 +235,9 @@ class ZmqStream:
         if self._exception is not None:
             raise self._exception
 
+        if self._closing:
+            raise ZmqStreamClosed()
+
         if not self._queue_len:
             if self._waiter is not None:
                 raise RuntimeError('read called while another coroutine is '

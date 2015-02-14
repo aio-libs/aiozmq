@@ -160,6 +160,8 @@ ZmqStream
 
       Read one :term:`ZeroMQ` message from the wire and return it.
 
+      Raise :exc:`ZmqStreamClosed` if the stream was closed.
+
    .. method:: write(msg)
 
       Writes message *msg* into :term:`ZeroMQ` socket.
@@ -193,3 +195,11 @@ ZmqStream
       operations waiting for the data will be resumed.
 
       *The private method*.
+
+
+Exceptions
+----------
+
+.. exception:: ZmqStreamClosed
+
+   Raised by read operations on closed stream.
