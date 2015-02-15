@@ -15,7 +15,7 @@ def create_zmq_stream(zmq_type, *, bind=None, connect=None,
                       high_write=None, low_write=None):
     """A wrapper for create_zmq_connection() returning a Stream instance.
 
-    The arguments are all the usual arguments to create_connection()
+    The arguments are all the usual arguments to create_zmq_connection()
     except protocol_factory; most common are positional host and port,
     with various optional keyword arguments following.
 
