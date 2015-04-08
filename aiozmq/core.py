@@ -197,18 +197,11 @@ class _BaseTransport(ZmqTransport):
 
     _TCP_RE = re.compile('^tcp://(.+):(\d+)|\*$')
     LOG_THRESHOLD_FOR_CONNLOST_WRITES = 5
-    ZMQ_TYPES = {zmq.PUB: 'PUB',
-                 zmq.SUB: 'SUB',
-                 zmq.REP: 'REP',
-                 zmq.REQ: 'REQ',
-                 zmq.PUSH: 'PUSH',
-                 zmq.PULL: 'PULL',
-                 zmq.DEALER: 'DEALER',
-                 zmq.ROUTER: 'ROUTER',
-                 zmq.XPUB: 'XPUB',
-                 zmq.XSUB: 'XSUB',
-                 zmq.PAIR: 'PAIR',
-                 zmq.STREAM: 'STREAM'}
+    ZMQ_TYPES = {getattr(zmq, name): name
+                 for name in ('PUB', 'SUB', 'REP', 'REQ',
+                              'PUSH', 'PULL', 'DEALER', 'ROUTER',
+                              'XPUB', 'XSUB', 'PAIR', 'STREAM')
+                 if hasattr(zmq, name)}
 
     def __init__(self, loop, zmq_type, zmq_sock, protocol):
         super().__init__(None)
