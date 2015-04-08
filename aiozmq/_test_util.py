@@ -204,8 +204,8 @@ def bind_port(sock, host=HOST):  # pragma: no cover
                                  "socket option on TCP/IP sockets!")
         if hasattr(socket, 'SO_REUSEPORT'):
             try:
-                if (sock.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT)
-                        == 1):
+                opt = sock.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT)
+                if opt == 1:
                     raise TestFailed("tests should never set the SO_REUSEPORT "
                                      "socket option on TCP/IP sockets!")
             except OSError:
