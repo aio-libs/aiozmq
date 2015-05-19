@@ -1,6 +1,11 @@
 CHANGES
 -------
 
+0.6.1 (2015-05-19)
+^^^^^^^^^^^^^^^^^^
+
+* Dynamically get list of pyzmq socket types
+
 0.6.0 (2015-02-14)
 ^^^^^^^^^^^^^^^^^^
 
