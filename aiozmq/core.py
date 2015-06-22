@@ -492,6 +492,12 @@ class _BaseTransport(ZmqTransport):
             raise NotImplementedError("Not supported ZMQ socket type")
         return _EndpointsSet(self._subscriptions)
 
+    def get_monitor_socket(self, events=None, addr=None):
+        return self._zmq_sock.get_monitor_socket(events=events, addr=addr)
+
+    def disable_monitor_socket(self):
+        return self._zmq_sock.disable_monitor()
+
 
 class _ZmqTransportImpl(_BaseTransport):
 

@@ -5,16 +5,17 @@ from collections import namedtuple
 import zmq
 
 from .core import ZmqEventLoop, ZmqEventLoopPolicy, create_zmq_connection
-from .interface import ZmqTransport, ZmqProtocol
+from .interface import (ZmqTransport, ZmqProtocol, ZmqEventProtocol,
+                        MonitorEvents)
 from .selector import ZmqSelector
 from .stream import (ZmqStream, ZmqStreamProtocol, ZmqStreamClosed,
                      create_zmq_stream)
 
 
 __all__ = ('ZmqSelector', 'ZmqEventLoop', 'ZmqEventLoopPolicy',
-           'ZmqTransport', 'ZmqProtocol',
+           'ZmqTransport', 'ZmqProtocol', 'ZmqEventProtocol',
            'ZmqStream', 'ZmqStreamProtocol', 'create_zmq_stream',
-           'ZmqStreamClosed',
+           'ZmqStreamClosed', 'MonitorEvents',
            'create_zmq_connection',
            'version_info', 'version')
 
@@ -55,5 +56,5 @@ if zmq.zmq_version_info()[0] < 3:  # pragma no cover
 
 # make pyflakes happy
 (ZmqSelector, ZmqEventLoop, ZmqEventLoopPolicy, ZmqTransport, ZmqProtocol,
- ZmqStream, ZmqStreamProtocol, ZmqStreamClosed, create_zmq_stream,
- create_zmq_connection)
+ ZmqEventProtocol, ZmqStream, ZmqStreamProtocol, ZmqStreamClosed,
+ MonitorEvents, create_zmq_stream, create_zmq_connection)
