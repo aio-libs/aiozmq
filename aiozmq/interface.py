@@ -1,12 +1,9 @@
 
-import zmq
-
+import asyncio
 from asyncio import BaseProtocol, BaseTransport
 
-from zmq.utils.monitor import parse_monitor_message
 
-
-__all__ = ['ZmqTransport', 'ZmqProtocol', 'ZmqEventProtocol', 'MonitorEvents']
+__all__ = ['ZmqTransport', 'ZmqProtocol']
 
 
 class ZmqTransport(BaseTransport):
@@ -191,18 +188,19 @@ class ZmqTransport(BaseTransport):
         """
         raise NotImplementedError
 
-    def get_monitor_socket(self, events=None, addr=None):
+    @asyncio.coroutine
+    def enable_monitor(self, events=None):
         """ Returns a PAIR socket ready to receive socket events.
+
+        This is a coroutine.
 
         events is a bitmask defining the events to monitor. Default is all
         events.
-        addr is an optional endpoint string to use for the monitoring socket.
         """
         raise NotImplementedError
 
-    def disable_monitor_socket(self):
-        """Shutdown the PAIR socket (created using get_monitor_socket)
-        serving socket events.
+    def disable_monitor(self):
+        """Stop the socket monitor.
         """
         raise NotImplementedError
 
@@ -216,35 +214,11 @@ class ZmqProtocol(BaseProtocol):
         data is the multipart tuple of bytes with at least one item.
         """
 
-MonitorEvents = {zmq.EVENT_ACCEPTED: 'accepted',
-                 zmq.EVENT_ACCEPT_FAILED: 'accept failed',
-                 zmq.EVENT_BIND_FAILED: 'bind failed',
-                 zmq.EVENT_CLOSE_FAILED: 'close failed',
-                 zmq.EVENT_CLOSED: 'closed',
-                 zmq.EVENT_CONNECTED: 'connected',
-                 zmq.EVENT_CONNECT_DELAYED: 'connect delayed',
-                 zmq.EVENT_CONNECT_RETRIED: 'connect retried',
-                 zmq.EVENT_DISCONNECTED: 'disconnected',
-                 zmq.EVENT_LISTENING: 'listening',
-                 zmq.EVENT_MONITOR_STOPPED: 'monitor stopped'}
-
-
-class ZmqEventProtocol(ZmqProtocol):
-    """Interface for ZeroMQ socket events. """
-
     def event_received(self, event):
         """Called when a ZeroMQ socket event is received.
 
-        :param event: A dict containing the event description keys `event`,
-          `value`, `description` and `endpoint`.
-        """
+        This method is only called when a socket monitor is enabled.
 
-    def msg_received(self, data):
-        '''
-        Called from the transport when a ZeroMQ message is received. This
-        protocol only expexts to receive ZMQ socket events.
-        '''
-        evt = parse_monitor_message(data)
-        evt.update({'description': MonitorEvents.get(evt['event'], 'unknown'),
-                    'endpoint': evt['endpoint'].decode()})
-        self.event_received(evt)
+        :param event: A dict containing the event description keys `event`,
+          `value`, and `endpoint`.
+        """
