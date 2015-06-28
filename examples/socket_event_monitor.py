@@ -9,11 +9,9 @@ import aiozmq
 import zmq
 
 
-_events = [i for i in dir(zmq) if i.startswith('EVENT_')]
 ZMQ_EVENTS = {
-    getattr(zmq, name): name.replace(
-        'EVENT_', '').lower().replace('_', ' ')
-              for name in _events if hasattr(zmq, name)}
+    getattr(zmq, name): name.replace('EVENT_', '').lower().replace('_', ' ')
+    for name in [i for i in dir(zmq) if i.startswith('EVENT_')]}
 
 
 def event_description(event):
