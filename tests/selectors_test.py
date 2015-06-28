@@ -444,7 +444,7 @@ class SelectorTests(unittest.TestCase):
         s.register(rd, EVENT_READ)
         t = time()
         self.assertFalse(s.select(2))
-        self.assertLess(time() - t, 2.5)
+        self.assertLess(time() - t, 3.5)
 
     # see issue #18963 for why it's skipped on older OS X versions
     @requires_mac_ver(10, 5)

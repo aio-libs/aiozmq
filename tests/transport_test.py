@@ -25,6 +25,9 @@ class TransportTests(unittest.TestCase):
         self.exc_handler = mock.Mock()
         self.loop.set_exception_handler(self.exc_handler)
 
+    def tearDown(self):
+        self.loop.close()
+
     def test_empty_write(self):
         self.tr.write([b''])
         self.assertTrue(self.sock.send_multipart.called)
@@ -570,6 +573,9 @@ class LooplessTransportTests(unittest.TestCase):
                                             self.waiter)
         self.exc_handler = mock.Mock()
         self.loop.set_exception_handler(self.exc_handler)
+
+    def tearDown(self):
+        self.loop.close()
 
     def test_incomplete_read(self):
         self.sock.recv_multipart.side_effect = zmq.Again(errno.EAGAIN)
