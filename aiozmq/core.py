@@ -24,8 +24,7 @@ else:
     from asyncio.unix_events import SelectorEventLoop, SafeChildWatcher
 
 
-__all__ = ['ZmqEventLoop', 'ZmqEventLoopPolicy', 'create_zmq_connection',
-           '_ZmqEventProtocol']
+__all__ = ['ZmqEventLoop', 'ZmqEventLoopPolicy', 'create_zmq_connection']
 
 
 @asyncio.coroutine
@@ -552,7 +551,7 @@ class _BaseTransport(ZmqTransport):
         if self._monitor is None:
             addr = "inproc://monitor.s-{}".format(self._zmq_sock.FD)
             events = events or zmq.EVENT_ALL
-            _t, self._monitor = yield from create_zmq_connection(
+            _, self._monitor = yield from create_zmq_connection(
                 lambda: _ZmqEventProtocol(self._loop, self._protocol),
                 zmq.PAIR, connect=addr, loop=self._loop)
             # bind must come after connect

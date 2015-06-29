@@ -14,7 +14,7 @@ from .stream import (ZmqStream, ZmqStreamProtocol, ZmqStreamClosed,
 __all__ = ('ZmqSelector', 'ZmqEventLoop', 'ZmqEventLoopPolicy',
            'ZmqTransport', 'ZmqProtocol',
            'ZmqStream', 'ZmqStreamProtocol', 'create_zmq_stream',
-           'ZmqStreamClosed', 'MonitorEvents',
+           'ZmqStreamClosed',
            'create_zmq_connection',
            'version_info', 'version')
 

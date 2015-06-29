@@ -191,6 +191,8 @@ class ZmqTransport(BaseTransport):
     @asyncio.coroutine
     def enable_monitor(self, events=None):
         """Enables socket monitor events to be reported for this socket.
+        Socket event messages are sent to the ZmqProtocol's event_received
+        method.
 
         This is a coroutine.
 
