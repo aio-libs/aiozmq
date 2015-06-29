@@ -545,9 +545,17 @@ class _BaseTransport(ZmqTransport):
         if self._monitor is None:
             addr = "inproc://monitor.s-{}".format(self._zmq_sock.FD)
             events = events or zmq.EVENT_ALL
-            _, self._monitor = yield from create_zmq_connection(
+            _t, self._monitor = yield from create_zmq_connection(
                 lambda: _ZmqEventProtocol(self._loop, self._protocol),
-                zmq.PAIR, connect=addr, loop=self._loop)
+                zmq.PAIR, loop=self._loop)
+            try:
+                yield from _t.connect(addr)
+            except ConnectionRefusedError:
+                # The server has intentionally not had 'bind' called yet.
+                # Ignore a connection refused error that can be reported
+                # on some platforms (e.g. TravisCI). The ZMQ internals
+                # will attempt a reconnect.
+                pass
             # bind must come after connect
             self._zmq_sock.monitor(addr, events)
             yield from self._monitor.wait_ready
