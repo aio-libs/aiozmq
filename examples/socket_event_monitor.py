@@ -2,6 +2,9 @@
 '''
 This example demonstrates how to use the ZMQ socket monitor to receive
 socket events.
+
+The socket event monitor capability requires libzmq >= 4 and pyzmq >= 14.4.
+
 '''
 
 import asyncio
@@ -104,5 +107,12 @@ def main():
 if __name__ == '__main__':
     # import logging
     # logging.basicConfig(level=logging.DEBUG)
+
+    if (zmq.zmq_version_info() < (4,) or
+            zmq.pyzmq_version_info() < (14, 4,)):
+        raise NotImplementedError(
+            "Socket monitor requires libzmq >= 4 and pyzmq >= 14.4, "
+            "have libzmq:{}, pyzmq:{}".format(
+                zmq.zmq_version(), zmq.pyzmq_version()))
 
     main()

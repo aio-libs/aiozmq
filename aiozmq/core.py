@@ -542,20 +542,19 @@ class _BaseTransport(ZmqTransport):
         # For more information on this issue see:
         # https://github.com/mkoppanen/php-zmq/issues/130
 
+        if (zmq.zmq_version_info() < (4,) or
+                zmq.pyzmq_version_info() < (14, 4,)):
+            raise NotImplementedError(
+                "Socket monitor requires libzmq >= 4 and pyzmq >= 14.4, "
+                "have libzmq:{}, pyzmq:{}".format(
+                    zmq.zmq_version(), zmq.pyzmq_version()))
+
         if self._monitor is None:
             addr = "inproc://monitor.s-{}".format(self._zmq_sock.FD)
             events = events or zmq.EVENT_ALL
             _t, self._monitor = yield from create_zmq_connection(
                 lambda: _ZmqEventProtocol(self._loop, self._protocol),
-                zmq.PAIR, loop=self._loop)
-            try:
-                yield from _t.connect(addr)
-            except ConnectionRefusedError:
-                # The server has intentionally not had 'bind' called yet.
-                # Ignore a connection refused error that can be reported
-                # on some platforms (e.g. TravisCI). The ZMQ internals
-                # will attempt a reconnect.
-                pass
+                zmq.PAIR, connect=addr, loop=self._loop)
             # bind must come after connect
             self._zmq_sock.monitor(addr, events)
             yield from self._monitor.wait_ready

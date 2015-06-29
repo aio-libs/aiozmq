@@ -52,6 +52,9 @@ class ZmqSocketMonitorTests(unittest.TestCase):
         self.loop.close()
         asyncio.set_event_loop(None)
 
+    @unittest.skipIf(
+        zmq.zmq_version_info() < (4,) or zmq.pyzmq_version_info() < (14, 4,),
+        "Socket monitor requires libzmq >= 4 and pyzmq >= 14.4")
     def test_socket_monitor(self):
         port = find_unused_port()
 
