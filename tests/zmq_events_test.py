@@ -737,12 +737,17 @@ class BaseZmqEventLoopTestsMixin:
         tr1.write([b'data'])
         self.assertTrue(tr1._closing)
         handler.assert_called_with(
-            self.loop,
-            {'protocol': pr1,
-             'exception': mock.ANY,
-             'transport': tr1,
-             'message': 'Fatal write error on zmq socket transport'})
-        check_errno(88, handler.call_args[0][1]['exception'])
+                self.loop,
+                {'protocol': pr1,
+                 'exception': mock.ANY,
+                 'transport': tr1,
+                 'message': 'Fatal write error on zmq socket transport'})
+        # expecting 'Socket operation on non-socket'
+        if sys.platform == 'darwin':
+            errno = 38
+        else:
+            errno = 88
+        check_errno(errno, handler.call_args[0][1]['exception'])
 
     def test_double_force_close(self):
         port = find_unused_port()
