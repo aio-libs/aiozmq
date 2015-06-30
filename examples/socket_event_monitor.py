@@ -54,8 +54,10 @@ class Protocol(aiozmq.ZmqProtocol):
                 self.wait_done.set_result(True)
 
     def event_received(self, event):
-        event['description'] = event_description(event['event'])
-        print(event)
+        print(
+            'event:{}, value:{}, endpoint:{}, description:{}'.format(
+                event.event, event.value, event.endpoint,
+                event_description(event.event)))
 
 
 @asyncio.coroutine

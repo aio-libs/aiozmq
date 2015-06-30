@@ -229,6 +229,6 @@ class ZmqProtocol(BaseProtocol):
 
         This method is only called when a socket monitor is enabled.
 
-        :param event: A dict containing the event description keys `event`,
-          `value`, and `endpoint`.
+        :param event: A namedtuple containing 3 items `event`, `value`, and
+          `endpoint`.
         """

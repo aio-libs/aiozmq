@@ -104,7 +104,7 @@ class ZmqSocketMonitorTests(unittest.TestCase):
             self.assertGreater(cp.events_received.qsize(), 0)
             while not cp.events_received.empty():
                 event = yield from cp.events_received.get()
-                self.assertIn(event['event'], ZMQ_EVENTS)
+                self.assertIn(event.event, ZMQ_EVENTS)
 
         self.loop.run_until_complete(go())
 

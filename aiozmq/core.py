@@ -2,15 +2,14 @@ import asyncio
 import asyncio.events
 import errno
 import re
+import struct
 import sys
 import threading
 import weakref
 import zmq
 
-from collections import deque, Iterable
+from collections import deque, Iterable, namedtuple
 from ipaddress import ip_address
-
-from zmq.utils.monitor import parse_monitor_message
 
 from .interface import ZmqTransport, ZmqProtocol
 from .log import logger
@@ -25,6 +24,9 @@ else:
 
 
 __all__ = ['ZmqEventLoop', 'ZmqEventLoopPolicy', 'create_zmq_connection']
+
+
+SocketEvent = namedtuple('SocketEvent', 'event value endpoint')
 
 
 @asyncio.coroutine
@@ -198,7 +200,7 @@ class ZmqEventLoop(SelectorEventLoop):
 class _ZmqEventProtocol(ZmqProtocol):
     """This protocol is used internally by aiozmq to receive messages
     from a socket event monitor socket. This protocol decodes each event
-    message into a useful structure and then passes them through to the
+    message into a namedtuple and then passes them through to the
     protocol running the socket that is being monitored via the
     ZmqProtocol.event_received method.
 
@@ -220,9 +222,12 @@ class _ZmqEventProtocol(ZmqProtocol):
         self.wait_closed.set_result(exc)
 
     def msg_received(self, data):
-        evt = parse_monitor_message(data)
-        evt.update({'endpoint': evt['endpoint'].decode()})
-        self.event_received(evt)
+        if len(data) != 2 or len(data[0]) != 6:
+            raise RuntimeError(
+                "Invalid event message format: {}".format(data))
+        event, value = struct.unpack("=hi", data[0])
+        endpoint = data[1].decode()
+        self.event_received(SocketEvent(event, value, endpoint))
 
     def event_received(self, evt):
         self._protocol.event_received(evt)
