@@ -89,3 +89,11 @@ Use dynamic RPC lookup
 ----------------------
 
 .. literalinclude:: ../examples/rpc_dynamic.py
+
+
+.. _aiozmq-examples-socket-event-monitor:
+
+Socket event monitor
+--------------------
+
+.. literalinclude:: ../examples/socket_event_monitor.py
