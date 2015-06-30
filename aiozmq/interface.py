@@ -190,10 +190,11 @@ class ZmqTransport(BaseTransport):
 
     @asyncio.coroutine
     def enable_monitor(self, events=None):
-        """Enables socket monitor events to be reported for this socket.
-        Socket events are sent to the ZmqProtocol's event_received method.
+        """Enables socket events to be reported for this socket.
+        Socket events are passed to the protocol's ZmqProtocol's
+        event_received method.
 
-        This is a coroutine.
+        This method is a coroutine.
 
         The socket event monitor capability requires libzmq >= 4 and
         pyzmq >= 14.4.
@@ -204,7 +205,7 @@ class ZmqTransport(BaseTransport):
         For list of available events please see:
         http://api.zeromq.org/4-0:zmq-socket-monitor
 
-        Raise NotImplementedError if libzmq or pyzmq versions do no support
+        Raise NotImplementedError if libzmq or pyzmq versions do not support
         socket monitoring.
         """
         raise NotImplementedError
