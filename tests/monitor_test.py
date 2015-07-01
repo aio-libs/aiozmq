@@ -121,11 +121,15 @@ class ZmqSocketMonitorTests(unittest.TestCase):
                 loop=self.loop)
             yield from cp.wait_ready
 
-            with unittest.mock.patch.object(zmq, 'zmq_version_info', return_value=(3, )):
+            with unittest.mock.patch.object(zmq,
+                                            'zmq_version_info',
+                                            return_value=(3, )):
                 with self.assertRaises(NotImplementedError):
                     yield from ct.enable_monitor()
 
-            with unittest.mock.patch.object(zmq, 'pyzmq_version_info', return_value=(14, 3)):
+            with unittest.mock.patch.object(zmq,
+                                            'pyzmq_version_info',
+                                            return_value=(14, 3)):
                 with self.assertRaises(NotImplementedError):
                     yield from ct.enable_monitor()
 
