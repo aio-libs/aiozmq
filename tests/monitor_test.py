@@ -1,5 +1,7 @@
-import unittest
 import asyncio
+import unittest
+import unittest.mock
+
 import aiozmq
 import zmq
 
@@ -105,6 +107,61 @@ class ZmqSocketMonitorTests(unittest.TestCase):
             while not cp.events_received.empty():
                 event = yield from cp.events_received.get()
                 self.assertIn(event.event, ZMQ_EVENTS)
+
+        self.loop.run_until_complete(go())
+
+    def test_unsupported_dependencies(self):
+
+        @asyncio.coroutine
+        def go():
+
+            ct, cp = yield from aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.DEALER,
+                loop=self.loop)
+            yield from cp.wait_ready
+
+            with unittest.mock.patch.object(zmq, 'zmq_version_info', return_value=(3, )):
+                with self.assertRaises(NotImplementedError):
+                    yield from ct.enable_monitor()
+
+            with unittest.mock.patch.object(zmq, 'pyzmq_version_info', return_value=(14, 3)):
+                with self.assertRaises(NotImplementedError):
+                    yield from ct.enable_monitor()
+
+            ct.close()
+            yield from cp.wait_closed
+
+        self.loop.run_until_complete(go())
+
+    @unittest.skipIf(
+        zmq.zmq_version_info() < (4,) or zmq.pyzmq_version_info() < (14, 4,),
+        "Socket monitor requires libzmq >= 4 and pyzmq >= 14.4")
+    def test_double_enable_disable(self):
+
+        @asyncio.coroutine
+        def go():
+
+            ct, cp = yield from aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.DEALER,
+                loop=self.loop)
+            yield from cp.wait_ready
+
+            yield from ct.enable_monitor()
+
+            # Enabling the monitor after it is already enabled should not
+            # cause an error
+            yield from ct.enable_monitor()
+
+            ct.disable_monitor()
+
+            # Disabling the monitor after it is already disabled should not
+            # cause an error
+            ct.disable_monitor()
+
+            ct.close()
+            yield from cp.wait_closed
 
         self.loop.run_until_complete(go())
 
