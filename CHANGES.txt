@@ -1,6 +1,11 @@
 CHANGES
 -------
 
+0.7.0 (XXXX-XX-XX)
+^^^^^^^^^^^^^^^^^^
+
+* Implement monitoring ZMQ events #50
+
 0.6.1 (2015-05-19)
 ^^^^^^^^^^^^^^^^^^
 
