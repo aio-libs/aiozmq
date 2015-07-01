@@ -1,4 +1,7 @@
+
+import asyncio
 from asyncio import BaseProtocol, BaseTransport
+
 
 __all__ = ['ZmqTransport', 'ZmqProtocol']
 
@@ -185,6 +188,33 @@ class ZmqTransport(BaseTransport):
         """
         raise NotImplementedError
 
+    @asyncio.coroutine
+    def enable_monitor(self, events=None):
+        """Enables socket events to be reported for this socket.
+        Socket events are passed to the protocol's ZmqProtocol's
+        event_received method.
+
+        This method is a coroutine.
+
+        The socket event monitor capability requires libzmq >= 4 and
+        pyzmq >= 14.4.
+
+        events is a bitmask (e.g zmq.EVENT_CONNECTED) defining the events
+        to monitor. Default is all events (i.e. zmq.EVENT_ALL).
+
+        For list of available events please see:
+        http://api.zeromq.org/4-0:zmq-socket-monitor
+
+        Raise NotImplementedError if libzmq or pyzmq versions do not support
+        socket monitoring.
+        """
+        raise NotImplementedError
+
+    def disable_monitor(self):
+        """Stop the socket event monitor.
+        """
+        raise NotImplementedError
+
 
 class ZmqProtocol(BaseProtocol):
     """Interface for ZeroMQ protocol."""
@@ -193,4 +223,13 @@ class ZmqProtocol(BaseProtocol):
         """Called when some ZeroMQ message is received.
 
         data is the multipart tuple of bytes with at least one item.
+        """
+
+    def event_received(self, event):
+        """Called when a ZeroMQ socket event is received.
+
+        This method is only called when a socket monitor is enabled.
+
+        :param event: A namedtuple containing 3 items `event`, `value`, and
+          `endpoint`.
         """

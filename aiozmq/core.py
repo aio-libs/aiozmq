@@ -2,15 +2,16 @@ import asyncio
 import asyncio.events
 import errno
 import re
+import struct
 import sys
 import threading
 import weakref
 import zmq
 
-from collections import deque, Iterable
+from collections import deque, Iterable, namedtuple
 from ipaddress import ip_address
 
-from .interface import ZmqTransport
+from .interface import ZmqTransport, ZmqProtocol
 from .log import logger
 from .selector import ZmqSelector
 from .util import _EndpointsSet
@@ -23,6 +24,9 @@ else:
 
 
 __all__ = ['ZmqEventLoop', 'ZmqEventLoopPolicy', 'create_zmq_connection']
+
+
+SocketEvent = namedtuple('SocketEvent', 'event value endpoint')
 
 
 @asyncio.coroutine
@@ -193,6 +197,42 @@ class ZmqEventLoop(SelectorEventLoop):
             raise
 
 
+class _ZmqEventProtocol(ZmqProtocol):
+    """This protocol is used internally by aiozmq to receive messages
+    from a socket event monitor socket. This protocol decodes each event
+    message into a namedtuple and then passes them through to the
+    protocol running the socket that is being monitored via the
+    ZmqProtocol.event_received method.
+
+    This design simplifies the API visible to the developer at the cost
+    of adding some internal complexity - a hidden protocol that transfers
+    events from the monitor protocol to the monitored socket's protocol.
+    """
+
+    def __init__(self, loop, main_protocol):
+        self._protocol = main_protocol
+        self.wait_ready = asyncio.Future(loop=loop)
+        self.wait_closed = asyncio.Future(loop=loop)
+
+    def connection_made(self, transport):
+        self.transport = transport
+        self.wait_ready.set_result(True)
+
+    def connection_lost(self, exc):
+        self.wait_closed.set_result(exc)
+
+    def msg_received(self, data):
+        if len(data) != 2 or len(data[0]) != 6:
+            raise RuntimeError(
+                "Invalid event message format: {}".format(data))
+        event, value = struct.unpack("=hi", data[0])
+        endpoint = data[1].decode()
+        self.event_received(SocketEvent(event, value, endpoint))
+
+    def event_received(self, evt):
+        self._protocol.event_received(evt)
+
+
 class _BaseTransport(ZmqTransport):
 
     _TCP_RE = re.compile('^tcp://(.+):(\d+)|\*$')
@@ -221,6 +261,7 @@ class _BaseTransport(ZmqTransport):
         self._subscriptions = set()
         self._paused = False
         self._conn_lost = 0
+        self._monitor = None
 
     def __repr__(self):
         info = ['ZmqTransport',
@@ -492,6 +533,42 @@ class _BaseTransport(ZmqTransport):
             raise NotImplementedError("Not supported ZMQ socket type")
         return _EndpointsSet(self._subscriptions)
 
+    @asyncio.coroutine
+    def enable_monitor(self, events=None):
+
+        # The standard approach of binding and then connecting does not
+        # work in this specific case. The event loop does not properly
+        # detect messages on the inproc transport which means that event
+        # messages get missed.
+        # pyzmq's 'get_monitor_socket' method can't be used because this
+        # performs the actions in the wrong order for use with an event
+        # loop.
+        # For more information on this issue see:
+        # https://github.com/mkoppanen/php-zmq/issues/130
+
+        if (zmq.zmq_version_info() < (4,) or
+                zmq.pyzmq_version_info() < (14, 4,)):
+            raise NotImplementedError(
+                "Socket monitor requires libzmq >= 4 and pyzmq >= 14.4, "
+                "have libzmq:{}, pyzmq:{}".format(
+                    zmq.zmq_version(), zmq.pyzmq_version()))
+
+        if self._monitor is None:
+            addr = "inproc://monitor.s-{}".format(self._zmq_sock.FD)
+            events = events or zmq.EVENT_ALL
+            _, self._monitor = yield from create_zmq_connection(
+                lambda: _ZmqEventProtocol(self._loop, self._protocol),
+                zmq.PAIR, connect=addr, loop=self._loop)
+            # bind must come after connect
+            self._zmq_sock.monitor(addr, events)
+            yield from self._monitor.wait_ready
+
+    def disable_monitor(self):
+        if self._monitor:
+            self._zmq_sock.disable_monitor()
+            self._monitor.transport.close()
+            self._monitor = None
+
 
 class _ZmqTransportImpl(_BaseTransport):
 
@@ -558,6 +635,8 @@ class _ZmqTransportImpl(_BaseTransport):
         if self._closing:
             return
         self._closing = True
+        if self._monitor:
+            self.disable_monitor()
         if not self._paused:
             self._loop.remove_reader(self._zmq_sock)
         if not self._buffer:
@@ -567,6 +646,8 @@ class _ZmqTransportImpl(_BaseTransport):
     def _force_close(self, exc):
         if self._conn_lost:
             return
+        if self._monitor:
+            self.disable_monitor()
         if self._buffer:
             self._buffer.clear()
             self._buffer_size = 0
@@ -684,6 +765,8 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
         if self._closing:
             return
         self._closing = True
+        if self._monitor:
+            self.disable_monitor()
         if not self._buffer:
             self._conn_lost += 1
             if not self._paused:
@@ -693,6 +776,8 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
     def _force_close(self, exc):
         if self._conn_lost:
             return
+        if self._monitor:
+            self.disable_monitor()
         if self._buffer:
             self._buffer.clear()
             self._buffer_size = 0

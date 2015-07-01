@@ -737,11 +737,11 @@ class BaseZmqEventLoopTestsMixin:
         tr1.write([b'data'])
         self.assertTrue(tr1._closing)
         handler.assert_called_with(
-                self.loop,
-                {'protocol': pr1,
-                 'exception': mock.ANY,
-                 'transport': tr1,
-                 'message': 'Fatal write error on zmq socket transport'})
+            self.loop,
+            {'protocol': pr1,
+             'exception': mock.ANY,
+             'transport': tr1,
+             'message': 'Fatal write error on zmq socket transport'})
         # expecting 'Socket operation on non-socket'
         if sys.platform == 'darwin':
             errno = 38
@@ -799,6 +799,52 @@ class BaseZmqEventLoopTestsMixin:
 
         self.loop.run_until_complete(coro())
 
+    @unittest.skipIf(
+        zmq.zmq_version_info() < (4,) or zmq.pyzmq_version_info() < (14, 4,),
+        "Socket monitor requires libzmq >= 4 and pyzmq >= 14.4")
+    def test_implicit_monitor_disable(self):
+
+        @asyncio.coroutine
+        def go():
+
+            tr, pr = yield from aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.DEALER,
+                loop=self.loop)
+            yield from pr.connected
+
+            yield from tr.enable_monitor()
+
+            tr.close()
+            yield from pr.closed
+
+            self.assertIsNone(tr._monitor)
+
+        self.loop.run_until_complete(go())
+
+    @unittest.skipIf(
+        zmq.zmq_version_info() < (4,) or zmq.pyzmq_version_info() < (14, 4,),
+        "Socket monitor requires libzmq >= 4 and pyzmq >= 14.4")
+    def test_force_close_monitor(self):
+
+        @asyncio.coroutine
+        def go():
+
+            tr, pr = yield from aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.DEALER,
+                loop=self.loop)
+            yield from pr.connected
+
+            yield from tr.enable_monitor()
+
+            tr.abort()
+            yield from pr.closed
+
+            self.assertIsNone(tr._monitor)
+
+        self.loop.run_until_complete(go())
+
 
 class ZmqEventLoopTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
 
@@ -837,3 +883,44 @@ class ZmqLooplessTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
         tr1.write([b'data'])
         with self.assertRaises(KeyError):
             self.loop._selector.get_key(tr1._fd)
+
+
+class ZmqEventLoopExternalContextTests(unittest.TestCase):
+
+    def setUp(self):
+        self.ctx = zmq.Context()
+        self.loop = aiozmq.ZmqEventLoop(zmq_context=self.ctx)
+        asyncio.set_event_loop(self.loop)
+
+    def tearDown(self):
+        self.loop.close()
+        asyncio.set_event_loop(None)
+        self.ctx.term()
+
+    def test_using_external_zmq_context(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+
+            st, sp = yield from aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.ROUTER,
+                bind='tcp://127.0.0.1:{}'.format(port),
+                loop=self.loop)
+            yield from sp.connected
+            addr = list(st.bindings())[0]
+
+            ct, cp = yield from aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.DEALER,
+                connect=addr,
+                loop=self.loop)
+            yield from cp.connected
+
+            ct.close()
+            yield from cp.closed
+            st.close()
+            yield from sp.closed
+
+        self.loop.run_until_complete(go())
