@@ -97,3 +97,10 @@ Socket event monitor
 --------------------
 
 .. literalinclude:: ../examples/socket_event_monitor.py
+
+.. _aiozmq-examples-stream-socket-event-monitor:
+
+Stream socket event monitor
+---------------------------
+
+.. literalinclude:: ../examples/stream_monitor.py

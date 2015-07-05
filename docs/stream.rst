@@ -7,11 +7,11 @@ Streams API
 
 .. versionadded:: 0.6
 
-While *aiozmq* library is built on top of low-level
-:class:`ZmqTransport` and :class:`ZmqProtocol` API it provides a more
-convinient way also.
+*aiozmq* provides a high level stream oriented API on top of the low-level
+API (:class:`ZmqTransport` and :class:`ZmqProtocol`) which can provide a
+more convinient API.
 
-Please take a look on example::
+Here's an example::
 
     import asyncio
     import aiozmq
@@ -43,6 +43,11 @@ Please take a look on example::
 The code creates two streams for request and response part of
 :term:`ZeroMQ` connection and sends message through the wire with
 waiting for response.
+
+Socket events can also be monitored when using streams.
+
+.. literalinclude:: ../examples/stream_monitor.py
+
 
 create_zmq_stream
 -----------------
@@ -196,6 +201,11 @@ ZmqStream
 
       *The private method*.
 
+   .. method:: feed_event(event)
+
+      Feed a socket *event* message to the stream's internal buffer.
+
+      *The private method*.
 
 Exceptions
 ----------
