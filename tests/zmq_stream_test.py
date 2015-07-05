@@ -4,7 +4,12 @@ import aiozmq
 import zmq
 from unittest import mock
 
+from aiozmq.core import SocketEvent
 from aiozmq._test_util import check_errno, find_unused_port
+
+
+ZMQ_EVENTS = [
+    getattr(zmq, attr) for attr in dir(zmq) if attr.startswith('EVENT_')]
 
 
 class ZmqStreamTests(unittest.TestCase):
@@ -562,3 +567,57 @@ class ZmqStreamTests(unittest.TestCase):
             self.assertTrue(s2.at_closing())
 
         self.loop.run_until_complete(go())
+
+    def test_monitor(self):
+        port = find_unused_port()
+
+        @asyncio.coroutine
+        def go():
+            addr = 'tcp://127.0.0.1:{}'.format(port)
+            s1 = yield from aiozmq.create_zmq_stream(
+                zmq.ROUTER,
+                bind=addr,
+                loop=self.loop)
+
+            def f(s, events):
+                try:
+                    while True:
+                        event = yield from s.read_event()
+                        events.append(event)
+                except aiozmq.ZmqStreamClosed:
+                    pass
+
+            s2 = yield from aiozmq.create_zmq_stream(
+                zmq.DEALER,
+                loop=self.loop)
+
+            events = []
+            asyncio.Task(f(s2, events), loop=self.loop)
+
+            yield from s2.transport.enable_monitor()
+            yield from s2.transport.connect(addr)
+            yield from s2.transport.disconnect(addr)
+            yield from s2.transport.connect(addr)
+
+            s2.write([b'request'])
+            req = yield from s1.read()
+            self.assertEqual([mock.ANY, b'request'], req)
+            s1.write([req[0], b'answer'])
+            answer = yield from s2.read()
+            self.assertEqual([b'answer'], answer)
+
+            s2.close()
+            s1.close()
+
+            # Confirm that the events received by the monitor were valid.
+            self.assertGreater(len(events), 0)
+            while len(events):
+                event = events.pop()
+                self.assertIsInstance(event, SocketEvent)
+                self.assertIn(event.event, ZMQ_EVENTS)
+
+        self.loop.run_until_complete(go())
+
+
+if __name__ == '__main__':
+    unittest.main()
