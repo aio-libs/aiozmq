@@ -172,3 +172,24 @@ class PackerTests(unittest.TestCase):
         self.assertEqual(ExtType(125, data), packer.ext_type_pack_hook(pt))
         with self.assertRaisesRegex(TypeError, "Unknown type: "):
             packer.ext_type_pack_hook(dt)
+
+    def test_preserve_resolution_order(self):
+        class A:
+            pass
+
+        class B(A):
+            pass
+
+        dump_a = mock.Mock(return_value=b'a')
+        load_a = mock.Mock(return_value=A())
+
+        dump_b = mock.Mock(return_value=b'b')
+        load_b = mock.Mock(return_value=B())
+
+        translation_table = {
+            1: (A, dump_a, load_a),
+            2: (B, dump_b, load_b),
+        }
+        packer = _Packer(translation_table=translation_table)
+        self.assertEqual(packer.packb(ExtType(1, b'a')), packer.packb(A()))
+        self.assertEqual(packer.packb(ExtType(2, b'b')), packer.packb(B()))

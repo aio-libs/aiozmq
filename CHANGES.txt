@@ -6,6 +6,8 @@ CHANGES
 
 * Implement monitoring ZMQ events #50
 
+* Do deeper lookup for inhereted classes #54
+
 0.6.1 (2015-05-19)
 ^^^^^^^^^^^^^^^^^^
 

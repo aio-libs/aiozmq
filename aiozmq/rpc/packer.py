@@ -25,6 +25,11 @@ class _Packer:
             translation_table = ChainMap(translation_table, _default)
         self.translation_table = translation_table
         self._pack_cache = {}
+        self._unpack_cache = {}
+        for code in sorted(self.translation_table):
+            cls, packer, unpacker = self.translation_table[code]
+            self._pack_cache[cls] = (code, packer)
+            self._unpack_cache[code] = unpacker
 
     def packb(self, data):
         return packb(data, encoding='utf-8', use_bin_type=True,
@@ -46,6 +51,7 @@ class _Packer:
                 cls, packer, unpacker = self.translation_table[code]
                 if isinstance(obj, cls):
                     self._pack_cache[obj_class] = (code, packer)
+                    self._unpack_cache[code] = unpacker
                     return ExtType(code, packer(obj))
             else:
                 self._pack_cache[obj_class] = None
@@ -57,7 +63,7 @@ class _Packer:
 
     def ext_type_unpack_hook(self, code, data):
         try:
-            cls, packer, unpacker = self.translation_table[code]
+            unpacker = self._unpack_cache[code]
             return unpacker(data)
         except KeyError:
             return ExtType(code, data)
