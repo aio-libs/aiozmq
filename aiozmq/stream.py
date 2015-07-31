@@ -175,6 +175,12 @@ class ZmqStream:
             if not waiter.cancelled():
                 waiter.set_exception(exc)
 
+        waiter = self._event_waiter
+        if waiter is not None:
+            self._event_waiter = None
+            if not waiter.cancelled():
+                waiter.set_exception(exc)
+
     def set_transport(self, transport):
         """Private"""
         assert self._transport is None, 'Transport already set'
@@ -207,9 +213,16 @@ class ZmqStream:
         """Private"""
         self._closing = True
         self._transport = None
+
         waiter = self._waiter
         if waiter is not None:
             self._waiter = None
+            if not waiter.cancelled():
+                waiter.set_exception(ZmqStreamClosed())
+
+        waiter = self._event_waiter
+        if waiter is not None:
+            self._event_waiter = None
             if not waiter.cancelled():
                 waiter.set_exception(ZmqStreamClosed())
 

@@ -582,6 +582,7 @@ class ZmqStreamTests(unittest.TestCase):
                 bind=addr,
                 loop=self.loop)
 
+            @asyncio.coroutine
             def f(s, events):
                 try:
                     while True:
@@ -595,7 +596,7 @@ class ZmqStreamTests(unittest.TestCase):
                 loop=self.loop)
 
             events = []
-            asyncio.Task(f(s2, events), loop=self.loop)
+            t = asyncio.async(f(s2, events), loop=self.loop)
 
             yield from s2.transport.enable_monitor()
             yield from s2.transport.connect(addr)
@@ -611,6 +612,8 @@ class ZmqStreamTests(unittest.TestCase):
 
             s2.close()
             s1.close()
+
+            yield from t
 
             # Confirm that the events received by the monitor were valid.
             self.assertGreater(len(events), 0)
