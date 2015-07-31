@@ -103,6 +103,9 @@ class ZmqStreamProtocol(ZmqProtocol):
     def msg_received(self, msg):
         self._stream.feed_msg(msg)
 
+    def event_received(self, event):
+        self._stream.feed_event(event)
+
 
 class ZmqStream:
     """Wraps a ZmqTransport.
@@ -123,12 +126,15 @@ class ZmqStream:
         self._protocol = ZmqStreamProtocol(self, loop=loop)
         self._loop = loop
         self._queue = collections.deque()
+        self._event_queue = collections.deque()
         self._closing = False  # Whether we're done.
         self._waiter = None  # A future.
+        self._event_waiter = None  # A future.
         self._exception = None
         self._paused = False
         self._set_read_buffer_limits(high, low)
         self._queue_len = 0
+        self._event_queue_len = 0
 
     @property
     def transport(self):
@@ -230,6 +236,19 @@ class ZmqStream:
             self._transport.pause_reading()
             self._paused = True
 
+    def feed_event(self, event):
+        """Private"""
+        assert not self._closing, 'feed_event after feed_closing'
+
+        self._event_queue.append(event)
+        self._event_queue_len += 1
+
+        event_waiter = self._event_waiter
+        if event_waiter is not None:
+            self._event_waiter = None
+            if not event_waiter.cancelled():
+                event_waiter.set_result(None)
+
     @asyncio.coroutine
     def read(self):
         if self._exception is not None:
@@ -252,3 +271,22 @@ class ZmqStream:
         self._queue_len -= msg_len
         self._maybe_resume_transport()
         return msg
+
+    @asyncio.coroutine
+    def read_event(self):
+        if self._closing:
+            raise ZmqStreamClosed()
+
+        if not self._event_queue_len:
+            if self._event_waiter is not None:
+                raise RuntimeError('read_event called while another coroutine'
+                                   ' is already waiting for incoming data')
+            self._event_waiter = asyncio.Future(loop=self._loop)
+            try:
+                yield from self._event_waiter
+            finally:
+                self._event_waiter = None
+
+        event = self._event_queue.popleft()
+        self._event_queue_len -= 1
+        return event
