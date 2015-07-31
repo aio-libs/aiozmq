@@ -134,7 +134,6 @@ class ZmqStream:
         self._paused = False
         self._set_read_buffer_limits(high, low)
         self._queue_len = 0
-        self._event_queue_len = 0
 
     @property
     def transport(self):
@@ -254,7 +253,6 @@ class ZmqStream:
         assert not self._closing, 'feed_event after feed_closing'
 
         self._event_queue.append(event)
-        self._event_queue_len += 1
 
         event_waiter = self._event_waiter
         if event_waiter is not None:
@@ -290,7 +288,7 @@ class ZmqStream:
         if self._closing:
             raise ZmqStreamClosed()
 
-        if not self._event_queue_len:
+        if not self._event_queue:
             if self._event_waiter is not None:
                 raise RuntimeError('read_event called while another coroutine'
                                    ' is already waiting for incoming data')
@@ -301,5 +299,4 @@ class ZmqStream:
                 self._event_waiter = None
 
         event = self._event_queue.popleft()
-        self._event_queue_len -= 1
         return event
