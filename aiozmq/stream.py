@@ -12,7 +12,8 @@ class ZmqStreamClosed(Exception):
 def create_zmq_stream(zmq_type, *, bind=None, connect=None,
                       loop=None, zmq_sock=None,
                       high_read=None, low_read=None,
-                      high_write=None, low_write=None):
+                      high_write=None, low_write=None,
+                      events_backlog=100):
     """A wrapper for create_zmq_connection() returning a Stream instance.
 
     The arguments are all the usual arguments to create_zmq_connection()
@@ -23,6 +24,10 @@ def create_zmq_stream(zmq_type, *, bind=None, connect=None,
     loop instance to use) and high_read, low_read, high_write,
     low_write -- high and low watermarks for reading and writing
     respectively.
+
+    events_backlog -- backlog size for monitoring events, 100 by
+    default.  It specifies size of event queue. If count of unread
+    events exceeds events_backlog the oldest events are discarded.
 
     """
     if loop is None:
@@ -121,12 +126,12 @@ class ZmqStream:
 
     """
 
-    def __init__(self, loop, *, high=None, low=None):
+    def __init__(self, loop, *, high=None, low=None, events_backlog=100):
         self._transport = None
         self._protocol = ZmqStreamProtocol(self, loop=loop)
         self._loop = loop
         self._queue = collections.deque()
-        self._event_queue = collections.deque()
+        self._event_queue = collections.deque(maxlen=events_backlog)
         self._closing = False  # Whether we're done.
         self._waiter = None  # A future.
         self._event_waiter = None  # A future.
