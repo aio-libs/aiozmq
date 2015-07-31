@@ -8,6 +8,8 @@ CHANGES
 
 * Do deeper lookup for inhereted classes #54
 
+* Relax endpont check #56
+
 0.6.1 (2015-05-19)
 ^^^^^^^^^^^^^^^^^^
 

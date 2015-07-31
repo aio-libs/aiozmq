@@ -1,7 +1,6 @@
 import asyncio
 import asyncio.events
 import errno
-import re
 import struct
 import sys
 import threading
@@ -9,7 +8,6 @@ import weakref
 import zmq
 
 from collections import deque, Iterable, namedtuple
-from ipaddress import ip_address
 
 from .interface import ZmqTransport, ZmqProtocol
 from .log import logger
@@ -235,7 +233,6 @@ class _ZmqEventProtocol(ZmqProtocol):
 
 class _BaseTransport(ZmqTransport):
 
-    _TCP_RE = re.compile('^tcp://(.+):(\d+)|\*$')
     LOG_THRESHOLD_FOR_CONNLOST_WRITES = 5
     ZMQ_TYPES = {getattr(zmq, name): name
                  for name in ('PUB', 'SUB', 'REP', 'REQ',
@@ -478,9 +475,6 @@ class _BaseTransport(ZmqTransport):
             if not isinstance(endpoint, str):
                 raise TypeError('endpoint should be str, got {!r}'
                                 .format(endpoint))
-            match = self._TCP_RE.match(endpoint)
-            if match:
-                ip_address(match.group(1))  # check for correct IPv4 or IPv6
             try:
                 self._zmq_sock.connect(endpoint)
             except zmq.ZMQError as exc:

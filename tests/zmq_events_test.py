@@ -372,15 +372,20 @@ class BaseZmqEventLoopTestsMixin:
         self.loop.run_until_complete(connect())
 
     def test_create_zmq_connection_dns_in_connect(self):
+        port = find_unused_port()
 
         @asyncio.coroutine
         def connect():
-            with self.assertRaises(ValueError):
-                yield from aiozmq.create_zmq_connection(
-                    lambda: Protocol(self.loop),
-                    zmq.SUB,
-                    connect='tcp://example.com:5555',
-                    loop=self.loop)
+            addr = 'tcp://localhost:{}'.format(port)
+            tr, pr = yield from aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.SUB,
+                connect=addr,
+                loop=self.loop)
+            yield from pr.connected
+
+            self.assertEqual({addr}, tr.connections())
+            tr.close()
 
         self.loop.run_until_complete(connect())
 
