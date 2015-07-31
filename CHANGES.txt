@@ -1,7 +1,7 @@
 CHANGES
 -------
 
-0.7.0 (XXXX-XX-XX)
+0.7.0 (2015-07-31)
 ^^^^^^^^^^^^^^^^^^
 
 * Implement monitoring ZMQ events #50
@@ -9,6 +9,8 @@ CHANGES
 * Do deeper lookup for inhereted classes #54
 
 * Relax endpont check #56
+
+* Implement monitoring events for stream api #52
 
 0.6.1 (2015-05-19)
 ^^^^^^^^^^^^^^^^^^
