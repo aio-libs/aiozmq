@@ -90,7 +90,7 @@ def go():
     yield from cp.wait_done
 
     # The socket monitor can be explicitly disabled if necessary.
-    # ct.disable_monitor()
+    # yield from ct.disable_monitor()
 
     # If a socket monitor is left enabled on a socket being closed,
     # the socket monitor will be closed automatically.

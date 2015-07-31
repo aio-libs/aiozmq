@@ -34,9 +34,10 @@ class ZmqTransportTests(unittest.TestCase):
         self.assertRaises(NotImplementedError, tr.subscribe, b'filter')
         self.assertRaises(NotImplementedError, tr.unsubscribe, b'filter')
         self.assertRaises(NotImplementedError, tr.subscriptions)
-        self.assertRaises(NotImplementedError, tr.disable_monitor)
         with self.assertRaises(NotImplementedError):
             self.loop.run_until_complete(tr.enable_monitor())
+        with self.assertRaises(NotImplementedError):
+            self.loop.run_until_complete(tr.disable_monitor())
 
 
 class ZmqProtocolTests(unittest.TestCase):

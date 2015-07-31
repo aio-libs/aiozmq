@@ -557,6 +557,7 @@ class _BaseTransport(ZmqTransport):
             self._zmq_sock.monitor(addr, events)
             yield from self._monitor.wait_ready
 
+    @asyncio.coroutine
     def disable_monitor(self):
         if self._monitor:
             self._zmq_sock.disable_monitor()

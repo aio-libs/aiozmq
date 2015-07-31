@@ -95,7 +95,7 @@ class ZmqSocketMonitorTests(unittest.TestCase):
             ct.write([b'Hello'])
             yield from cp.wait_done
 
-            ct.disable_monitor()
+            yield from ct.disable_monitor()
 
             ct.close()
             yield from cp.wait_closed
@@ -158,11 +158,11 @@ class ZmqSocketMonitorTests(unittest.TestCase):
             # cause an error
             yield from ct.enable_monitor()
 
-            ct.disable_monitor()
+            yield from ct.disable_monitor()
 
             # Disabling the monitor after it is already disabled should not
             # cause an error
-            ct.disable_monitor()
+            yield from ct.disable_monitor()
 
             ct.close()
             yield from cp.wait_closed
