@@ -125,7 +125,7 @@ create_zmq_stream
    :return: ZeroMQ stream object, :class:`ZmqStream` instance.
 
 
-   .. versionadded:: 0.7.0
+   .. versionadded:: 0.7
 
       events_backlog parameter
 
@@ -191,7 +191,7 @@ ZmqStream
 
           yield from stream.transport.enable_monitor()
 
-      .. versionadded:: 0.7.0
+      .. versionadded:: 0.7
 
    .. method:: write(msg)
 

@@ -369,12 +369,15 @@ ZmqTransport
       :raise NotImplementedError: if *libzmq* or *pyzmq* versions do
          not support socket monitoring.
 
+      .. versionadded:: 0.7
+
    .. method:: disable_monitor()
 
       Stop the socket event monitor.
 
       This method is a coroutine.
 
+      .. versionadded:: 0.7
 
 
 ZmqProtocol
@@ -451,6 +454,8 @@ ZmqProtocol
       :param event: a SocketEvent namedtuple containing 3 items:
         `event`, `value`, and `endpoint`.
       :type event: :class:`namedtuple`
+
+      .. versionadded:: 0.7
 
 Exception policy
 ----------------
