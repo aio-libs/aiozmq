@@ -55,7 +55,8 @@ create_zmq_stream
 .. function:: create_zmq_stream(zmq_type, *, bind=None, connect=None, \
                                 loop=None, zmq_sock=None, \
                                 high_read=None, low_read=None, \
-                                high_write=None, low_write=None)
+                                high_write=None, low_write=None, \
+                                events_backlog=100)
 
    A wrapper for :func:`create_zmq_connection` returning a ZeroMQ
    stream (:class:`ZmqStream` instance).
@@ -114,7 +115,19 @@ create_zmq_stream
                          :term:`ZeroMQ` socket. ``None`` by default
                          (no limits).
 
+   :param int events_backlog: backlog size for monitoring events,
+      ``100`` by default.  It specifies size of event queue. If count
+      of unread events exceeds *events_backlog* the oldest events are
+      discarded.
+
+      Use ``None`` for unlimited backlog size.
+
    :return: ZeroMQ stream object, :class:`ZmqStream` instance.
+
+
+   .. versionadded:: 0.7.0
+
+      events_backlog parameter
 
 
 ZmqStream
@@ -166,6 +179,19 @@ ZmqStream
       Read one :term:`ZeroMQ` message from the wire and return it.
 
       Raise :exc:`ZmqStreamClosed` if the stream was closed.
+
+   .. method:: read_event()
+
+      Read one :term:`ZeroMQ` monitoring event and return it.
+
+      Raise :exc:`ZmqStreamClosed` if the stream was closed.
+
+      Monitoring mode should be enabled by
+      :meth:`ZmqTransport.enable_monitor` call first::
+
+          yield from stream.transport.enable_monitor()
+
+      .. versionadded:: 0.7.0
 
    .. method:: write(msg)
 

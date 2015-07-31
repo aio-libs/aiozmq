@@ -351,7 +351,7 @@ ZmqTransport
 
       :raise NotImplementedError: the transport is not *SUB*.
 
-   .. method:: enable_monitor(events=None):
+   .. method:: enable_monitor(events=None)
 
       Enables socket events to be reported for this socket. Socket events are
       passed to the protocol's :meth:`ZmqProtocol.event_received` method.
@@ -361,17 +361,19 @@ ZmqTransport
 
       This method is a coroutine.
 
-      :param events: a bitmask of socket events to watch for. If no value is
-        specified then all events will monitored (i.e. zmq.EVENT_ALL). For list
-        of available events please see:
-        http://api.zeromq.org/4-0:zmq-socket-monitor
+      :param events: a bitmask of socket events to watch for. If no
+         value is specified then all events will monitored
+         (i.e. ``zmq.EVENT_ALL``). For list of available events please
+         see: http://api.zeromq.org/4-0:zmq-socket-monitor
 
-      :raise NotImplementedError: if libzmq or pyzmq versions do not support
-        socket monitoring.
+      :raise NotImplementedError: if *libzmq* or *pyzmq* versions do
+         not support socket monitoring.
 
-   .. method:: disable_monitor():
+   .. method:: disable_monitor()
 
       Stop the socket event monitor.
+
+      This method is a coroutine.
 
 
 
