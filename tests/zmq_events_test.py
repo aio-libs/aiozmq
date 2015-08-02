@@ -29,8 +29,8 @@ class Protocol(aiozmq.ZmqProtocol):
     def connection_lost(self, exc):
         assert self.state == 'CONNECTED', self.state
         self.state = 'CLOSED'
-        self.closed.set_result(None)
         self.transport = None
+        self.closed.set_result(None)
 
     def pause_writing(self):
         self.paused = True

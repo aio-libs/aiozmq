@@ -631,7 +631,7 @@ class _ZmqTransportImpl(_BaseTransport):
             return
         self._closing = True
         if self._monitor:
-            self.disable_monitor()
+            asyncio.Task(self.disable_monitor(), loop=self._loop)
         if not self._paused:
             self._loop.remove_reader(self._zmq_sock)
         if not self._buffer:
@@ -642,7 +642,7 @@ class _ZmqTransportImpl(_BaseTransport):
         if self._conn_lost:
             return
         if self._monitor:
-            self.disable_monitor()
+            asyncio.Task(self.disable_monitor(), loop=self._loop)
         if self._buffer:
             self._buffer.clear()
             self._buffer_size = 0
@@ -761,7 +761,7 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
             return
         self._closing = True
         if self._monitor:
-            self.disable_monitor()
+            asyncio.Task(self.disable_monitor(), loop=self._loop)
         if not self._buffer:
             self._conn_lost += 1
             if not self._paused:
@@ -772,7 +772,7 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
         if self._conn_lost:
             return
         if self._monitor:
-            self.disable_monitor()
+            asyncio.Task(self.disable_monitor(), loop=self._loop)
         if self._buffer:
             self._buffer.clear()
             self._buffer_size = 0
