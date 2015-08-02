@@ -538,7 +538,7 @@ class _BaseTransport(ZmqTransport):
         # performs the actions in the wrong order for use with an event
         # loop.
         # For more information on this issue see:
-        # https://github.com/mkoppanen/php-zmq/issues/130
+        # http://lists.zeromq.org/pipermail/zeromq-dev/2015-July/029181.html
 
         if (zmq.zmq_version_info() < (4,) or
                 zmq.pyzmq_version_info() < (14, 4,)):
@@ -559,6 +559,9 @@ class _BaseTransport(ZmqTransport):
 
     @asyncio.coroutine
     def disable_monitor(self):
+        self._disable_monitor()
+
+    def _disable_monitor(self):
         if self._monitor:
             self._zmq_sock.disable_monitor()
             self._monitor.transport.close()
@@ -631,7 +634,7 @@ class _ZmqTransportImpl(_BaseTransport):
             return
         self._closing = True
         if self._monitor:
-            asyncio.Task(self.disable_monitor(), loop=self._loop)
+            self._disable_monitor()
         if not self._paused:
             self._loop.remove_reader(self._zmq_sock)
         if not self._buffer:
@@ -642,7 +645,7 @@ class _ZmqTransportImpl(_BaseTransport):
         if self._conn_lost:
             return
         if self._monitor:
-            asyncio.Task(self.disable_monitor(), loop=self._loop)
+            self._disable_monitor()
         if self._buffer:
             self._buffer.clear()
             self._buffer_size = 0
@@ -761,7 +764,7 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
             return
         self._closing = True
         if self._monitor:
-            asyncio.Task(self.disable_monitor(), loop=self._loop)
+            self._disable_monitor()
         if not self._buffer:
             self._conn_lost += 1
             if not self._paused:
@@ -772,7 +775,7 @@ class _ZmqLooplessTransportImpl(_BaseTransport):
         if self._conn_lost:
             return
         if self._monitor:
-            asyncio.Task(self.disable_monitor(), loop=self._loop)
+            self._disable_monitor()
         if self._buffer:
             self._buffer.clear()
             self._buffer_size = 0
