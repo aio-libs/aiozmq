@@ -1,6 +1,13 @@
 CHANGES
 -------
 
+0.7.1 (2015-09-20)
+^^^^^^^^^^^^^^^^^^
+
+* Fix monitoring events implementation
+
+* Make the library compatible with Python 3.5
+
 0.7.0 (2015-07-31)
 ^^^^^^^^^^^^^^^^^^
 
