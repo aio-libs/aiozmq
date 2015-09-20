@@ -6,7 +6,6 @@ python:
   - "3.4"
 
 before_install:
-  - apt-get update -qq
   - apt-get install -qq libzmq3-dev
 
 install:
