@@ -124,7 +124,7 @@ class FuncAnnotationsTestsMixin:
                 yield from client.call.single_param(None)
 
             if sys.version_info >= (3, 5):
-                msg = "missing a required argument: 'arg'"
+                msg = "TypeError.*missing a required argument: 'arg'"
             else:
                 msg = "TypeError.*'arg' parameter lacking default value"
 
@@ -134,7 +134,7 @@ class FuncAnnotationsTestsMixin:
                 yield from client.call.single_param(bad='value')
 
             if sys.version_info >= (3, 5):
-                msg = "got an unexpected keyword argument 'bad'"
+                msg = "TypeError.*got an unexpected keyword argument 'bad'"
             else:
                 msg = "TypeError.*too many keyword arguments"
 
