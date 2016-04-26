@@ -248,7 +248,11 @@ class _BaseServerProtocol(_BaseProtocol):
                     pprint.pformat(args), pprint.pformat(kwargs))  # noqa
 
     def add_pending(self, coro):
-        fut = asyncio.async(coro, loop=self.loop)
+        if hasattr(asyncio, 'ensure_future'):
+            fut = asyncio.ensure_future(coro, loop=self.loop)
+        else:
+            # Deprecated since version 3.4.4.
+            fut = asyncio.async(coro, loop=self.loop)
         self.pending_waiters.add(fut)
         return fut
 
