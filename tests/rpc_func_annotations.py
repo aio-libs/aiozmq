@@ -1,6 +1,8 @@
 import unittest
 import asyncio
 
+import sys
+
 import aiozmq
 import aiozmq.rpc
 from aiozmq._test_util import find_unused_port
@@ -121,13 +123,21 @@ class FuncAnnotationsTestsMixin:
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
                 yield from client.call.single_param(None)
 
-            msg = "TypeError.*'arg' parameter lacking default value"
+            if sys.version_info >= (3, 5):
+                msg = "TypeError.*missing a required argument: 'arg'"
+            else:
+                msg = "TypeError.*'arg' parameter lacking default value"
+
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
                 yield from client.call.single_param()
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
                 yield from client.call.single_param(bad='value')
 
-            msg = "TypeError.*too many keyword arguments"
+            if sys.version_info >= (3, 5):
+                msg = "TypeError.*got an unexpected keyword argument 'bad'"
+            else:
+                msg = "TypeError.*too many keyword arguments"
+
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
                 yield from client.call.single_param(1, bad='value')
 

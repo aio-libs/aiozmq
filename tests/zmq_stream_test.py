@@ -6,7 +6,7 @@ from unittest import mock
 
 from aiozmq.core import SocketEvent
 from aiozmq._test_util import check_errno, find_unused_port
-
+from aiozmq.rpc.base import ensure_future
 
 ZMQ_EVENTS = [
     getattr(zmq, attr) for attr in dir(zmq) if attr.startswith('EVENT_')]
@@ -230,7 +230,7 @@ class ZmqStreamTests(unittest.TestCase):
             def f():
                 yield from s1.read()
 
-            t1 = asyncio.async(f(), loop=self.loop)
+            t1 = ensure_future(f(), loop=self.loop)
             # to run f() up to yield from
             yield from asyncio.sleep(0.001, loop=self.loop)
 
@@ -259,7 +259,7 @@ class ZmqStreamTests(unittest.TestCase):
             def f():
                 yield from s1.read()
 
-            t1 = asyncio.async(f(), loop=self.loop)
+            t1 = ensure_future(f(), loop=self.loop)
             # to run f() up to yield from
             yield from asyncio.sleep(0.001, loop=self.loop)
 
@@ -286,7 +286,7 @@ class ZmqStreamTests(unittest.TestCase):
             def f():
                 yield from s1.read()
 
-            t1 = asyncio.async(f(), loop=self.loop)
+            t1 = ensure_future(f(), loop=self.loop)
             # to run f() up to yield from
             yield from asyncio.sleep(0.001, loop=self.loop)
 
@@ -310,7 +310,7 @@ class ZmqStreamTests(unittest.TestCase):
             def f():
                 yield from s1.read()
 
-            t1 = asyncio.async(f(), loop=self.loop)
+            t1 = ensure_future(f(), loop=self.loop)
             # to run f() up to yield from
             yield from asyncio.sleep(0.001, loop=self.loop)
 
@@ -335,7 +335,7 @@ class ZmqStreamTests(unittest.TestCase):
             def f():
                 yield from s1.read()
 
-            t1 = asyncio.async(f(), loop=self.loop)
+            t1 = ensure_future(f(), loop=self.loop)
             # to run f() up to yield from
             yield from asyncio.sleep(0.001, loop=self.loop)
 
@@ -361,7 +361,7 @@ class ZmqStreamTests(unittest.TestCase):
             def f():
                 yield from s1.read()
 
-            t1 = asyncio.async(f(), loop=self.loop)
+            t1 = ensure_future(f(), loop=self.loop)
             # to run f() up to yield from
             yield from asyncio.sleep(0.001, loop=self.loop)
 
@@ -447,7 +447,7 @@ class ZmqStreamTests(unittest.TestCase):
             def f():
                 yield from s1.drain()
 
-            fut = asyncio.async(f(), loop=self.loop)
+            fut = ensure_future(f(), loop=self.loop)
             yield from asyncio.sleep(0.01, loop=self.loop)
 
             self.assertTrue(s1._protocol._paused)
@@ -492,7 +492,7 @@ class ZmqStreamTests(unittest.TestCase):
             def f():
                 yield from s1.drain()
 
-            fut = asyncio.async(f(), loop=self.loop)
+            fut = ensure_future(f(), loop=self.loop)
             yield from asyncio.sleep(0.01, loop=self.loop)
 
             s1.close()
@@ -535,7 +535,7 @@ class ZmqStreamTests(unittest.TestCase):
             def f():
                 yield from s1.drain()
 
-            fut = asyncio.async(f(), loop=self.loop)
+            fut = ensure_future(f(), loop=self.loop)
             yield from asyncio.sleep(0.01, loop=self.loop)
 
             exc = RuntimeError("exception")
@@ -596,7 +596,7 @@ class ZmqStreamTests(unittest.TestCase):
                 loop=self.loop)
 
             events = []
-            t = asyncio.async(f(s2, events), loop=self.loop)
+            t = ensure_future(f(s2, events), loop=self.loop)
 
             yield from s2.transport.enable_monitor()
             yield from s2.transport.connect(addr)
