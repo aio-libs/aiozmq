@@ -109,7 +109,7 @@ The basic usage is::
     :param float timeout: an optional timeout for RPC calls. If
        *timeout* is not *None* and remote call takes longer than
        *timeout* seconds then :exc:`asyncio.TimeoutError` will be raised
-       at client side. If the server will return an answer after timeout
+       on client side. If the server will return an answer after timeout
        has been raised that answer **is ignored**.
 
        .. seealso:: :meth:`RPCClient.with_timeout` method.
@@ -413,7 +413,7 @@ The basic usage is::
 
 .. _aiozmq-rpc-exception-translation:
 
-Exception translation at client side
+Exception translation on client side
 ====================================
 
 If a remote server method raises an exception, that exception is passed
@@ -521,11 +521,11 @@ You always can write a custom validator::
        def func(self, arg: int_or_none):
            return arg
 
-Writing a tons of custom validators is inconvinient, so we recommend
+Writing a tons of custom validators is inconvenient, so we recommend
 to use :term:`trafaret` library (can be installed via ``pip3 install
 trafaret``).
 
-This is example of trararet annotation::
+This is example of trafaret annotation::
 
    import trafaret as t
 
@@ -543,7 +543,7 @@ can create custom trafarets if needed. It's easy, trust me.
 Value translators
 =================
 
-aiozmq.rpc uses :term:`msgpack` for transfering python objects from
+aiozmq.rpc uses :term:`msgpack` for transferring python objects from
 client to server and back.
 
 You can think about :term:`msgpack` as: this is a-like JSON but fast
@@ -774,7 +774,7 @@ Exceptions
       :attr:`Service.transport` property.
 
 
-Clases
+Classes
 ======
 
 .. decorator:: method
@@ -792,11 +792,11 @@ Clases
            return a + b
 
    Methods are objects that returned by
-   :meth:`AbstractHander.__getitem__` lookup at RPC method search
+   :meth:`AbstractHandler.__getitem__` lookup at RPC method search
    stage.
 
 
-.. class:: AbstractHander
+.. class:: AbstractHandler
 
    The base class for all RPC handlers.
 
@@ -824,7 +824,7 @@ Clases
    Subclass of :class:`AbstractHandler`. Does lookup for *subhandlers*
    and *rpc methods* by :func:`getattr`.
 
-   There is an example of trivial *handler*::
+   Here is an example of a trivial *handler*::
 
        class ServerHandler(aiozmq.rpc.AttrHandler):
            @aiozmq.rpc.method
@@ -839,7 +839,7 @@ Clases
    RPC service base class.
 
    Instances of *Service* (or descendants) are returned by
-   coroutines that creates clients or servers (:func:`connect_rpc`,
+   coroutines that create clients or servers (:func:`connect_rpc`,
    :func:`serve_rpc` and others).
 
    Implements :class:`asyncio.AbstractServer`.
@@ -880,18 +880,18 @@ Clases
       The readonly property that returns ephemeral object used to making
       RPC call.
 
-      Construction like::
+      A construction like::
 
           ret = yield from client.call.ns.method(1, 2, 3)
 
-      makes a remote call with arguments(1, 2, 3) and returns answer
+      makes a remote call with arguments(1, 2, 3) and returns the answer
       from this call.
 
       You can also pass *named parameters*::
 
           ret = yield from client.call.ns.method(1, b=2, c=3)
 
-      If the call raises exception that exception propagates to client side.
+      If the call raises an exception that exception propagates to client side.
 
       Say, if remote raises :class:`ValueError` client catches
       ``ValueError`` instance with *args* sent by remote::
@@ -916,7 +916,7 @@ Clases
       :param float timeout: a timeout for RPC calls. If
          *timeout* is not *None* and remote call takes longer than
          *timeout* seconds then :exc:`asyncio.TimeoutError` will be raised
-         at client side. If the server will return an answer after timeout
+         on client side. If the server will return an answer after timeout
          has been raised that answer **is ignored**.
 
          .. seealso:: :func:`connect_rpc` coroutine.
@@ -947,17 +947,17 @@ Clases
 
 .. class:: PubSubClient
 
-   Class that returned by :func:`connect_pubsub` call. Inherited from
+   Class that is returned by :func:`connect_pubsub` call. Inherited from
    :class:`Service`.
 
    For *pubsub* calls use :meth:`~RPCClient.publish` method.
 
    .. method:: publish(topic)
 
-      The call that returns ephemeral object used to making
+      The call that returns an ephemeral object used to make a
       *publisher call*.
 
-      Construction like::
+      A construction like::
 
           ret = yield from client.publish('topic').ns.method(1, b=2)
 
@@ -979,5 +979,5 @@ Logger
 
    The library sends log messages (:ref:`aiozmq-rpc-log-exceptions`
    for example) to this logger. You can configure your own
-   :ref:`handlers <handler>` to fiter, save or what-you-wish the log
+   :ref:`handlers <handler>` to filter, save or what-you-wish the log
    events from the library.
