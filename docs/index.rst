@@ -148,7 +148,7 @@ Example of RPC usage::
         client = yield from aiozmq.rpc.connect_rpc(
             connect='tcp://127.0.0.1:5555')
 
-        ret = yield from client.rpc.remote_func(1, 2)
+        ret = yield from client.call.remote_func(1, 2)
         assert 3 == ret
 
         server.close()
