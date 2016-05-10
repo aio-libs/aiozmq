@@ -133,6 +133,7 @@ Low-level request-reply example::
 
 Example of RPC usage::
 
+    import asyncio
     import aiozmq.rpc
 
     class ServerHandler(aiozmq.rpc.AttrHandler):
