@@ -775,7 +775,7 @@ Exceptions
 
 
 Classes
-======
+=======
 
 .. decorator:: method
 

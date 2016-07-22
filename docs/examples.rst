@@ -104,3 +104,11 @@ Stream socket event monitor
 ---------------------------
 
 .. literalinclude:: ../examples/stream_monitor.py
+
+
+.. _aiozmq-examples-sync-async:
+
+Synchronous and asynchronous code works together
+-------------------------------------------------
+
+.. literalinclude:: ../examples/sync_async.py
