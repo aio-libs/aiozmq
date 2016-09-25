@@ -11,6 +11,6 @@ rope_py3k
 ipython
 ipdb
 sphinx
-sphinxcontrib-spelling
+sphinxcontrib-spelling==2.2.0
 readthedocs-sphinx-ext
 -e .
