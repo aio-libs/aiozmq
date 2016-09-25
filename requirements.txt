@@ -9,7 +9,7 @@ elpy
 jedi
 rope_py3k
 ipython
-ipdb
+ipdb==0.10.1
 sphinx==1.4.6
 sphinxcontrib-spelling==2.2.0
 readthedocs-sphinx-ext
