@@ -1,4 +1,4 @@
-matplotlib
+matplotlib==1.5.3
 scipy>=0.13.3
 numpy>=1.8.1
 -r requirements.txt
