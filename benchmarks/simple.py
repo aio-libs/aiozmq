@@ -9,6 +9,7 @@ import sys
 import threading
 import time
 import zmq
+import uvloop
 
 from scipy.stats import norm, tmean, tvar, tstd
 from numpy import array, arange
@@ -154,10 +155,20 @@ class ZmqDealerProtocol(aiozmq.ZmqProtocol):
         self.on_close.set_result(exc)
 
 
+def test_core_aiozmq_uvloop(count):
+    """core aiozmq with uvloop"""
+    loop = uvloop.new_event_loop()
+    return _test_core_aiozmq(count, loop)
+
+
 def test_core_aiozmq_loopless(count):
     """core aiozmq loopless"""
-    print('.', end='', flush=True)
     loop = asyncio.new_event_loop()
+    return _test_core_aiozmq(count, loop)
+
+
+def _test_core_aiozmq(count, loop):
+    print('.', end='', flush=True)
 
     @asyncio.coroutine
     def go():
@@ -273,6 +284,7 @@ def test_aiozmq_rpc(count):
 avail_tests = {f.__name__: f for f in [test_raw_zmq, test_zmq_with_poller,
                                        test_aiozmq_rpc,
                                        test_core_aiozmq_legacy,
+                                       test_core_aiozmq_uvloop,
                                        test_core_aiozmq_loopless,
                                        test_zmq_with_thread]}
 
