@@ -5,7 +5,7 @@ pyzmq>=14.2.0
 wheel>=0.23.0
 coverage>=3.7
 docutils>=0.11
-elpy==1.12.0
+elpy==1.13.0
 jedi==0.9.0
 rope-py3k==0.9.4-1
 ipython==5.1.0
