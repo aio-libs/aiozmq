@@ -15,7 +15,7 @@ install:
   - pip install pyflakes
   - pip install pep8
   - pip install docutils
-  - pip install coveralls
+  - pip install codecov
 
 script:
   - python -c "import zmq; print('ZMQ version:', zmq.zmq_version())"
@@ -25,7 +25,7 @@ script:
   - python runtests.py --coverage -v
 
 after_success:
-  - coveralls
+  - codecov
 
 env:
   matrix:
