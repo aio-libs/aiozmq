@@ -349,7 +349,7 @@ class PubSubTestsMixin(RpcMixin):
             self.assertIsInstance(task, asyncio.Task)
             server.close()
             yield from server.wait_closed()
-            yield from asyncio.sleep(0, loop=self.loop)
+            yield from asyncio.sleep(.1, loop=self.loop)
             self.assertEqual(0, len(server._proto.pending_waiters))
             fut.cancel()
 
