@@ -624,6 +624,31 @@ class ZmqStreamTests(unittest.TestCase):
 
         self.loop.run_until_complete(go())
 
+    def test_default_events_backlog(self):
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_stream(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:*',
+                loop=self.loop)
+
+            self.assertEqual(100, s1._event_queue.maxlen)
+
+        self.loop.run_until_complete(go())
+
+    def test_custom_events_backlog(self):
+        @asyncio.coroutine
+        def go():
+            s1 = yield from aiozmq.create_zmq_stream(
+                zmq.DEALER,
+                bind='tcp://127.0.0.1:*',
+                loop=self.loop,
+                events_backlog=1)
+
+            self.assertEqual(1, s1._event_queue.maxlen)
+
+        self.loop.run_until_complete(go())
+
 
 if __name__ == '__main__':
     unittest.main()
