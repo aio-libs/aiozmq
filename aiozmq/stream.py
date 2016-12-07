@@ -32,7 +32,8 @@ def create_zmq_stream(zmq_type, *, bind=None, connect=None,
     """
     if loop is None:
         loop = asyncio.get_event_loop()
-    stream = ZmqStream(loop=loop, high=high_read, low=low_read)
+    stream = ZmqStream(loop=loop, high=high_read, low=low_read,
+                       events_backlog=events_backlog)
     tr, _ = yield from create_zmq_connection(
         lambda: stream._protocol,
         zmq_type,
