@@ -6,6 +6,7 @@ names but not nicks only.
 
 Alain Péteut
 Alexey Popravka
+Andrey Khoronko
 Anton Kasyanov
 Artem Dudarev
 Chris Laws

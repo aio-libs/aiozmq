@@ -1,6 +1,11 @@
 CHANGES
 -------
 
+0.8.0 (2016-12-07)
+^^^^^^^^^^^^^^^^^^
+
+* Respect `events_backlog` parameter in zmq stream creation #86
+
 0.7.1 (2015-09-20)
 ^^^^^^^^^^^^^^^^^^
 
