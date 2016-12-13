@@ -6,6 +6,22 @@ asyncio (PEP 3156) support for ZeroMQ.
 .. image:: https://travis-ci.org/aio-libs/aiozmq.svg?branch=master
    :target: https://travis-ci.org/aio-libs/aiozmq
 
+The difference between ``aiozmq`` and vanilla ``pyzmq`` (``zmq.asyncio``).
+
+``zmq.asyncio`` works only by replacement *event loop* with custom one.
+This approach works but have two disadvantages:
+
+1. ``zmq.asyncio.ZMQEventLoop`` cannot be combined with 
+   other loop implementations (most notable is ultra fast ``uvloop``).
+
+2. It uses internal ZMQ Poller which has fast ZMQ Sockets support 
+   but doesn't intended to work fast with many (thousands) regular TCP sockets.
+   
+   In practice it means that ``zmq.asyncio`` is not recommended to be used with 
+   web servers like ``aiohttp``. 
+   
+   See also https://github.com/zeromq/pyzmq/issues/894
+
 Documentation
 -------------
 
