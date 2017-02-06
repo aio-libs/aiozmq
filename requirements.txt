@@ -3,7 +3,7 @@ pep8>=1.5.6
 pyflakes>=0.8.1
 pyzmq>=14.2.0
 wheel>=0.23.0
-ipython==5.2.0
+ipython==5.2.2
 ipdb==0.10.2
 sphinx==1.5.2
 sphinxcontrib-spelling==2.3.0
