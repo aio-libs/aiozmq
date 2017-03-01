@@ -6,7 +6,7 @@ from unittest import mock
 
 from aiozmq.core import SocketEvent
 from aiozmq._test_util import check_errno, find_unused_port
-from aiozmq.rpc.base import ensure_future
+from aiozmq.util import ensure_future
 
 ZMQ_EVENTS = [
     getattr(zmq, attr) for attr in dir(zmq) if attr.startswith('EVENT_')]

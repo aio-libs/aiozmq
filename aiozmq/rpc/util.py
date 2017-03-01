@@ -1,6 +1,7 @@
 import asyncio
 import builtins
 
+from ..util import ensure_future
 from .base import NotFoundError, ParametersError
 
 
@@ -22,10 +23,9 @@ class _MethodCall:
             raise ValueError('RPC method name is empty')
         fut = self._proto.call('.'.join(self._names), args, kwargs)
         loop = self._proto.loop
-        return asyncio.Task(asyncio.wait_for(fut,
-                                             timeout=self._timeout,
-                                             loop=loop),
-                            loop=loop)
+        return ensure_future(
+            asyncio.wait_for(fut, timeout=self._timeout, loop=loop),
+            loop=loop)
 
 
 def _fill_error_table():

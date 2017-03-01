@@ -1,7 +1,9 @@
 import collections
 import asyncio
+
 from .core import create_zmq_connection
 from .interface import ZmqProtocol
+from .util import create_future
 
 
 class ZmqStreamClosed(Exception):
@@ -102,7 +104,7 @@ class ZmqStreamProtocol(ZmqProtocol):
             return
         waiter = self._drain_waiter
         assert waiter is None or waiter.cancelled()
-        waiter = asyncio.Future(loop=self._loop)
+        waiter = create_future(loop=self._loop)
         self._drain_waiter = waiter
         yield from waiter
 
@@ -278,7 +280,7 @@ class ZmqStream:
             if self._waiter is not None:
                 raise RuntimeError('read called while another coroutine is '
                                    'already waiting for incoming data')
-            self._waiter = asyncio.Future(loop=self._loop)
+            self._waiter = create_future(loop=self._loop)
             try:
                 yield from self._waiter
             finally:
@@ -298,7 +300,7 @@ class ZmqStream:
             if self._event_waiter is not None:
                 raise RuntimeError('read_event called while another coroutine'
                                    ' is already waiting for incoming data')
-            self._event_waiter = asyncio.Future(loop=self._loop)
+            self._event_waiter = create_future(loop=self._loop)
             try:
                 yield from self._event_waiter
             finally:

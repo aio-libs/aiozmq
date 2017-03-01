@@ -7,12 +7,8 @@ from types import MethodType
 
 from .log import logger
 from .packer import _Packer
+from ..util import ensure_future, create_future
 from aiozmq import interface
-
-if hasattr(asyncio, 'ensure_future'):
-    ensure_future = asyncio.ensure_future
-else:  # Deprecated since Python version 3.4.4.
-    ensure_future = asyncio.async
 
 
 class Error(Exception):
@@ -134,7 +130,7 @@ class Service(asyncio.AbstractServer):
     def wait_closed(self):
         if self._proto.transport is None:
             return
-        waiter = asyncio.Future(loop=self._loop)
+        waiter = create_future(loop=self._loop)
         self._proto.done_waiters.append(waiter)
         yield from waiter
 

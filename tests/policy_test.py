@@ -13,7 +13,9 @@ class PolicyTests(unittest.TestCase):
         self.policy = aiozmq.ZmqEventLoopPolicy()
 
     def tearDown(self):
-        asyncio.set_event_loop_policy(None)
+        policy = asyncio.get_event_loop_policy()
+        assert not isinstance(policy, aiozmq.ZmqEventLoopPolicy), policy
+        # asyncio.set_event_loop_policy(None)
 
     def test_get_event_loop(self):
         self.assertIsNone(self.policy._local._loop)

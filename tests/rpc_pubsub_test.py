@@ -263,8 +263,9 @@ class PubSubTestsMixin(RpcMixin):
         self.loop.run_until_complete(go())
 
     def test_default_event_loop(self):
+        self.addCleanup(asyncio.set_event_loop_policy,
+                        asyncio.get_event_loop_policy())
         asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
-        self.addCleanup(asyncio.set_event_loop_policy, None)
 
         self.addCleanup(self.loop.close)
         self.loop = loop = asyncio.get_event_loop()

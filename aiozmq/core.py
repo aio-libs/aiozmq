@@ -12,7 +12,7 @@ from collections import deque, Iterable, namedtuple
 from .interface import ZmqTransport, ZmqProtocol
 from .log import logger
 from .selector import ZmqSelector
-from .util import _EndpointsSet
+from .util import _EndpointsSet, create_future
 
 
 if sys.platform == 'win32':
@@ -94,7 +94,7 @@ def create_zmq_connection(protocol_factory, zmq_type, *,
         raise OSError(exc.errno, exc.strerror) from exc
 
     protocol = protocol_factory()
-    waiter = asyncio.Future(loop=loop)
+    waiter = create_future(loop=loop)
     transport = _ZmqLooplessTransportImpl(loop, zmq_type,
                                           zmq_sock, protocol, waiter)
     yield from waiter
@@ -163,7 +163,7 @@ class ZmqEventLoop(SelectorEventLoop):
             raise OSError(exc.errno, exc.strerror) from exc
 
         protocol = protocol_factory()
-        waiter = asyncio.Future(loop=self)
+        waiter = create_future(loop=self)
         transport = _ZmqTransportImpl(self, zmq_type,
                                       zmq_sock, protocol, waiter)
         yield from waiter
@@ -209,8 +209,8 @@ class _ZmqEventProtocol(ZmqProtocol):
 
     def __init__(self, loop, main_protocol):
         self._protocol = main_protocol
-        self.wait_ready = asyncio.Future(loop=loop)
-        self.wait_closed = asyncio.Future(loop=loop)
+        self.wait_ready = create_future(loop=loop)
+        self.wait_closed = create_future(loop=loop)
 
     def connection_made(self, transport):
         self.transport = transport
@@ -431,7 +431,7 @@ class _BaseTransport(ZmqTransport):
         return self._buffer_size
 
     def bind(self, endpoint):
-        fut = asyncio.Future(loop=self._loop)
+        fut = create_future(loop=self._loop)
         try:
             if not isinstance(endpoint, str):
                 raise TypeError('endpoint should be str, got {!r}'
@@ -449,7 +449,7 @@ class _BaseTransport(ZmqTransport):
         return fut
 
     def unbind(self, endpoint):
-        fut = asyncio.Future(loop=self._loop)
+        fut = create_future(loop=self._loop)
         try:
             if not isinstance(endpoint, str):
                 raise TypeError('endpoint should be str, got {!r}'
@@ -470,7 +470,7 @@ class _BaseTransport(ZmqTransport):
         return _EndpointsSet(self._bindings)
 
     def connect(self, endpoint):
-        fut = asyncio.Future(loop=self._loop)
+        fut = create_future(loop=self._loop)
         try:
             if not isinstance(endpoint, str):
                 raise TypeError('endpoint should be str, got {!r}'
@@ -487,7 +487,7 @@ class _BaseTransport(ZmqTransport):
         return fut
 
     def disconnect(self, endpoint):
-        fut = asyncio.Future(loop=self._loop)
+        fut = create_future(loop=self._loop)
         try:
             if not isinstance(endpoint, str):
                 raise TypeError('endpoint should be str, got {!r}'
