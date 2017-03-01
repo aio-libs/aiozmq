@@ -1,6 +1,5 @@
 msgpack-python>=0.4.2
-pep8>=1.5.6
-pyflakes>=0.8.1
+flake8==3.2.1
 pyzmq>=14.2.0
 wheel>=0.23.0
 ipython==5.2.2

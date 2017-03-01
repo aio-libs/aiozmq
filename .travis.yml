@@ -1,3 +1,5 @@
+sudo: false
+
 language: python
 
 python:
@@ -6,9 +8,10 @@ python:
   - "3.5"
   - "3.6"
 
-before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq libzmq3-dev
+addons:
+  apt:
+    packages:
+    - libzmq3-dev
 
 install:
   - pip install pip setuptools wheel
@@ -37,7 +40,9 @@ env:
     - USE_MSGPACK=1 PYTHONASYNCIODEBUG=0
     - USE_MSGPACK=0 PYTHONASYNCIODEBUG=0
 
-cache: apt
+cache:
+- apt
+- pip
 
 
 deploy:
