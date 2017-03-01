@@ -1,7 +1,7 @@
 # Some simple testing tasks (sorry, UNIX only).
 
 PYTHON=python3
-PYFLAKES=pyflakes
+PYFLAKES=flake8
 
 FILTER=
 
@@ -9,22 +9,19 @@ doc:
 	cd docs && make html
 	echo "open file://`pwd`/docs/_build/html/index.html"
 
-pep:
-	pep8 aiozmq examples tests
-
 flake:
-	$(PYFLAKES) .
+	$(PYFLAKES) aiozmq examples tests
 
-test: pep flake
+test: flake
 	$(PYTHON) runtests.py $(FILTER)
 
-vtest: pep flake
+vtest: flake
 	$(PYTHON) runtests.py -v $(FILTER)
 
-testloop: pep flake
+testloop: flake
 	$(PYTHON) runtests.py --forever $(FILTER)
 
-cov cover coverage: pep flake
+cov cover coverage: flake
 	$(PYTHON) runtests.py --coverage $(FILTER)
 
 clean:
@@ -40,4 +37,4 @@ clean:
 	rm -rf coverage
 	rm -rf docs/_build
 
-.PHONY: all pep test vtest testloop cov clean
+.PHONY: all test vtest testloop cov clean
