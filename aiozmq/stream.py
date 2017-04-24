@@ -13,7 +13,7 @@ def create_zmq_stream(zmq_type, *, bind=None, connect=None,
                       loop=None, zmq_sock=None,
                       high_read=None, low_read=None,
                       high_write=None, low_write=None,
-                      events_backlog=100):
+                      events_backlog=100, zmq_context=None):
     """A wrapper for create_zmq_connection() returning a Stream instance.
 
     The arguments are all the usual arguments to create_zmq_connection()
@@ -40,7 +40,8 @@ def create_zmq_stream(zmq_type, *, bind=None, connect=None,
         bind=bind,
         connect=connect,
         zmq_sock=zmq_sock,
-        loop=loop)
+        loop=loop,
+        zmq_context=zmq_context)
     tr.set_write_buffer_limits(high_write, low_write)
     return stream
 

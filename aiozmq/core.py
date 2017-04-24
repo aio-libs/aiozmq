@@ -29,7 +29,8 @@ SocketEvent = namedtuple('SocketEvent', 'event value endpoint')
 
 @asyncio.coroutine
 def create_zmq_connection(protocol_factory, zmq_type, *,
-                          bind=None, connect=None, zmq_sock=None, loop=None):
+                          bind=None, connect=None, zmq_sock=None, loop=None,
+                          zmq_context=None):
     """A coroutine which creates a ZeroMQ connection endpoint.
 
     The return value is a pair of (transport, protocol),
@@ -74,6 +75,9 @@ def create_zmq_connection(protocol_factory, zmq_type, *,
 
     zmq_sock is a zmq.Socket instance to use preexisting object
     with created transport.
+
+    zmq_context is a zmq.Context object that should be used to create new
+    socket. If not specified, default context will be used.
     """
     if loop is None:
         loop = asyncio.get_event_loop()
@@ -82,12 +86,15 @@ def create_zmq_connection(protocol_factory, zmq_type, *,
                                                     zmq_type,
                                                     bind=bind,
                                                     connect=connect,
-                                                    zmq_sock=zmq_sock)
+                                                    zmq_sock=zmq_sock,
+                                                    zmq_context=zmq_context)
         return ret
 
     try:
         if zmq_sock is None:
-            zmq_sock = zmq.Context().instance().socket(zmq_type)
+            if zmq_context is None:
+                zmq_context = zmq.Context.instance()
+            zmq_sock = zmq_context.socket(zmq_type)
         elif zmq_sock.getsockopt(zmq.TYPE) != zmq_type:
             raise ValueError('Invalid zmq_sock type')
     except zmq.ZMQError as exc:
@@ -148,7 +155,8 @@ class ZmqEventLoop(SelectorEventLoop):
 
     @asyncio.coroutine
     def create_zmq_connection(self, protocol_factory, zmq_type, *,
-                              bind=None, connect=None, zmq_sock=None):
+                              bind=None, connect=None, zmq_sock=None,
+                              zmq_context=None):
         """A coroutine which creates a ZeroMQ connection endpoint.
 
         See aiozmq.create_zmq_connection() coroutine for details.
@@ -156,7 +164,9 @@ class ZmqEventLoop(SelectorEventLoop):
 
         try:
             if zmq_sock is None:
-                zmq_sock = self._zmq_context.socket(zmq_type)
+                if zmq_context is None:
+                    zmq_context = self._zmq_context
+                zmq_sock = zmq_context.socket(zmq_type)
             elif zmq_sock.getsockopt(zmq.TYPE) != zmq_type:
                 raise ValueError('Invalid zmq_sock type')
         except zmq.ZMQError as exc:
