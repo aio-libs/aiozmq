@@ -47,6 +47,7 @@ classifiers = [
     'Operating System :: Microsoft :: Windows',
     'Environment :: Web Environment',
     'Development Status :: 4 - Beta',
+    'Framework :: AsyncIO',
 ]
 
 
