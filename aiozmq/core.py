@@ -150,7 +150,7 @@ def _create_zmq_connection(protocol_factory, zmq_type, *, transport_factory,
             for endpoint in connect:
                 yield from transport.connect(endpoint)
         return transport, protocol, zmq_sock
-    except OSError:
+    except:
         # don't care if zmq_sock.close can raise exception
         # that should never happen
         zmq_sock.close()
