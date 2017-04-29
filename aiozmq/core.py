@@ -85,9 +85,26 @@ def create_zmq_connection(protocol_factory, zmq_type, *,
                                                     zmq_sock=zmq_sock)
         return ret
 
+    transport, protocol, _ = yield from _create_zmq_connection(
+        protocol_factory=protocol_factory,
+        zmq_type=zmq_type,
+        transport_factory=_ZmqLooplessTransportImpl,
+        bind=bind,
+        connect=connect,
+        zmq_sock=zmq_sock,
+        zmq_context=zmq.Context.instance(),
+        loop=loop
+    )
+
+    return transport, protocol
+
+
+@asyncio.coroutine
+def _create_zmq_connection(protocol_factory, zmq_type, *, transport_factory,
+                           bind, connect, zmq_sock, zmq_context, loop):
     try:
         if zmq_sock is None:
-            zmq_sock = zmq.Context().instance().socket(zmq_type)
+            zmq_sock = zmq_context.socket(zmq_type)
         elif zmq_sock.getsockopt(zmq.TYPE) != zmq_type:
             raise ValueError('Invalid zmq_sock type')
     except zmq.ZMQError as exc:
@@ -95,8 +112,8 @@ def create_zmq_connection(protocol_factory, zmq_type, *,
 
     protocol = protocol_factory()
     waiter = asyncio.Future(loop=loop)
-    transport = _ZmqLooplessTransportImpl(loop, zmq_type,
-                                          zmq_sock, protocol, waiter)
+    transport = transport_factory(loop, zmq_type,
+                                  zmq_sock, protocol, waiter)
     yield from waiter
 
     try:
@@ -117,7 +134,7 @@ def create_zmq_connection(protocol_factory, zmq_type, *,
                                      'str or iterable')
             for endpoint in connect:
                 yield from transport.connect(endpoint)
-        return transport, protocol
+        return transport, protocol, zmq_sock
     except OSError:
         # don't care if zmq_sock.close can raise exception
         # that should never happen
@@ -154,45 +171,20 @@ class ZmqEventLoop(SelectorEventLoop):
         See aiozmq.create_zmq_connection() coroutine for details.
         """
 
-        try:
-            if zmq_sock is None:
-                zmq_sock = self._zmq_context.socket(zmq_type)
-            elif zmq_sock.getsockopt(zmq.TYPE) != zmq_type:
-                raise ValueError('Invalid zmq_sock type')
-        except zmq.ZMQError as exc:
-            raise OSError(exc.errno, exc.strerror) from exc
+        transport, protocol, zmq_sock = yield from _create_zmq_connection(
+            protocol_factory=protocol_factory,
+            zmq_type=zmq_type,
+            transport_factory=_ZmqTransportImpl,
+            bind=bind,
+            connect=connect,
+            zmq_sock=zmq_sock,
+            zmq_context=self._zmq_context,
+            loop=self
+        )
 
-        protocol = protocol_factory()
-        waiter = asyncio.Future(loop=self)
-        transport = _ZmqTransportImpl(self, zmq_type,
-                                      zmq_sock, protocol, waiter)
-        yield from waiter
+        self._zmq_sockets.add(zmq_sock)
 
-        try:
-            if bind is not None:
-                if isinstance(bind, str):
-                    bind = [bind]
-                else:
-                    if not isinstance(bind, Iterable):
-                        raise ValueError('bind should be str or iterable')
-                for endpoint in bind:
-                    yield from transport.bind(endpoint)
-            if connect is not None:
-                if isinstance(connect, str):
-                    connect = [connect]
-                else:
-                    if not isinstance(connect, Iterable):
-                        raise ValueError('connect should be '
-                                         'str or iterable')
-                for endpoint in connect:
-                    yield from transport.connect(endpoint)
-            self._zmq_sockets.add(zmq_sock)
-            return transport, protocol
-        except OSError:
-            # don't care if zmq_sock.close can raise exception
-            # that should never happen
-            zmq_sock.close()
-            raise
+        return transport, protocol
 
 
 class _ZmqEventProtocol(ZmqProtocol):
