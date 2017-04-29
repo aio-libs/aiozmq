@@ -662,6 +662,21 @@ class ZmqStreamTests(unittest.TestCase):
         finally:
             custom_context.destroy()
 
+    def test_omit_zmq_type(self):
+        custom_sock = zmq.Context.instance().socket(zmq.DEALER)
+        s1 = self.loop.run_until_complete(
+            aiozmq.create_zmq_stream(zmq_sock=custom_sock,
+                                     loop=self.loop))
+
+        self.assertEqual(s1.transport.getsockopt(zmq.TYPE), zmq.DEALER)
+        self.assertEqual(s1.transport._zmq_type, zmq.DEALER)
+        s1.close()
+
+    def test_need_sock_or_type(self):
+        with self.assertRaises(ValueError):
+            self.loop.run_until_complete(
+                aiozmq.create_zmq_stream(loop=self.loop))
+
 
 if __name__ == '__main__':
     unittest.main()

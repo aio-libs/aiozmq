@@ -9,7 +9,7 @@ class ZmqStreamClosed(Exception):
 
 
 @asyncio.coroutine
-def create_zmq_stream(zmq_type, *, bind=None, connect=None,
+def create_zmq_stream(zmq_type=None, *, bind=None, connect=None,
                       loop=None, zmq_sock=None,
                       high_read=None, low_read=None,
                       high_write=None, low_write=None,

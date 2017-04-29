@@ -28,7 +28,7 @@ SocketEvent = namedtuple('SocketEvent', 'event value endpoint')
 
 
 @asyncio.coroutine
-def create_zmq_connection(protocol_factory, zmq_type, *,
+def create_zmq_connection(protocol_factory, zmq_type=None, *,
                           bind=None, connect=None, zmq_sock=None, loop=None,
                           zmq_context=None):
     """A coroutine which creates a ZeroMQ connection endpoint.
@@ -39,7 +39,8 @@ def create_zmq_connection(protocol_factory, zmq_type, *,
     protocol_factory should instantiate object with ZmqProtocol interface.
 
     zmq_type is type of ZeroMQ socket (zmq.REQ, zmq.REP, zmq.PUB, zmq.SUB,
-    zmq.PAIR, zmq.DEALER, zmq.ROUTER, zmq.PULL, zmq.PUSH, etc.)
+    zmq.PAIR, zmq.DEALER, zmq.ROUTER, zmq.PULL, zmq.PUSH, etc.). Can be
+    omitted when an existing zmq_sock is specified.
 
     bind is string or iterable of strings that specifies enpoints.
     Every endpoint creates ending for acceptin connections
@@ -113,7 +114,12 @@ def _create_zmq_connection(protocol_factory, zmq_type, *, transport_factory,
                            bind, connect, zmq_sock, zmq_context, loop):
     try:
         if zmq_sock is None:
+            if zmq_type is None:
+                raise ValueError('Either zmq_sock or zmq_type should be '
+                                 'specified')
             zmq_sock = zmq_context.socket(zmq_type)
+        elif zmq_type is None:
+            zmq_type = zmq_sock.getsockopt(zmq.TYPE)
         elif zmq_sock.getsockopt(zmq.TYPE) != zmq_type:
             raise ValueError('Invalid zmq_sock type')
     except zmq.ZMQError as exc:
@@ -173,7 +179,7 @@ class ZmqEventLoop(SelectorEventLoop):
         super().close()
 
     @asyncio.coroutine
-    def create_zmq_connection(self, protocol_factory, zmq_type, *,
+    def create_zmq_connection(self, protocol_factory, zmq_type=None, *,
                               bind=None, connect=None, zmq_sock=None,
                               zmq_context=None):
         """A coroutine which creates a ZeroMQ connection endpoint.
