@@ -649,6 +649,19 @@ class ZmqStreamTests(unittest.TestCase):
 
         self.loop.run_until_complete(go())
 
+    def test_custom_context(self):
+        custom_context = zmq.Context()
+        try:
+            s1 = self.loop.run_until_complete(
+                aiozmq.create_zmq_stream(zmq.DEALER, loop=self.loop,
+                                         zmq_context=custom_context))
+
+            self.assertIs(s1.transport._zmq_sock.context, custom_context)
+            s1.close()
+
+        finally:
+            custom_context.destroy()
+
 
 if __name__ == '__main__':
     unittest.main()
