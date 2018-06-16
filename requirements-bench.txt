@@ -1,4 +1,4 @@
-matplotlib==2.0.0
+matplotlib==2.0.2
 scipy>=0.13.3
 numpy>=1.8.1
 uvloop>=0.5.4
