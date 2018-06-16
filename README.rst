@@ -105,9 +105,8 @@ For details see https://github.com/zeromq/pyzmq/issues/894
 Requirements
 ------------
 
-* Python_ 3.3+
+* Python_ 3.4+
 * pyzmq_ 13.1+
-* asyncio_ or Python 3.4+
 * optional submodule ``aiozmq.rpc`` requires msgpack-python_ 0.4+
 
 
