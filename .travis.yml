@@ -34,16 +34,16 @@ after_success:
 env:
   matrix:
     - USE_MSGPACK=1 PYTHONASYNCIODEBUG=1
-    - USE_MSGPACK=0 PYTHONASYNCIODEBUG=1
-    - USE_MSGPACK=1 PYTHONASYNCIODEBUG=0
-    - USE_MSGPACK=0 PYTHONASYNCIODEBUG=0
+    - USE_MSGPACK= PYTHONASYNCIODEBUG=1
+    - USE_MSGPACK=1 PYTHONASYNCIODEBUG=
+    - USE_MSGPACK= PYTHONASYNCIODEBUG=
 
 cache: apt
 
 
 deploy:
   provider: pypi
-  user: andrew.svetlov
+  user: aio-libs-bot
   password:
     secure: Z2giKAktwJWUWcWqgTUYgwvc46UmvvbAPzhTu6gIODN35MPGGsk6lXZiAb3znWx3UBRmGATT70pk6VkywW72dvi0BBwFyacGUsZu0Rk/5MU5L/EkXwd+hSEzlBpijrxu4AJGnvyxCydau+tZFTrelfcedgZlY/XeBI9iLoW+LQk=
   distributions: "sdist bdist_wheel"
