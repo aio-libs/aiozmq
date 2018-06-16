@@ -75,7 +75,7 @@ def serve_proxy(options):
         print("No backend socket address specified!", file=sys.stderr)
         sys.exit(1)
 
-    ctx = zmq.Context().instance()
+    ctx = zmq.Context.instance()
 
     front_type, back_type = options.sock_types
 

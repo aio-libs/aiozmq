@@ -87,7 +87,7 @@ def create_zmq_connection(protocol_factory, zmq_type, *,
 
     try:
         if zmq_sock is None:
-            zmq_sock = zmq.Context().instance().socket(zmq_type)
+            zmq_sock = zmq.Context.instance().socket(zmq_type)
         elif zmq_sock.getsockopt(zmq.TYPE) != zmq_type:
             raise ValueError('Invalid zmq_sock type')
     except zmq.ZMQError as exc:
