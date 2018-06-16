@@ -115,6 +115,7 @@ def _is_ipv6_enabled():  # pragma: no cover
                 sock.close()
     return False
 
+
 IPV6_ENABLED = _is_ipv6_enabled()
 
 

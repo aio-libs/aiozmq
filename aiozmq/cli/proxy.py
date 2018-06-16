@@ -95,7 +95,7 @@ def serve_proxy(options):
             zmq.proxy(front, back, monitor)
         else:
             zmq.proxy(front, back)
-    except:
+    except Exception:
         return
     finally:
         front.close()

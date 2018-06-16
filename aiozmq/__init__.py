@@ -29,7 +29,7 @@ VersionInfo = namedtuple('VersionInfo',
 
 def _parse_version(ver):
     RE = (r'^(?P<major>\d+)\.(?P<minor>\d+)\.'
-          '(?P<micro>\d+)((?P<releaselevel>[a-z]+)(?P<serial>\d+)?)?$')
+          r'(?P<micro>\d+)((?P<releaselevel>[a-z]+)(?P<serial>\d+)?)?$')
     match = re.match(RE, ver)
     try:
         major = int(match.group('major'))
