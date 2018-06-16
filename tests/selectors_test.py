@@ -24,15 +24,15 @@ if hasattr(socket, 'socketpair'):
     socketpair = socket.socketpair
 else:
     def socketpair(family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0):
-        with socket.socket(family, type, proto) as l:
-            l.bind(('127.0.0.1', 0))
-            l.listen(3)
+        with socket.socket(family, type, proto) as server:
+            server.bind(('127.0.0.1', 0))
+            server.listen(3)
             c = socket.socket(family, type, proto)
             try:
-                c.connect(l.getsockname())
+                c.connect(server.getsockname())
                 caddr = c.getsockname()
                 while True:
-                    a, addr = l.accept()
+                    a, addr = server.accept()
                     # check that we've got the correct client
                     if addr == caddr:
                         return c, a

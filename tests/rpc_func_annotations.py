@@ -37,7 +37,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
     @asyncio.coroutine
-    def ret_annotation(self, arg: int=1) -> float:
+    def ret_annotation(self, arg: int = 1) -> float:
         return float(arg)
         yield
 
@@ -48,7 +48,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         yield
 
     @aiozmq.rpc.method
-    def has_default(self, arg: int=None):
+    def has_default(self, arg: int = None):
         return arg
 
 
@@ -88,7 +88,7 @@ class FuncAnnotationsTestsMixin:
         msg = "Expected return annotation to be callable"
         with self.assertRaisesRegex(ValueError, msg):
             @aiozmq.rpc.method
-            def test2() -> 'bad annotation':
+            def test2() -> 'int':
                 pass
 
     def test_no_params(self):

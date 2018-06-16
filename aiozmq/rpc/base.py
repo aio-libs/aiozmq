@@ -12,7 +12,7 @@ from aiozmq import interface
 if hasattr(asyncio, 'ensure_future'):
     ensure_future = asyncio.ensure_future
 else:  # Deprecated since Python version 3.4.4.
-    ensure_future = asyncio.async
+    ensure_future = getattr(asyncio, 'async')
 
 
 class Error(Exception):

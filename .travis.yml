@@ -1,7 +1,6 @@
 language: python
 
 python:
-  - "3.3"
   - "3.4"
   - "3.5"
 
@@ -14,13 +13,13 @@ install:
   - python setup.py install
   - test $USE_MSGPACK == 1 && pip install msgpack-python || true
   - pip install pyflakes
-  - pip install pep8
+  - pip install pycodestyle
   - pip install docutils
   - pip install codecov
 
 script:
   - python -c "import zmq; print('ZMQ version:', zmq.zmq_version())"
-  - pep8 aiozmq examples tests benchmarks
+  - pycodestyle aiozmq examples tests benchmarks
   - pyflakes .
   - python setup.py check -rm
   - if python -c "import sys; sys.exit(sys.version_info < (3,5))"; then
