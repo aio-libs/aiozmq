@@ -261,7 +261,7 @@ class BaseZmqEventLoopTestsMixin:
         self.loop.run_until_complete(go())
 
     def test_zmq_socket(self):
-        zmq_sock = zmq.Context().instance().socket(zmq.PUB)
+        zmq_sock = zmq.Context.instance().socket(zmq.PUB)
 
         @asyncio.coroutine
         def connect():
@@ -279,7 +279,7 @@ class BaseZmqEventLoopTestsMixin:
         tr.close()
 
     def test_zmq_socket_invalid_type(self):
-        zmq_sock = zmq.Context().instance().socket(zmq.PUB)
+        zmq_sock = zmq.Context.instance().socket(zmq.PUB)
 
         @asyncio.coroutine
         def connect():
@@ -296,7 +296,7 @@ class BaseZmqEventLoopTestsMixin:
         self.assertFalse(zmq_sock.closed)
 
     def test_create_zmq_connection_ZMQError(self):
-        zmq_sock = zmq.Context().instance().socket(zmq.PUB)
+        zmq_sock = zmq.Context.instance().socket(zmq.PUB)
         zmq_sock.close()
 
         @asyncio.coroutine
