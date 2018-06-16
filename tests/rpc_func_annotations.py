@@ -88,7 +88,7 @@ class FuncAnnotationsTestsMixin:
         msg = "Expected return annotation to be callable"
         with self.assertRaisesRegex(ValueError, msg):
             @aiozmq.rpc.method
-            def test2() -> 'bad annotation':
+            def test2() -> 'int':
                 pass
 
     def test_no_params(self):

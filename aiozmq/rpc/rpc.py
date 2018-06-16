@@ -237,7 +237,7 @@ class _ServerProtocol(_BaseServerProtocol):
             name = bname.decode('utf-8')
             args = self.packer.unpackb(bargs)
             kwargs = self.packer.unpackb(bkwargs)
-        except Exception as exc:
+        except Exception:
             logger.critical("Cannot unpack %r", data, exc_info=sys.exc_info())
             return
         try:
