@@ -35,6 +35,7 @@ def read_version():
         else:
             raise RuntimeError('Cannot find version in aiozmq/__init__.py')
 
+
 classifiers = [
     'License :: OSI Approved :: BSD License',
     'Intended Audience :: Developers',
