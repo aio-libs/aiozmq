@@ -1,3 +1,5 @@
+conditions: v1
+
 language: python
 
 python:
@@ -36,14 +38,25 @@ env:
 
 cache: apt
 
-
-deploy:
-  provider: pypi
-  user: aio-libs-bot
-  password:
-    secure: Z2giKAktwJWUWcWqgTUYgwvc46UmvvbAPzhTu6gIODN35MPGGsk6lXZiAb3znWx3UBRmGATT70pk6VkywW72dvi0BBwFyacGUsZu0Rk/5MU5L/EkXwd+hSEzlBpijrxu4AJGnvyxCydau+tZFTrelfcedgZlY/XeBI9iLoW+LQk=
-  distributions: "sdist bdist_wheel"
-  on:
-    tags: true
-    all_branches: true
-    python: 3.5
+jobs:
+  fast_finish: true
+  allow_failures:
+  - python: 3.7
+  include:
+  - python: 3.7
+    dist: xenial
+    sudo: required
+  - stage: Deploy to PYPI
+    python: 3.6
+    script: skip
+    after_success: []
+    deploy:
+      provider: pypi
+      user: aio-libs-bot
+      password:
+        secure: Z2giKAktwJWUWcWqgTUYgwvc46UmvvbAPzhTu6gIODN35MPGGsk6lXZiAb3znWx3UBRmGATT70pk6VkywW72dvi0BBwFyacGUsZu0Rk/5MU5L/EkXwd+hSEzlBpijrxu4AJGnvyxCydau+tZFTrelfcedgZlY/XeBI9iLoW+LQk=
+      distributions: "sdist bdist_wheel"
+      on:
+        tags: true
+        all_branches: true
+        python: 3.6
