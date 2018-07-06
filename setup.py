@@ -15,9 +15,9 @@ elif PY_VER >= (3, 3):
 else:
     raise RuntimeError("aiozmq doesn't support Python earlier than 3.3")
 
-tests_require = install_requires + ['msgpack-python>=0.4.0']
+tests_require = install_requires + ['msgpack>=0.5.0']
 
-extras_require = {'rpc': ['msgpack-python>=0.4.0']}
+extras_require = {'rpc': ['msgpack>=0.5.0']}
 
 
 def read(f):
