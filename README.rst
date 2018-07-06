@@ -107,7 +107,7 @@ Requirements
 
 * Python_ 3.5+
 * pyzmq_ 13.1+
-* optional submodule ``aiozmq.rpc`` requires msgpack-python_ 0.4+
+* optional submodule ``aiozmq.rpc`` requires msgpack_ 0.5+
 
 
 
@@ -119,4 +119,4 @@ aiozmq is offered under the BSD license.
 .. _python: https://www.python.org/
 .. _pyzmq: https://pypi.python.org/pypi/pyzmq
 .. _asyncio: https://pypi.python.org/pypi/asyncio
-.. _msgpack-python: https://pypi.python.org/pypi/msgpack-python
+.. _msgpack: https://pypi.python.org/pypi/msgpack
