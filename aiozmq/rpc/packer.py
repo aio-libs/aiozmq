@@ -32,11 +32,11 @@ class _Packer:
             self._unpack_cache[code] = unpacker
 
     def packb(self, data):
-        return packb(data, encoding='utf-8', use_bin_type=True,
+        return packb(data, use_bin_type=True,
                      default=self.ext_type_pack_hook)
 
     def unpackb(self, packed):
-        return unpackb(packed, use_list=False, encoding='utf-8',
+        return unpackb(packed, use_list=False, raw=False,
                        ext_hook=self.ext_type_unpack_hook)
 
     def ext_type_pack_hook(self, obj, _sentinel=object()):
