@@ -3,8 +3,8 @@ asyncio integration with ZeroMQ
 
 asyncio (PEP 3156) support for ZeroMQ.
 
-.. image:: https://travis-ci.org/aio-libs/aiozmq.svg?branch=master
-   :target: https://travis-ci.org/aio-libs/aiozmq
+.. image:: https://travis-ci.com/aio-libs/aiozmq.svg?branch=master
+   :target: https://travis-ci.com/aio-libs/aiozmq
 
 The difference between ``aiozmq`` and vanilla ``pyzmq`` (``zmq.asyncio``).
 
@@ -105,7 +105,7 @@ For details see https://github.com/zeromq/pyzmq/issues/894
 Requirements
 ------------
 
-* Python_ 3.4+
+* Python_ 3.5+
 * pyzmq_ 13.1+
 * optional submodule ``aiozmq.rpc`` requires msgpack-python_ 0.4+
 
