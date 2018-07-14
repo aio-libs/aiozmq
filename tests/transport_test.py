@@ -94,7 +94,7 @@ class TestLoop(asyncio.base_events.BaseEventLoop):
 
     def assert_no_reader(self, fd):
         if fd in self.readers:
-            raise AssertionError(f'fd {fd} is registered')
+            raise AssertionError('fd {fd} is registered'.format(fd=fd))
 
     def _add_writer(self, fd, callback, *args):
         self.writers[fd] = asyncio.events.Handle(callback, args, self)
