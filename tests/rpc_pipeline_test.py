@@ -5,7 +5,6 @@ import aiozmq.rpc
 import logging
 
 from unittest import mock
-from asyncio.test_utils import run_briefly
 from aiozmq._test_util import log_hook, RpcMixin
 
 
@@ -185,8 +184,13 @@ class PipelineTestsMixin(RpcMixin):
                 self.assertEqual(('suspicious',), ret.args)
                 self.assertIsNone(ret.exc_info)
 
+        @asyncio.coroutine
+        def dummy():
+            if False:
+                yield
+
         self.loop.run_until_complete(communicate())
-        run_briefly(self.loop)
+        self.loop.run_until_complete(dummy())
 
     def test_call_closed_pipeline(self):
         client, server = self.make_pipeline_pair()
