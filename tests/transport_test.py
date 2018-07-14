@@ -84,10 +84,12 @@ class TestLoop(asyncio.base_events.BaseEventLoop):
         handle = self.readers[fd]
         if handle._callback != callback:
             raise AssertionError(
-                'unexpected callback: {handle._callback} != {callback}'.format(handle=handle, callback=callback))
+                'unexpected callback: {handle._callback} != {callback}'.format(
+                    handle=handle, callback=callback))
         if handle._args != args:
             raise AssertionError(
-                'unexpected callback args: {handle._args} != {args}'.format(handle=handle, args=args))
+                'unexpected callback args: {handle._args} != {args}'.format(
+                    handle=handle, args=args))
 
     def assert_no_reader(self, fd):
         if fd in self.readers:
