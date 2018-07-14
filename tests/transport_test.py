@@ -21,6 +21,10 @@ def dummy():
         yield
 
 
+# make_test_protocol, TestSelector, and TestLoop were taken from
+# test.test_asyncio.utils in CPython.
+# https://github.com/python/cpython/blob/9602643120a509858d0bee4215d7f150e6125468/Lib/test/test_asyncio/utils.py
+
 def make_test_protocol(base):
     dct = {}
     for name in dir(base):
@@ -52,29 +56,9 @@ class TestSelector(asyncio.selectors.BaseSelector):
 
 
 class TestLoop(asyncio.base_events.BaseEventLoop):
-    """Loop for unittests.
-
-    It manages self time directly.
-    If something scheduled to be executed later then
-    on next loop iteration after all ready handlers done
-    generator passed to __init__ is calling.
-
-    Generator should be like this:
-
-        def gen():
-            ...
-            when = yield ...
-            ... = yield time_advance
-
-    Value returned by yield is absolute time of next scheduled handler.
-    Value passed to yield is time advance to move loop's time forward.
-    """
-
     def __init__(self):
         super().__init__()
 
-        self._time = 0
-        self._clock_resolution = 1e-9
         self._selector = TestSelector()
 
         self.readers = {}
@@ -82,14 +66,6 @@ class TestLoop(asyncio.base_events.BaseEventLoop):
         self.reset_counters()
 
         self._transports = weakref.WeakValueDictionary()
-
-    def time(self):
-        return self._time
-
-    def advance_time(self, advance):
-        """Move test time forward."""
-        if advance:
-            self._time += advance
 
     def _add_reader(self, fd, callback, *args):
         self.readers[fd] = asyncio.events.Handle(callback, args, self)
@@ -104,14 +80,14 @@ class TestLoop(asyncio.base_events.BaseEventLoop):
 
     def assert_reader(self, fd, callback, *args):
         if fd not in self.readers:
-            raise AssertionError(f'fd {fd} is not registered')
+            raise AssertionError('fd {fd} is not registered'.format(fd=fd))
         handle = self.readers[fd]
         if handle._callback != callback:
             raise AssertionError(
-                f'unexpected callback: {handle._callback} != {callback}')
+                'unexpected callback: {handle._callback} != {callback}'.format(handle=handle, callback=callback))
         if handle._args != args:
             raise AssertionError(
-                f'unexpected callback args: {handle._args} != {args}')
+                'unexpected callback args: {handle._args} != {args}'.format(handle=handle, args=args))
 
     def assert_no_reader(self, fd):
         if fd in self.readers:
