@@ -5,6 +5,7 @@ import collections
 import zmq
 import aiozmq
 import errno
+import selectors
 import weakref
 
 from collections import deque
@@ -35,13 +36,13 @@ def make_test_protocol(base):
     return type('TestProtocol', (base,) + base.__bases__, dct)()
 
 
-class TestSelector(asyncio.selectors.BaseSelector):
+class TestSelector(selectors.BaseSelector):
 
     def __init__(self):
         self.keys = {}
 
     def register(self, fileobj, events, data=None):
-        key = asyncio.selectors.SelectorKey(fileobj, 0, events, data)
+        key = selectors.SelectorKey(fileobj, 0, events, data)
         self.keys[fileobj] = key
         return key
 
