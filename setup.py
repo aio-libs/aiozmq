@@ -4,7 +4,7 @@ import sys
 from setuptools import setup, find_packages
 
 
-install_requires = ['pyzmq>=13.1']
+install_requires = ['pyzmq>=13.1,<17.1.2']
 
 tests_require = install_requires + ['msgpack>=0.5.0']
 
