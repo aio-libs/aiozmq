@@ -1,5 +1,5 @@
 import asyncio
-from collections import Iterable
+from collections.abc import Iterable
 from functools import partial
 
 import zmq

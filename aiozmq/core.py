@@ -7,7 +7,8 @@ import threading
 import weakref
 import zmq
 
-from collections import deque, Iterable, namedtuple
+from collections import deque, namedtuple
+from collections.abc import Iterable
 
 from .interface import ZmqTransport, ZmqProtocol
 from .log import logger

@@ -1,6 +1,6 @@
 """ZMQ pooler for asyncio."""
 import math
-from collections import Mapping
+from collections.abc import Mapping
 from errno import EINTR
 
 from zmq import (ZMQError, POLLIN, POLLOUT, POLLERR,
