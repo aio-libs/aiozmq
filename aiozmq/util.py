@@ -1,4 +1,4 @@
-from collections import Set
+from collections.abc import Set
 
 
 class _EndpointsSet(Set):
