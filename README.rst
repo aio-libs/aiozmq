@@ -27,7 +27,9 @@ Documentation
 
 See http://aiozmq.readthedocs.org
 
-Simple high-level client-server RPC example::
+Simple high-level client-server RPC example:
+
+.. code-block:: python
 
     import asyncio
     import aiozmq.rpc
@@ -55,7 +57,9 @@ Simple high-level client-server RPC example::
 
     asyncio.get_event_loop().run_until_complete(go())
 
-Low-level request-reply example::
+Low-level request-reply example:
+
+.. code-block:: python
 
     import asyncio
     import aiozmq
