@@ -13,7 +13,7 @@ before_install:
 install:
   - pip install --upgrade pip setuptools wheel
   - python setup.py install
-  - test $USE_MSGPACK == 1 && pip install msgpack-python || true
+  - test $USE_MSGPACK == 1 && pip install msgpack || true
   - pip install pyflakes pycodestyle docutils codecov
 
 script:
