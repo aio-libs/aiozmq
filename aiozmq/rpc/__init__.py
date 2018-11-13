@@ -35,7 +35,7 @@ _MSGPACK_VERSION = (0, 4, 0)
 _MSGPACK_VERSION_STR = '.'.join(map(str, _MSGPACK_VERSION))
 
 if msgpack_version < _MSGPACK_VERSION:  # pragma: no cover
-    raise ImportError("aiozmq.rpc requires msgpack-python package"
+    raise ImportError("aiozmq.rpc requires msgpack package"
                       " (version >= {})".format(_MSGPACK_VERSION_STR))
 
 

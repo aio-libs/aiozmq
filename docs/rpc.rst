@@ -36,10 +36,10 @@ The :mod:`aiozmq.rpc` supports three pairs of communications:
    * :ref:`aiozmq-rpc-pushpull`
    * :ref:`aiozmq-rpc-pubsub`
 
-.. warning:: :mod:`aiozmq.rpc` module is **optional** and requires
-   :term:`msgpack`. You can install *msgpack-python* by executing::
+.. warning:: The :mod:`aiozmq.rpc` module is **optional** and requires
+   :term:`msgpack`. You can install *msgpack* by executing::
 
-       pip3 install msgpack-python\>=0.4.0
+       pip3 install msgpack
 
 
 .. _aiozmq-rpc-rpc:

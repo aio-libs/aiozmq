@@ -65,8 +65,8 @@ Glossary
 
       Fast and compact binary serialization format.
 
-      See http://msgpack.org/ for standard description.
-      https://pypi.python.org/pypi/msgpack-python/ is Python implementation.
+      See http://msgpack.org/ for the description of the standard.
+      https://pypi.python.org/pypi/msgpack/ is the Python implementation.
 
    pyzmq
 

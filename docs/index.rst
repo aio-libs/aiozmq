@@ -50,9 +50,9 @@ Also probably you want to use :mod:`aiozmq.rpc`.
 .. _aiozmq-install-msgpack:
 
 RPC module is **optional** and requires :term:`msgpack`. You can
-install *msgpack-python* by executing::
+install *msgpack* by executing::
 
-  pip3 install msgpack-python
+  pip3 install msgpack
 
 .. note::
 
