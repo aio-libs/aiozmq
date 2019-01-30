@@ -101,7 +101,7 @@ E.g. if you build a web server for handling at least thousands of
 parallel web requests (1000-5000) `pyzmq` internal Poller will be slow.
 
 `aiozmq` works with epoll natively, it doesn't need custom loop
-implementation and cooperates pretty weel with `uvloop` for example.
+implementation and cooperates pretty well with `uvloop` for example.
 
 For details see https://github.com/zeromq/pyzmq/issues/894
 
