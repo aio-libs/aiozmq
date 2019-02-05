@@ -1,26 +1,168 @@
 import unittest
 
 import asyncio
+import collections
 import zmq
 import aiozmq
 import errno
+import selectors
+import weakref
 
 from collections import deque
 
-from asyncio import test_utils
 from aiozmq.core import _ZmqTransportImpl, _ZmqLooplessTransportImpl
 from unittest import mock
 
 from aiozmq._test_util import check_errno
 
 
+@asyncio.coroutine
+def dummy():
+    if False:
+        yield
+
+
+# make_test_protocol, TestSelector, and TestLoop were taken from
+# test.test_asyncio.utils in CPython.
+# https://github.com/python/cpython/blob/9602643120a509858d0bee4215d7f150e6125468/Lib/test/test_asyncio/utils.py
+
+def make_test_protocol(base):
+    dct = {}
+    for name in dir(base):
+        if name.startswith('__') and name.endswith('__'):
+            # skip magic names
+            continue
+        dct[name] = mock.Mock(return_value=None)
+    return type('TestProtocol', (base,) + base.__bases__, dct)()
+
+
+class TestSelector(selectors.BaseSelector):
+
+    def __init__(self):
+        self.keys = {}
+
+    def register(self, fileobj, events, data=None):
+        key = selectors.SelectorKey(fileobj, 0, events, data)
+        self.keys[fileobj] = key
+        return key
+
+    def unregister(self, fileobj):
+        return self.keys.pop(fileobj)
+
+    def select(self, timeout):
+        return []
+
+    def get_map(self):
+        return self.keys
+
+
+class TestLoop(asyncio.base_events.BaseEventLoop):
+    def __init__(self):
+        super().__init__()
+
+        self._selector = TestSelector()
+
+        self.readers = {}
+        self.writers = {}
+        self.reset_counters()
+
+        self._transports = weakref.WeakValueDictionary()
+
+    def _add_reader(self, fd, callback, *args):
+        self.readers[fd] = asyncio.events.Handle(callback, args, self)
+
+    def _remove_reader(self, fd):
+        self.remove_reader_count[fd] += 1
+        if fd in self.readers:
+            del self.readers[fd]
+            return True
+        else:
+            return False
+
+    def assert_reader(self, fd, callback, *args):
+        if fd not in self.readers:
+            raise AssertionError('fd {fd} is not registered'.format(fd=fd))
+        handle = self.readers[fd]
+        if handle._callback != callback:
+            raise AssertionError(
+                'unexpected callback: {handle._callback} != {callback}'.format(
+                    handle=handle, callback=callback))
+        if handle._args != args:
+            raise AssertionError(
+                'unexpected callback args: {handle._args} != {args}'.format(
+                    handle=handle, args=args))
+
+    def assert_no_reader(self, fd):
+        if fd in self.readers:
+            raise AssertionError('fd {fd} is registered'.format(fd=fd))
+
+    def _add_writer(self, fd, callback, *args):
+        self.writers[fd] = asyncio.events.Handle(callback, args, self)
+
+    def _remove_writer(self, fd):
+        self.remove_writer_count[fd] += 1
+        if fd in self.writers:
+            del self.writers[fd]
+            return True
+        else:
+            return False
+
+    def assert_writer(self, fd, callback, *args):
+        assert fd in self.writers, 'fd {} is not registered'.format(fd)
+        handle = self.writers[fd]
+        assert handle._callback == callback, '{!r} != {!r}'.format(
+            handle._callback, callback)
+        assert handle._args == args, '{!r} != {!r}'.format(
+            handle._args, args)
+
+    def _ensure_fd_no_transport(self, fd):
+        try:
+            transport = self._transports[fd]
+        except KeyError:
+            pass
+        else:
+            raise RuntimeError(
+                'File descriptor {!r} is used by transport {!r}'.format(
+                    fd, transport))
+
+    def add_reader(self, fd, callback, *args):
+        """Add a reader callback."""
+        self._ensure_fd_no_transport(fd)
+        return self._add_reader(fd, callback, *args)
+
+    def remove_reader(self, fd):
+        """Remove a reader callback."""
+        self._ensure_fd_no_transport(fd)
+        return self._remove_reader(fd)
+
+    def add_writer(self, fd, callback, *args):
+        """Add a writer callback.."""
+        self._ensure_fd_no_transport(fd)
+        return self._add_writer(fd, callback, *args)
+
+    def remove_writer(self, fd):
+        """Remove a writer callback."""
+        self._ensure_fd_no_transport(fd)
+        return self._remove_writer(fd)
+
+    def reset_counters(self):
+        self.remove_reader_count = collections.defaultdict(int)
+        self.remove_writer_count = collections.defaultdict(int)
+
+    def _process_events(self, event_list):
+        return
+
+    def _write_to_self(self):
+        pass
+
+
 class TransportTests(unittest.TestCase):
 
     def setUp(self):
-        self.loop = test_utils.TestLoop()
+        self.loop = TestLoop()
         self.sock = mock.Mock()
         self.sock.closed = False
-        self.proto = test_utils.make_test_protocol(aiozmq.ZmqProtocol)
+        self.proto = make_test_protocol(aiozmq.ZmqProtocol)
         self.tr = _ZmqTransportImpl(self.loop, zmq.SUB, self.sock, self.proto)
         self.exc_handler = mock.Mock()
         self.loop.set_exception_handler(self.exc_handler)
@@ -144,7 +286,7 @@ class TransportTests(unittest.TestCase):
         self.assertIsNotNone(self.tr._loop)
         self.assertFalse(self.sock.close.called)
 
-        test_utils.run_briefly(self.loop)
+        self.loop.run_until_complete(dummy())
 
         self.proto.connection_lost.assert_called_with(None)
         self.assertIsNone(self.tr._protocol)
@@ -165,7 +307,7 @@ class TransportTests(unittest.TestCase):
         self.assertIsNotNone(self.tr._loop)
         self.assertFalse(self.sock.close.called)
 
-        test_utils.run_briefly(self.loop)
+        self.loop.run_until_complete(dummy())
 
         self.proto.connection_lost.assert_called_with(None)
         self.assertIsNone(self.tr._protocol)
@@ -191,7 +333,7 @@ class TransportTests(unittest.TestCase):
         self.assertIsNotNone(self.tr._loop)
         self.assertFalse(self.sock.close.called)
 
-        test_utils.run_briefly(self.loop)
+        self.loop.run_until_complete(dummy())
 
         self.assertIsNotNone(self.tr._protocol)
         self.assertIsNotNone(self.tr._zmq_sock)
@@ -234,7 +376,7 @@ class TransportTests(unittest.TestCase):
         self.assertIsNotNone(self.tr._loop)
         self.assertFalse(self.sock.close.called)
 
-        test_utils.run_briefly(self.loop)
+        self.loop.run_until_complete(dummy())
 
         self.proto.connection_lost.assert_called_with(None)
         self.assertIsNone(self.tr._protocol)
@@ -275,7 +417,7 @@ class TransportTests(unittest.TestCase):
         self.assertIsNotNone(self.tr._loop)
         self.assertFalse(self.sock.close.called)
 
-        test_utils.run_briefly(self.loop)
+        self.loop.run_until_complete(dummy())
 
         self.proto.connection_lost.assert_called_with(None)
         self.assertIsNone(self.tr._protocol)
@@ -296,7 +438,7 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(0, self.tr._buffer_size)
         self.assertTrue(self.tr._closing)
 
-        test_utils.run_briefly(self.loop)
+        self.loop.run_until_complete(dummy())
 
         self.assertIsNone(self.tr._protocol)
         self.assertIsNone(self.tr._zmq_sock)
@@ -318,7 +460,7 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(0, self.tr._buffer_size)
         self.assertTrue(self.tr._closing)
 
-        test_utils.run_briefly(self.loop)
+        self.loop.run_until_complete(dummy())
 
         self.assertIsNone(self.tr._protocol)
         self.assertIsNone(self.tr._zmq_sock)
@@ -340,7 +482,7 @@ class TransportTests(unittest.TestCase):
         self.assertIsNotNone(self.tr._loop)
         self.assertFalse(self.sock.close.called)
 
-        test_utils.run_briefly(self.loop)
+        self.loop.run_until_complete(dummy())
 
         self.proto.connection_lost.assert_called_with(None)
         self.assertIsNone(self.tr._protocol)
@@ -563,11 +705,11 @@ class TransportTests(unittest.TestCase):
 class LooplessTransportTests(unittest.TestCase):
 
     def setUp(self):
-        self.loop = test_utils.TestLoop()
+        self.loop = TestLoop()
         self.sock = mock.Mock()
         self.sock.closed = False
         self.waiter = asyncio.Future(loop=self.loop)
-        self.proto = test_utils.make_test_protocol(aiozmq.ZmqProtocol)
+        self.proto = make_test_protocol(aiozmq.ZmqProtocol)
         self.tr = _ZmqLooplessTransportImpl(self.loop,
                                             zmq.SUB, self.sock, self.proto,
                                             self.waiter)
