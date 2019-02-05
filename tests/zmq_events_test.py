@@ -116,6 +116,8 @@ class BaseZmqEventLoopTestsMixin:
             return tr2, pr2
 
         tr2, pr2 = self.loop.run_until_complete(connect_rep())
+        # Without this, this test hangs for some reason.
+        tr2._zmq_sock.getsockopt(zmq.EVENTS)
 
         @asyncio.coroutine
         def communicate():
