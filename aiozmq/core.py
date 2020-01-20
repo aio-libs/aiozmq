@@ -654,7 +654,10 @@ class _ZmqTransportImpl(_BaseTransport):
         if not self._closing:
             self._closing = True
             if not self._paused:
-                self._loop.remove_reader(self._zmq_sock)
+                if self._zmq_sock.closed:
+                    self._loop._remove_reader(self._zmq_sock)
+                else:
+                    self._loop.remove_reader(self._zmq_sock)
         self._conn_lost += 1
         self._loop.call_soon(self._call_connection_lost, exc)
 
