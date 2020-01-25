@@ -5,6 +5,8 @@ language: python
 python:
   - "3.5"
   - "3.6"
+  - "3.7"
+  - "3.8"
 
 before_install:
   - sudo apt-get update -qq
@@ -40,12 +42,7 @@ cache: apt
 
 jobs:
   fast_finish: true
-  allow_failures:
-  - python: 3.7
   include:
-  - python: 3.7
-    dist: xenial
-    sudo: required
   - stage: Deploy to PYPI
     python: 3.6
     script: skip
