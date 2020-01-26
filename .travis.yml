@@ -1,5 +1,3 @@
-conditions: v1
-
 language: python
 
 python:
@@ -49,9 +47,9 @@ jobs:
     after_success: []
     deploy:
       provider: pypi
-      user: aio-libs-bot
+      user: __token__
       password:
-        secure: Z2giKAktwJWUWcWqgTUYgwvc46UmvvbAPzhTu6gIODN35MPGGsk6lXZiAb3znWx3UBRmGATT70pk6VkywW72dvi0BBwFyacGUsZu0Rk/5MU5L/EkXwd+hSEzlBpijrxu4AJGnvyxCydau+tZFTrelfcedgZlY/XeBI9iLoW+LQk=
+        secure: "v8PyRILsi3Nk/m1ETM0vF7PkZKK9k1lOk1HtJG7482svHdyMbGTxfjzloI4GXN639o0UptHrFxcnKzRuLqFeNVxSjeWPZfA1ra+AnPKMVAfebrFwRGcIHbvBNbnrQ7swujTHduD6QZ5wZr+F9W9k2WaujHkU1eNhbPSEg2fGyiCGEsMSEruh0wC9ZRi1zwGg3S4vhSMbX7qR0AHw7i0Uuo2wVr9+BZLXILMDxmPpwaKUGxmva92ThQvNiSsqLpmCjAbKeayC7rxNpMpfVpuSI8sfXUhIotXfJIfQdHZx2j/G3dLgPcSg4Sp6AwdrRNkRN0l64T9rlab/I9sJ2ny2mpHBabt8Zb3D9RCz3BE1hlTPsw9O6j5LUAVFaap+Ivmwaaqn/As2eXkFTEI+9o9YGNIlujhbMfk96QYUbyCZbIrN3hF23yqRhbkGM5/kI8pzattI1ucePPIOX46wQ+LkzaotFaBgAba1sHbI2BABEoTFV6SQ7uXwr8LPT36cnjFkJM2PflrRInyFh6qK1AO6eWAFIQshYY4h2/3lxVXhTS1ofYexLEf5F1+oZvaTVbhSEabJlaV15k+Z48d2+uqx2QP0C0AXYKWlKLIibuULdbdCCNd75WztEeww617HghXgqy+LM32kOlBR3T5yv1EJfaatME7hq8ysHW35fzDXAS8="
       distributions: "sdist bdist_wheel"
       on:
         tags: true
