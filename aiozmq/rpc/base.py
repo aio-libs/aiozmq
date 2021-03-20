@@ -260,7 +260,7 @@ class _BaseServerProtocol(_BaseProtocol):
                 )  # noqa
 
     def add_pending(self, coro):
-        fut = ensure_future(coro, loop=self.loop)
+        fut = ensure_future(coro)
         self.pending_waiters.add(fut)
         return fut
 

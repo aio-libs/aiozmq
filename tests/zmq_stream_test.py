@@ -194,7 +194,7 @@ class ZmqStreamTests(unittest.TestCase):
             async def f():
                 await s1.read()
 
-            t1 = ensure_future(f(), loop=self.loop)
+            t1 = ensure_future(f())
             # to run f() up to await
             await asyncio.sleep(0.001)
 
@@ -220,7 +220,7 @@ class ZmqStreamTests(unittest.TestCase):
             async def f():
                 await s1.read()
 
-            t1 = ensure_future(f(), loop=self.loop)
+            t1 = ensure_future(f())
             # to run f() up to await
             await asyncio.sleep(0.001)
 
@@ -245,7 +245,7 @@ class ZmqStreamTests(unittest.TestCase):
             async def f():
                 await s1.read()
 
-            t1 = ensure_future(f(), loop=self.loop)
+            t1 = ensure_future(f())
             # to run f() up to await
             await asyncio.sleep(0.001)
 
@@ -267,7 +267,7 @@ class ZmqStreamTests(unittest.TestCase):
             async def f():
                 await s1.read()
 
-            t1 = ensure_future(f(), loop=self.loop)
+            t1 = ensure_future(f())
             # to run f() up to await
             await asyncio.sleep(0.001)
 
@@ -290,7 +290,7 @@ class ZmqStreamTests(unittest.TestCase):
             async def f():
                 await s1.read()
 
-            t1 = ensure_future(f(), loop=self.loop)
+            t1 = ensure_future(f())
             # to run f() up to await
             await asyncio.sleep(0.001)
 
@@ -314,7 +314,7 @@ class ZmqStreamTests(unittest.TestCase):
             async def f():
                 await s1.read()
 
-            t1 = ensure_future(f(), loop=self.loop)
+            t1 = ensure_future(f())
             # to run f() up to await
             await asyncio.sleep(0.001)
 
@@ -391,7 +391,7 @@ class ZmqStreamTests(unittest.TestCase):
             async def f():
                 await s1.drain()
 
-            fut = ensure_future(f(), loop=self.loop)
+            fut = ensure_future(f())
             await asyncio.sleep(0.01)
 
             self.assertTrue(s1._protocol._paused)
@@ -431,7 +431,7 @@ class ZmqStreamTests(unittest.TestCase):
             async def f():
                 await s1.drain()
 
-            fut = ensure_future(f(), loop=self.loop)
+            fut = ensure_future(f())
             await asyncio.sleep(0.01)
 
             s1.close()
@@ -469,7 +469,7 @@ class ZmqStreamTests(unittest.TestCase):
             async def f():
                 await s1.drain()
 
-            fut = ensure_future(f(), loop=self.loop)
+            fut = ensure_future(f())
             await asyncio.sleep(0.01)
 
             exc = RuntimeError("exception")
