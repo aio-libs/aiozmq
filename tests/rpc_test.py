@@ -54,11 +54,11 @@ class MyHandler(aiozmq.rpc.AttrHandler):
     @aiozmq.rpc.method
     @asyncio.coroutine
     def fut(self):
-        return asyncio.Future(loop=self.loop)
+        return asyncio.Future()
 
     @aiozmq.rpc.method
     async def cancelled_fut(self):
-        ret = asyncio.Future(loop=self.loop)
+        ret = asyncio.Future()
         ret.cancel()
         return ret
 
@@ -75,10 +75,10 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 class Protocol(aiozmq.ZmqProtocol):
     def __init__(self, loop):
         self.transport = None
-        self.connected = asyncio.Future(loop=loop)
-        self.closed = asyncio.Future(loop=loop)
+        self.connected = asyncio.Future()
+        self.closed = asyncio.Future()
         self.state = "INITIAL"
-        self.received = asyncio.Queue(loop=loop)
+        self.received = asyncio.Queue()
 
     def connection_made(self, transport):
         self.transport = transport
@@ -695,7 +695,7 @@ class LoopRpcTests(unittest.TestCase, RpcTestsMixin):
         self.loop = aiozmq.ZmqEventLoop()
         asyncio.set_event_loop(self.loop)
         self.client = self.server = None
-        self.err_queue = asyncio.Queue(loop=self.loop)
+        self.err_queue = asyncio.Queue()
 
     def tearDown(self):
         self.close_service(self.client)
@@ -710,7 +710,7 @@ class LoopLessRpcTests(unittest.TestCase, RpcTestsMixin):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.client = self.server = None
-        self.err_queue = asyncio.Queue(loop=self.loop)
+        self.err_queue = asyncio.Queue()
 
     def tearDown(self):
         self.close_service(self.client)

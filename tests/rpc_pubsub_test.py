@@ -37,7 +37,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
     async def fut(self):
-        f = asyncio.Future(loop=self.loop)
+        f = asyncio.Future()
         await self.queue.put(f)
         await f
 
@@ -344,10 +344,10 @@ class PubSubTestsMixin(RpcMixin):
 class LoopPubSubTests(unittest.TestCase, PubSubTestsMixin):
     def setUp(self):
         self.loop = aiozmq.ZmqEventLoop()
-        asyncio.set_event_loop(None)
+        asyncio.set_event_loop(self.loop)
         self.client = self.server = None
-        self.queue = asyncio.Queue(loop=self.loop)
-        self.err_queue = asyncio.Queue(loop=self.loop)
+        self.queue = asyncio.Queue()
+        self.err_queue = asyncio.Queue()
 
     def tearDown(self):
         self.close_service(self.client)
@@ -360,10 +360,10 @@ class LoopPubSubTests(unittest.TestCase, PubSubTestsMixin):
 class LooplessPubSubTests(unittest.TestCase, PubSubTestsMixin):
     def setUp(self):
         self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(None)
+        asyncio.set_event_loop(self.loop)
         self.client = self.server = None
-        self.queue = asyncio.Queue(loop=self.loop)
-        self.err_queue = asyncio.Queue(loop=self.loop)
+        self.queue = asyncio.Queue()
+        self.err_queue = asyncio.Queue()
 
     def tearDown(self):
         self.close_service(self.client)

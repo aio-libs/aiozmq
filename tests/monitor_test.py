@@ -13,10 +13,10 @@ ZMQ_EVENTS = [getattr(zmq, attr) for attr in dir(zmq) if attr.startswith("EVENT_
 
 class Protocol(aiozmq.ZmqProtocol):
     def __init__(self, loop):
-        self.wait_ready = asyncio.Future(loop=loop)
-        self.wait_done = asyncio.Future(loop=loop)
-        self.wait_closed = asyncio.Future(loop=loop)
-        self.events_received = asyncio.Queue(loop=loop)
+        self.wait_ready = asyncio.Future()
+        self.wait_done = asyncio.Future()
+        self.wait_closed = asyncio.Future()
+        self.events_received = asyncio.Queue()
 
     def connection_made(self, transport):
         self.transport = transport

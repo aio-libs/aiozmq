@@ -36,7 +36,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
     async def fut(self):
-        f = asyncio.Future(loop=self.loop)
+        f = asyncio.Future()
         await self.queue.put(f)
         await f
 
@@ -211,10 +211,10 @@ class PipelineTestsMixin(RpcMixin):
 class LoopPipelineTests(unittest.TestCase, PipelineTestsMixin):
     def setUp(self):
         self.loop = aiozmq.ZmqEventLoop()
-        asyncio.set_event_loop(None)
+        asyncio.set_event_loop(self.loop)
         self.client = self.server = None
-        self.queue = asyncio.Queue(loop=self.loop)
-        self.err_queue = asyncio.Queue(loop=self.loop)
+        self.queue = asyncio.Queue()
+        self.err_queue = asyncio.Queue()
         self.loop.set_exception_handler(self.exception_handler)
 
     def tearDown(self):
@@ -228,10 +228,10 @@ class LoopPipelineTests(unittest.TestCase, PipelineTestsMixin):
 class LooplessPipelineTests(unittest.TestCase, PipelineTestsMixin):
     def setUp(self):
         self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(None)
+        asyncio.set_event_loop(self.loop)
         self.client = self.server = None
-        self.queue = asyncio.Queue(loop=self.loop)
-        self.err_queue = asyncio.Queue(loop=self.loop)
+        self.queue = asyncio.Queue()
+        self.err_queue = asyncio.Queue()
         self.loop.set_exception_handler(self.exception_handler)
 
     def tearDown(self):

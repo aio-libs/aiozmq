@@ -110,7 +110,7 @@ class _ClientProtocol(_BaseProtocol):
         bargs = self.packer.packb(args)
         bkwargs = self.packer.packb(kwargs)
         self.transport.write([bname, bargs, bkwargs])
-        fut = asyncio.Future(loop=self.loop)
+        fut = asyncio.Future()
         fut.set_result(None)
         return fut
 
@@ -140,13 +140,13 @@ class _ServerProtocol(_BaseServerProtocol):
             func = self.dispatch(name)
             args, kwargs, ret_ann = self.check_args(func, args, kwargs)
         except (NotFoundError, ParametersError) as exc:
-            fut = asyncio.Future(loop=self.loop)
+            fut = asyncio.Future()
             fut.set_exception(exc)
         else:
             if asyncio.iscoroutinefunction(func):
                 fut = self.add_pending(func(*args, **kwargs))
             else:
-                fut = asyncio.Future(loop=self.loop)
+                fut = asyncio.Future()
                 try:
                     fut.set_result(func(*args, **kwargs))
                 except Exception as exc:

@@ -13,10 +13,10 @@ from aiozmq._test_util import check_errno, find_unused_port
 class Protocol(aiozmq.ZmqProtocol):
     def __init__(self, loop):
         self.transport = None
-        self.connected = asyncio.Future(loop=loop)
-        self.closed = asyncio.Future(loop=loop)
+        self.connected = asyncio.Future()
+        self.closed = asyncio.Future()
         self.state = "INITIAL"
-        self.received = asyncio.Queue(loop=loop)
+        self.received = asyncio.Queue()
         self.paused = False
 
     def connection_made(self, transport):
@@ -843,7 +843,7 @@ class BaseZmqEventLoopTestsMixin:
 class ZmqEventLoopTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
     def setUp(self):
         self.loop = aiozmq.ZmqEventLoop()
-        asyncio.set_event_loop(None)
+        asyncio.set_event_loop(self.loop)
 
     def tearDown(self):
         self.loop.close()
@@ -854,7 +854,7 @@ class ZmqEventLoopTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
 class ZmqLooplessTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
     def setUp(self):
         self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(None)
+        asyncio.set_event_loop(self.loop)
 
     def tearDown(self):
         self.loop.close()
