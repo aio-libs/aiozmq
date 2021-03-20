@@ -69,7 +69,7 @@ class PipelineTestsMixin(RpcMixin):
             )
             connect = next(iter(server.transport.bindings()))
             client = await aiozmq.rpc.connect_pipeline(
-                connect=connect, loop=self.loop if use_loop else None
+                connect=connect if use_loop else None
             )
             return client, server
 

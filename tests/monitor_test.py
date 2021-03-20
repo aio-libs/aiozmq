@@ -71,7 +71,7 @@ class ZmqSocketMonitorTests(unittest.TestCase):
 
             # Create client but don't connect it yet.
             ct, cp = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.DEALER, loop=self.loop
+                lambda: Protocol(self.loop), zmq.DEALER
             )
             await cp.wait_ready
 
@@ -110,7 +110,7 @@ class ZmqSocketMonitorTests(unittest.TestCase):
         async def go():
 
             ct, cp = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.DEALER, loop=self.loop
+                lambda: Protocol(self.loop), zmq.DEALER
             )
             await cp.wait_ready
 
@@ -137,7 +137,7 @@ class ZmqSocketMonitorTests(unittest.TestCase):
         async def go():
 
             ct, cp = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.DEALER, loop=self.loop
+                lambda: Protocol(self.loop), zmq.DEALER
             )
             await cp.wait_ready
 

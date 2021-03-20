@@ -143,7 +143,7 @@ class BaseZmqEventLoopTestsMixin:
                 tr1.write([b"node_id", b"publish"])
                 try:
                     request = await asyncio.wait_for(
-                        pr2.received.get(), 0.1, loop=self.loop
+                        pr2.received.get(), 0.1
                     )
                     self.assertEqual([b"node_id", b"publish"], request)
                     break
@@ -254,7 +254,7 @@ class BaseZmqEventLoopTestsMixin:
 
         async def connect():
             tr, pr = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.PUB, zmq_sock=zmq_sock, loop=self.loop
+                lambda: Protocol(self.loop), zmq.PUB, zmq_sock=zmq_sock
             )
             await pr.connected
             return tr, pr
@@ -269,7 +269,7 @@ class BaseZmqEventLoopTestsMixin:
 
         async def connect():
             tr, pr = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.SUB, zmq_sock=zmq_sock, loop=self.loop
+                lambda: Protocol(self.loop), zmq.SUB, zmq_sock=zmq_sock
             )
             await pr.connected
             return tr, pr
@@ -284,7 +284,7 @@ class BaseZmqEventLoopTestsMixin:
 
         async def connect():
             tr, pr = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.SUB, zmq_sock=zmq_sock, loop=self.loop
+                lambda: Protocol(self.loop), zmq.SUB, zmq_sock=zmq_sock
             )
             await pr.connected
             return tr, pr
@@ -296,7 +296,7 @@ class BaseZmqEventLoopTestsMixin:
     def test_create_zmq_connection_invalid_bind(self):
         async def connect():
             tr, pr = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.SUB, bind=2, loop=self.loop
+                lambda: Protocol(self.loop), zmq.SUB, bind=2
             )
 
         with self.assertRaises(ValueError):
@@ -305,7 +305,7 @@ class BaseZmqEventLoopTestsMixin:
     def test_create_zmq_connection_invalid_connect(self):
         async def connect():
             tr, pr = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.SUB, connect=2, loop=self.loop
+                lambda: Protocol(self.loop), zmq.SUB, connect=2
             )
 
         with self.assertRaises(ValueError):
@@ -315,7 +315,7 @@ class BaseZmqEventLoopTestsMixin:
     def test_create_zmq_connection_closes_socket_on_bad_bind(self):
         async def connect():
             tr, pr = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.SUB, bind="badaddr", loop=self.loop
+                lambda: Protocol(self.loop), zmq.SUB, bind="badaddr"
             )
             await pr.connected
             return tr, pr
@@ -341,7 +341,7 @@ class BaseZmqEventLoopTestsMixin:
         async def connect():
             addr = "tcp://localhost:{}".format(port)
             tr, pr = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.SUB, connect=addr, loop=self.loop
+                lambda: Protocol(self.loop), zmq.SUB, connect=addr
             )
             await pr.connected
 
@@ -392,7 +392,7 @@ class BaseZmqEventLoopTestsMixin:
 
         async def connect():
             tr, pr = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.SUB, bind=addr, loop=self.loop
+                lambda: Protocol(self.loop), zmq.SUB, bind=addr
             )
             await pr.connected
 
@@ -416,7 +416,7 @@ class BaseZmqEventLoopTestsMixin:
 
         async def go():
             tr, pr = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.SUB, connect=addr, loop=self.loop
+                lambda: Protocol(self.loop), zmq.SUB, connect=addr
             )
             await pr.connected
 
@@ -773,7 +773,7 @@ class BaseZmqEventLoopTestsMixin:
         async def go():
 
             tr, pr = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.DEALER, loop=self.loop
+                lambda: Protocol(self.loop), zmq.DEALER
             )
             await pr.connected
 
@@ -799,7 +799,7 @@ class BaseZmqEventLoopTestsMixin:
         async def go():
 
             tr, pr = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.DEALER, loop=self.loop
+                lambda: Protocol(self.loop), zmq.DEALER
             )
             await pr.connected
 
@@ -877,7 +877,7 @@ class ZmqEventLoopExternalContextTests(unittest.TestCase):
             addr = list(st.bindings())[0]
 
             ct, cp = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.DEALER, connect=addr, loop=self.loop
+                lambda: Protocol(self.loop), zmq.DEALER, connect=addr
             )
             await cp.connected
 

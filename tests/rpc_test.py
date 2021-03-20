@@ -328,7 +328,7 @@ class RpcTestsMixin(RpcMixin):
             server.close()
             client.close()
             await asyncio.gather(
-                server.wait_closed(), client.wait_closed(), loop=self.loop
+                server.wait_closed(), client.wait_closed()
             )
 
         self.loop.run_until_complete(communicate())
@@ -337,7 +337,7 @@ class RpcTestsMixin(RpcMixin):
         async def go():
             with self.assertRaises(TypeError):
                 await aiozmq.rpc.serve_rpc(
-                    "Bad Handler", bind="tcp://127.0.0.1:*", loop=self.loop
+                    "Bad Handler", bind="tcp://127.0.0.1:*"
                 )
 
         self.loop.run_until_complete(go())
@@ -445,7 +445,7 @@ class RpcTestsMixin(RpcMixin):
             )
 
             client = await aiozmq.rpc.connect_rpc(
-                connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                connect="tcp://127.0.0.1:{}".format(port)
             )
 
             with log_hook("aiozmq.rpc", self.err_queue):
@@ -472,7 +472,7 @@ class RpcTestsMixin(RpcMixin):
             )
 
             client = await aiozmq.rpc.connect_rpc(
-                connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                connect="tcp://127.0.0.1:{}".format(port)
             )
 
             with log_hook("aiozmq.rpc", self.err_queue):
@@ -499,7 +499,7 @@ class RpcTestsMixin(RpcMixin):
             )
 
             client = await aiozmq.rpc.connect_rpc(
-                connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                connect="tcp://127.0.0.1:{}".format(port)
             )
 
             with log_hook("aiozmq.rpc", self.err_queue):
