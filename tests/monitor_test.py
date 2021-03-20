@@ -65,7 +65,6 @@ class ZmqSocketMonitorTests(unittest.TestCase):
                 lambda: Protocol(self.loop),
                 zmq.ROUTER,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
             await sp.wait_ready
             addr = list(st.bindings())[0]

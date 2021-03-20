@@ -42,12 +42,10 @@ class RpcTranslatorsMixin(RpcMixin):
             server = await aiozmq.rpc.serve_rpc(
                 MyHandler(),
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
                 translation_table=translation_table,
             )
             client = await aiozmq.rpc.connect_rpc(
                 connect="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
                 error_table=error_table,
                 translation_table=translation_table,
             )

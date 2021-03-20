@@ -51,7 +51,6 @@ class BaseZmqEventLoopTestsMixin:
             lambda: Protocol(self.loop),
             zmq.DEALER,
             bind="tcp://127.0.0.1:{}".format(port),
-            loop=self.loop,
         )
         self.assertEqual("CONNECTED", pr1.state)
         await pr1.connected
@@ -60,7 +59,6 @@ class BaseZmqEventLoopTestsMixin:
             lambda: Protocol(self.loop),
             zmq.ROUTER,
             connect="tcp://127.0.0.1:{}".format(port),
-            loop=self.loop,
         )
         self.assertEqual("CONNECTED", pr2.state)
         await pr2.connected
@@ -74,7 +72,6 @@ class BaseZmqEventLoopTestsMixin:
             lambda: Protocol(self.loop),
             zmq.PUB,
             bind="tcp://127.0.0.1:{}".format(port),
-            loop=self.loop,
         )
         self.assertEqual("CONNECTED", pr1.state)
         await pr1.connected
@@ -83,7 +80,6 @@ class BaseZmqEventLoopTestsMixin:
             lambda: Protocol(self.loop),
             zmq.SUB,
             connect="tcp://127.0.0.1:{}".format(port),
-            loop=self.loop,
         )
         self.assertEqual("CONNECTED", pr2.state)
         await pr2.connected
@@ -96,7 +92,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 bind="inproc://test",
-                loop=self.loop,
             )
             self.assertEqual("CONNECTED", pr1.state)
             await pr1.connected
@@ -109,7 +104,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.REP,
                 connect="inproc://test",
-                loop=self.loop,
             )
             self.assertEqual("CONNECTED", pr2.state)
             await pr2.connected
@@ -175,7 +169,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
             await pr.connected
             self.assertEqual(zmq.DEALER, tr.getsockopt(zmq.TYPE))
@@ -214,7 +207,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 bind=[addr1, addr2],
-                loop=self.loop,
             )
             await pr.connected
 
@@ -245,7 +237,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 connect=[addr1, addr2],
-                loop=self.loop,
             )
             await pr.connected
 
@@ -340,7 +331,6 @@ class BaseZmqEventLoopTestsMixin:
                     lambda: Protocol(self.loop),
                     zmq.SUB,
                     connect="badaddr",
-                    loop=self.loop,
                 )
 
         self.loop.run_until_complete(connect())
@@ -368,7 +358,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.SUB,
                 connect="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
             await pr.connected
             return tr, pr
@@ -387,7 +376,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.SUB,
                 connect="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
             await pr.connected
             return tr, pr
@@ -452,7 +440,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.PUSH,
                 bind="tcp://127.0.0.1:*",
-                loop=self.loop,
             )
             await pr.connected
             return tr, pr
@@ -468,7 +455,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.SUB,
                 bind="tcp://127.0.0.1:*",
-                loop=self.loop,
             )
             await pr.connected
             return tr, pr
@@ -486,7 +472,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.SUB,
                 bind="tcp://127.0.0.1:*",
-                loop=self.loop,
             )
             await pr.connected
             return tr, pr
@@ -511,7 +496,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.SUB,
                 bind="tcp://127.0.0.1:*",
-                loop=self.loop,
             )
             await pr.connected
             return tr, pr
@@ -529,7 +513,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.PUSH,
                 bind="tcp://127.0.0.1:*",
-                loop=self.loop,
             )
             await pr.connected
 
@@ -610,7 +593,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
         )
         tr1.close()
@@ -625,7 +607,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
         )
         self.assertFalse(tr1._paused)
@@ -642,7 +623,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
         )
         tr1.close()
@@ -656,7 +636,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
         )
         tr1.pause_reading()
@@ -672,7 +651,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
         )
         with self.assertRaises(RuntimeError):
@@ -687,7 +665,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
         )
         self.assertEqual(0, tr1._conn_lost)
@@ -708,7 +685,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
         )
         handler = mock.Mock()
@@ -740,7 +716,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
         )
         handler = mock.Mock()
@@ -758,7 +733,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
             await pr.connected
             self.assertRegex(
@@ -778,7 +752,6 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
             await pr.connected
 
@@ -868,7 +841,6 @@ class ZmqLooplessTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
         )
         handler = mock.Mock()
@@ -900,7 +872,6 @@ class ZmqEventLoopExternalContextTests(unittest.TestCase):
                 lambda: Protocol(self.loop),
                 zmq.ROUTER,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
             await sp.connected
             addr = list(st.bindings())[0]

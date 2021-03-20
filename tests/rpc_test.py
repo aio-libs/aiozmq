@@ -348,13 +348,11 @@ class RpcTestsMixin(RpcMixin):
             server = await aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
             tr, pr = await create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
                 connect="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
 
             await asyncio.sleep(0.001)
@@ -379,13 +377,11 @@ class RpcTestsMixin(RpcMixin):
             server = await aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
             tr, pr = await create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
                 connect="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
 
             with log_hook("aiozmq.rpc", self.err_queue):
@@ -410,13 +406,11 @@ class RpcTestsMixin(RpcMixin):
             server = await aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
             tr, pr = await create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
                 connect="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
 
             with log_hook("aiozmq.rpc", self.err_queue):
@@ -448,7 +442,6 @@ class RpcTestsMixin(RpcMixin):
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
 
             client = await aiozmq.rpc.connect_rpc(
@@ -476,7 +469,6 @@ class RpcTestsMixin(RpcMixin):
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
 
             client = await aiozmq.rpc.connect_rpc(
@@ -504,7 +496,6 @@ class RpcTestsMixin(RpcMixin):
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
 
             client = await aiozmq.rpc.connect_rpc(

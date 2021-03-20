@@ -568,7 +568,7 @@ class ZmqStreamTests(unittest.TestCase):
     def test_custom_events_backlog(self):
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:*", loop=self.loop, events_backlog=1
+                zmq.DEALER, bind="tcp://127.0.0.1:*", events_backlog=1
             )
 
             self.assertEqual(1, s1._event_queue.maxlen)

@@ -225,7 +225,6 @@ class PubSubTestsMixin(RpcMixin):
             server = await aiozmq.rpc.serve_pubsub(
                 MyHandler(self.queue, self.loop),
                 bind="tcp://127.0.0.1:*",
-                loop=self.loop,
             )
             self.assertRaises(TypeError, server.subscribe, 123)
 
@@ -236,7 +235,6 @@ class PubSubTestsMixin(RpcMixin):
             server = await aiozmq.rpc.serve_pubsub(
                 MyHandler(self.queue, self.loop),
                 bind="tcp://127.0.0.1:*",
-                loop=self.loop,
             )
             self.assertRaises(TypeError, server.subscribe, 123)
 
@@ -280,7 +278,6 @@ class PubSubTestsMixin(RpcMixin):
                 await aiozmq.rpc.serve_pubsub(
                     {},
                     bind="tcp://127.0.0.1:{}".format(port),
-                    loop=self.loop,
                     subscribe=123,
                 )
 
