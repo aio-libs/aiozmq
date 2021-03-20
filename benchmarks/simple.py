@@ -19,14 +19,14 @@ from matplotlib import cm
 
 def test_raw_zmq(count):
     """single thread raw zmq"""
-    print('.', end='', flush=True)
+    print(".", end="", flush=True)
     ctx = zmq.Context()
     router = ctx.socket(zmq.ROUTER)
-    router.bind('tcp://127.0.0.1:*')
-    address = router.getsockopt(zmq.LAST_ENDPOINT).rstrip(b'\0')
+    router.bind("tcp://127.0.0.1:*")
+    address = router.getsockopt(zmq.LAST_ENDPOINT).rstrip(b"\0")
     dealer = ctx.socket(zmq.DEALER)
     dealer.connect(address)
-    msg = b'func', b'\0'*200
+    msg = b"func", b"\0" * 200
 
     gc.collect()
     t1 = time.monotonic()
@@ -45,14 +45,14 @@ def test_raw_zmq(count):
 
 def test_zmq_with_poller(count):
     """single thread zmq with poller"""
-    print('.', end='', flush=True)
+    print(".", end="", flush=True)
     ctx = zmq.Context()
     router = ctx.socket(zmq.ROUTER)
-    router.bind('tcp://127.0.0.1:*')
-    address = router.getsockopt(zmq.LAST_ENDPOINT).rstrip(b'\0')
+    router.bind("tcp://127.0.0.1:*")
+    address = router.getsockopt(zmq.LAST_ENDPOINT).rstrip(b"\0")
     dealer = ctx.socket(zmq.DEALER)
     dealer.connect(address)
-    msg = b'func', b'\0'*200
+    msg = b"func", b"\0" * 200
 
     poller = zmq.Poller()
     poller.register(router)
@@ -84,12 +84,12 @@ def test_zmq_with_poller(count):
 
 def test_zmq_with_thread(count):
     """zmq with threads"""
-    print('.', end='', flush=True)
+    print(".", end="", flush=True)
     ctx = zmq.Context()
     dealer = ctx.socket(zmq.DEALER)
-    dealer.bind('tcp://127.0.0.1:*')
-    address = dealer.getsockopt(zmq.LAST_ENDPOINT).rstrip(b'\0')
-    msg = b'func', b'\0'*200
+    dealer.bind("tcp://127.0.0.1:*")
+    address = dealer.getsockopt(zmq.LAST_ENDPOINT).rstrip(b"\0")
+    msg = b"func", b"\0" * 200
 
     def router_thread():
         router = ctx.socket(zmq.ROUTER)
@@ -168,7 +168,7 @@ def test_core_aiozmq_loopless(count):
 
 
 def _test_core_aiozmq(count, loop):
-    print('.', end='', flush=True)
+    print(".", end="", flush=True)
 
     @asyncio.coroutine
     def go():
@@ -177,16 +177,19 @@ def _test_core_aiozmq(count, loop):
         router, _ = yield from aiozmq.create_zmq_connection(
             lambda: ZmqRouterProtocol(router_closed),
             zmq.ROUTER,
-            bind='tcp://127.0.0.1:*', loop=loop)
+            bind="tcp://127.0.0.1:*",
+            loop=loop,
+        )
 
         addr = next(iter(router.bindings()))
         dealer, _ = yield from aiozmq.create_zmq_connection(
             lambda: ZmqDealerProtocol(count, dealer_closed),
             zmq.DEALER,
             connect=addr,
-            loop=loop)
+            loop=loop,
+        )
 
-        msg = b'func', b'\0'*200
+        msg = b"func", b"\0" * 200
 
         gc.collect()
         t1 = time.monotonic()
@@ -205,7 +208,7 @@ def _test_core_aiozmq(count, loop):
 
 def test_core_aiozmq_legacy(count):
     """core aiozmq legacy"""
-    print('.', end='', flush=True)
+    print(".", end="", flush=True)
     loop = aiozmq.ZmqEventLoop()
 
     @asyncio.coroutine
@@ -215,16 +218,19 @@ def test_core_aiozmq_legacy(count):
         router, _ = yield from aiozmq.create_zmq_connection(
             lambda: ZmqRouterProtocol(router_closed),
             zmq.ROUTER,
-            bind='tcp://127.0.0.1:*', loop=loop)
+            bind="tcp://127.0.0.1:*",
+            loop=loop,
+        )
 
         addr = next(iter(router.bindings()))
         dealer, _ = yield from aiozmq.create_zmq_connection(
             lambda: ZmqDealerProtocol(count, dealer_closed),
             zmq.DEALER,
             connect=addr,
-            loop=loop)
+            loop=loop,
+        )
 
-        msg = b'func', b'\0'*200
+        msg = b"func", b"\0" * 200
 
         gc.collect()
         t1 = time.monotonic()
@@ -242,7 +248,6 @@ def test_core_aiozmq_legacy(count):
 
 
 class Handler(aiozmq.rpc.AttrHandler):
-
     @aiozmq.rpc.method
     def func(self, data):
         return data
@@ -250,19 +255,18 @@ class Handler(aiozmq.rpc.AttrHandler):
 
 def test_aiozmq_rpc(count):
     """aiozmq.rpc"""
-    print('.', end='', flush=True)
+    print(".", end="", flush=True)
     loop = asyncio.new_event_loop()
 
     @asyncio.coroutine
     def go():
-        server = yield from aiozmq.rpc.serve_rpc(Handler(),
-                                                 bind='tcp://127.0.0.1:*',
-                                                 loop=loop)
+        server = yield from aiozmq.rpc.serve_rpc(
+            Handler(), bind="tcp://127.0.0.1:*", loop=loop
+        )
         addr = next(iter(server.transport.bindings()))
-        client = yield from aiozmq.rpc.connect_rpc(connect=addr,
-                                                   loop=loop)
+        client = yield from aiozmq.rpc.connect_rpc(connect=addr, loop=loop)
 
-        data = b'\0'*200
+        data = b"\0" * 200
 
         gc.collect()
         t1 = time.monotonic()
@@ -281,43 +285,68 @@ def test_aiozmq_rpc(count):
     return ret
 
 
-avail_tests = {f.__name__: f for f in [test_raw_zmq, test_zmq_with_poller,
-                                       test_aiozmq_rpc,
-                                       test_core_aiozmq_legacy,
-                                       test_core_aiozmq_uvloop,
-                                       test_core_aiozmq_loopless,
-                                       test_zmq_with_thread]}
+avail_tests = {
+    f.__name__: f
+    for f in [
+        test_raw_zmq,
+        test_zmq_with_poller,
+        test_aiozmq_rpc,
+        test_core_aiozmq_legacy,
+        test_core_aiozmq_uvloop,
+        test_core_aiozmq_loopless,
+        test_zmq_with_thread,
+    ]
+}
 
 
 ARGS = argparse.ArgumentParser(description="Run benchmark.")
 ARGS.add_argument(
-    '-n', '--count', action="store",
-    nargs='?', type=int, default=1000, help='iterations count')
+    "-n",
+    "--count",
+    action="store",
+    nargs="?",
+    type=int,
+    default=1000,
+    help="iterations count",
+)
 ARGS.add_argument(
-    '-t', '--tries', action="store",
-    nargs='?', type=int, default=30, help='count of tries')
+    "-t",
+    "--tries",
+    action="store",
+    nargs="?",
+    type=int,
+    default=30,
+    help="count of tries",
+)
 ARGS.add_argument(
-    '-p', '--plot-file-name', action="store",
-    type=str, default=None,
-    dest='plot_file_name', help='file name for plot')
+    "-p",
+    "--plot-file-name",
+    action="store",
+    type=str,
+    default=None,
+    dest="plot_file_name",
+    help="file name for plot",
+)
+ARGS.add_argument("-v", "--verbose", action="count", help="verbosity level")
 ARGS.add_argument(
-    '-v', '--verbose', action="count",
-    help='verbosity level')
+    "--without-multiprocessing",
+    action="store_false",
+    default=True,
+    dest="use_multiprocessing",
+    help="don't use multiprocessing",
+)
 ARGS.add_argument(
-    '--without-multiprocessing', action="store_false", default=True,
-    dest='use_multiprocessing',
-    help="don't use multiprocessing")
-ARGS.add_argument(
-    dest='tests', type=str,
-    nargs='*', help='tests, {} by default'.format(
-        list(sorted(avail_tests))))
+    dest="tests",
+    type=str,
+    nargs="*",
+    help="tests, {} by default".format(list(sorted(avail_tests))),
+)
 
 
 def run_tests(tries, count, use_multiprocessing, funcs):
     results = {func.__doc__: [] for func in funcs}
     queue = []
-    print('Run tests for {}*{} iterations: {}'
-          .format(tries, count, sorted(results)))
+    print("Run tests for {}*{} iterations: {}".format(tries, count, sorted(results)))
     test_plan = [func for func in funcs for i in range(tries)]
     random.shuffle(test_plan)
 
@@ -349,25 +378,24 @@ def print_and_plot_results(count, results, verbose, plot_file_name):
         rps = count / array(data)
         rps_mean = tmean(rps)
         rps_var = tvar(rps)
-        low, high = norm.interval(0.95, loc=rps_mean, scale=rps_var**0.5)
+        low, high = norm.interval(0.95, loc=rps_mean, scale=rps_var ** 0.5)
         times = array(data) * 1000000 / count
         times_mean = tmean(times)
         times_stdev = tstd(times)
-        print('Results for', test_name)
-        print('RPS: {:d}: [{:d}, {:d}],\tmean: {:.3f} μs,'
-              '\tstandard deviation {:.3f} μs'
-              .format(int(rps_mean),
-                      int(low),
-                      int(high),
-                      times_mean,
-                      times_stdev))
+        print("Results for", test_name)
+        print(
+            "RPS: {:d}: [{:d}, {:d}],\tmean: {:.3f} μs,"
+            "\tstandard deviation {:.3f} μs".format(
+                int(rps_mean), int(low), int(high), times_mean, times_stdev
+            )
+        )
 
         test_name_ar.append(test_name)
         rps_mean_ar.append(rps_mean)
         rps_err_ar.append(high - rps_mean)
 
         if verbose:
-            print('    from', times)
+            print("    from", times)
         print()
 
     if plot_file_name is not None:
@@ -375,15 +403,13 @@ def print_and_plot_results(count, results, verbose, plot_file_name):
         ax = fig.add_subplot(111)
         L = len(rps_mean_ar)
         color = [cm.autumn(float(c) / (L - 1)) for c in arange(L)]
-        bars = ax.bar(
-            arange(L), rps_mean_ar,
-            color=color, yerr=rps_err_ar, ecolor='k')
+        bars = ax.bar(arange(L), rps_mean_ar, color=color, yerr=rps_err_ar, ecolor="k")
         # order of legend is reversed for visual appeal
         ax.legend(
-            reversed(bars), reversed(test_name_ar),
-            loc='upper left', framealpha=0.5)
+            reversed(bars), reversed(test_name_ar), loc="upper left", framealpha=0.5
+        )
         ax.get_xaxis().set_visible(False)
-        plt.ylabel('Requets per Second', fontsize=16)
+        plt.ylabel("Requets per Second", fontsize=16)
         plt.savefig(plot_file_name, dpi=300)
         print("Plot is saved to {}".format(plot_file_name))
         if verbose:
@@ -411,6 +437,6 @@ def main(argv):
     print_and_plot_results(count, res, verbose, plot_file_name)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.set_event_loop(None)
     sys.exit(main(sys.argv))

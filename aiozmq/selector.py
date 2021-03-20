@@ -3,16 +3,21 @@ import math
 from collections.abc import Mapping
 from errno import EINTR
 
-from zmq import (ZMQError, POLLIN, POLLOUT, POLLERR,
-                 Socket as ZMQSocket, Poller as ZMQPoller)
+from zmq import (
+    ZMQError,
+    POLLIN,
+    POLLOUT,
+    POLLERR,
+    Socket as ZMQSocket,
+    Poller as ZMQPoller,
+)
 
 
-__all__ = ['ZmqSelector']
+__all__ = ["ZmqSelector"]
 
 
 try:
-    from asyncio.selectors import (BaseSelector, SelectorKey,
-                                   EVENT_READ, EVENT_WRITE)
+    from asyncio.selectors import BaseSelector, SelectorKey, EVENT_READ, EVENT_WRITE
 except ImportError:  # pragma: no cover
     from selectors import BaseSelector, SelectorKey, EVENT_READ, EVENT_WRITE
 
@@ -37,8 +42,7 @@ def _fileobj_to_fd(fileobj):
         try:
             fd = int(fileobj.fileno())
         except (AttributeError, TypeError, ValueError):
-            raise ValueError("Invalid file object: "
-                             "{!r}".format(fileobj)) from None
+            raise ValueError("Invalid file object: " "{!r}".format(fileobj)) from None
     if fd < 0:
         raise ValueError("Invalid file descriptor: {}".format(fd))
     return fd
@@ -100,8 +104,7 @@ class ZmqSelector(BaseSelector):
         key = SelectorKey(fileobj, self._fileobj_lookup(fileobj), events, data)
 
         if key.fd in self._fd_to_key:
-            raise KeyError("{!r} (FD {}) is already registered"
-                           .format(fileobj, key.fd))
+            raise KeyError("{!r} (FD {}) is already registered".format(fileobj, key.fd))
 
         z_events = 0
         if events & EVENT_READ:

@@ -7,40 +7,45 @@ import zmq
 from .core import ZmqEventLoop, ZmqEventLoopPolicy, create_zmq_connection
 from .interface import ZmqTransport, ZmqProtocol
 from .selector import ZmqSelector
-from .stream import (ZmqStream, ZmqStreamProtocol, ZmqStreamClosed,
-                     create_zmq_stream)
+from .stream import ZmqStream, ZmqStreamProtocol, ZmqStreamClosed, create_zmq_stream
 
 
-__all__ = ('ZmqSelector', 'ZmqEventLoop', 'ZmqEventLoopPolicy',
-           'ZmqTransport', 'ZmqProtocol',
-           'ZmqStream', 'ZmqStreamProtocol', 'create_zmq_stream',
-           'ZmqStreamClosed',
-           'create_zmq_connection',
-           'version_info', 'version')
+__all__ = (
+    "ZmqSelector",
+    "ZmqEventLoop",
+    "ZmqEventLoopPolicy",
+    "ZmqTransport",
+    "ZmqProtocol",
+    "ZmqStream",
+    "ZmqStreamProtocol",
+    "create_zmq_stream",
+    "ZmqStreamClosed",
+    "create_zmq_connection",
+    "version_info",
+    "version",
+)
 
-__version__ = '0.9.0'
+__version__ = "0.9.0"
 
-version = __version__ + ' , Python ' + sys.version
+version = __version__ + " , Python " + sys.version
 
 
-VersionInfo = namedtuple('VersionInfo',
-                         'major minor micro releaselevel serial')
+VersionInfo = namedtuple("VersionInfo", "major minor micro releaselevel serial")
 
 
 def _parse_version(ver):
-    RE = (r'^(?P<major>\d+)\.(?P<minor>\d+)\.'
-          r'(?P<micro>\d+)((?P<releaselevel>[a-z]+)(?P<serial>\d+)?)?$')
+    RE = (
+        r"^(?P<major>\d+)\.(?P<minor>\d+)\."
+        r"(?P<micro>\d+)((?P<releaselevel>[a-z]+)(?P<serial>\d+)?)?$"
+    )
     match = re.match(RE, ver)
     try:
-        major = int(match.group('major'))
-        minor = int(match.group('minor'))
-        micro = int(match.group('micro'))
-        levels = {'c': 'candidate',
-                  'a': 'alpha',
-                  'b': 'beta',
-                  None: 'final'}
-        releaselevel = levels[match.group('releaselevel')]
-        serial = int(match.group('serial')) if match.group('serial') else 0
+        major = int(match.group("major"))
+        minor = int(match.group("minor"))
+        micro = int(match.group("micro"))
+        levels = {"c": "candidate", "a": "alpha", "b": "beta", None: "final"}
+        releaselevel = levels[match.group("releaselevel")]
+        serial = int(match.group("serial")) if match.group("serial") else 0
         return VersionInfo(major, minor, micro, releaselevel, serial)
     except Exception:
         raise ImportError("Invalid package version {}".format(ver))
@@ -54,6 +59,15 @@ if zmq.zmq_version_info()[0] < 3:  # pragma no cover
 
 
 # make pyflakes happy
-(ZmqSelector, ZmqEventLoop, ZmqEventLoopPolicy, ZmqTransport, ZmqProtocol,
- ZmqStream, ZmqStreamProtocol, ZmqStreamClosed, create_zmq_stream,
- create_zmq_connection)
+(
+    ZmqSelector,
+    ZmqEventLoop,
+    ZmqEventLoopPolicy,
+    ZmqTransport,
+    ZmqProtocol,
+    ZmqStream,
+    ZmqStreamProtocol,
+    ZmqStreamClosed,
+    create_zmq_stream,
+    create_zmq_connection,
+)

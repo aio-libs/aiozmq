@@ -9,10 +9,10 @@ from .log import logger
 from .packer import _Packer
 from aiozmq import interface
 
-if hasattr(asyncio, 'ensure_future'):
+if hasattr(asyncio, "ensure_future"):
     ensure_future = asyncio.ensure_future
 else:  # Deprecated since Python version 3.4.4.
-    ensure_future = getattr(asyncio, 'async')
+    ensure_future = getattr(asyncio, "async")
 
 
 class Error(Exception):
@@ -29,9 +29,9 @@ class GenericError(Error):
         self.exc_repr = exc_repr
 
     def __repr__(self):
-        return '<Generic RPC Error {}{}: {}>'.format(self.exc_type,
-                                                     self.arguments,
-                                                     self.exc_repr)
+        return "<Generic RPC Error {}{}: {}>".format(
+            self.exc_type, self.arguments, self.exc_repr
+        )
 
 
 class NotFoundError(Error, LookupError):
@@ -88,8 +88,7 @@ def method(func):
     for name, param in sig.parameters.items():
         ann = param.annotation
         if ann is not param.empty and not callable(ann):
-            raise ValueError("Expected {!r} annotation to be callable"
-                             .format(name))
+            raise ValueError("Expected {!r} annotation to be callable".format(name))
     ann = sig.return_annotation
     if ann is not sig.empty and not callable(ann):
         raise ValueError("Expected return annotation to be callable")
@@ -140,7 +139,6 @@ class Service(asyncio.AbstractServer):
 
 
 class _BaseProtocol(interface.ZmqProtocol):
-
     def __init__(self, loop, *, translation_table=None):
         self.loop = loop
         self.transport = None
@@ -159,15 +157,19 @@ class _BaseProtocol(interface.ZmqProtocol):
 
 
 class _BaseServerProtocol(_BaseProtocol):
-
-    def __init__(self, loop, handler, *,
-                 translation_table=None,
-                 log_exceptions=False,
-                 exclude_log_exceptions=(),
-                 timeout=None):
+    def __init__(
+        self,
+        loop,
+        handler,
+        *,
+        translation_table=None,
+        log_exceptions=False,
+        exclude_log_exceptions=(),
+        timeout=None
+    ):
         super().__init__(loop, translation_table=translation_table)
         if not isinstance(handler, AbstractHandler):
-            raise TypeError('handler must implement AbstractHandler')
+            raise TypeError("handler must implement AbstractHandler")
         self.handler = handler
         self.log_exceptions = log_exceptions
         self.exclude_log_exceptions = exclude_log_exceptions
@@ -182,10 +184,10 @@ class _BaseServerProtocol(_BaseProtocol):
     def dispatch(self, name):
         if not name:
             raise NotFoundError(name)
-        namespaces, sep, method = name.rpartition('.')
+        namespaces, sep, method = name.rpartition(".")
         handler = self.handler
         if namespaces:
-            for part in namespaces.split('.'):
+            for part in namespaces.split("."):
                 try:
                     handler = handler[part]
                 except KeyError:
@@ -203,7 +205,7 @@ class _BaseServerProtocol(_BaseProtocol):
                 holder = func.__func__
             else:
                 holder = func
-            if not hasattr(holder, '__rpc__'):
+            if not hasattr(holder, "__rpc__"):
                 raise NotFoundError(name)
             return func
 
@@ -230,8 +232,8 @@ class _BaseServerProtocol(_BaseProtocol):
                     arguments[name] = param.annotation(val)
                 except (TypeError, ValueError) as exc:
                     raise ParametersError(
-                        'Invalid value for argument {!r}: {!r}'
-                        .format(name, exc)) from exc
+                        "Invalid value for argument {!r}: {!r}".format(name, exc)
+                    ) from exc
             if sig.return_annotation is not sig.empty:
                 return bargs.args, bargs.kwargs, sig.return_annotation
             return bargs.args, bargs.kwargs, None
@@ -244,13 +246,19 @@ class _BaseServerProtocol(_BaseProtocol):
                 for e in self.exclude_log_exceptions:
                     if isinstance(exc, e):
                         return
-                logger.exception(textwrap.dedent("""\
+                logger.exception(
+                    textwrap.dedent(
+                        """\
                     An exception %r from method %r call occurred.
                     args = %s
                     kwargs = %s
-                    """),
-                    exc, name,
-                    pprint.pformat(args), pprint.pformat(kwargs))  # noqa
+                    """
+                    ),
+                    exc,
+                    name,
+                    pprint.pformat(args),
+                    pprint.pformat(kwargs),
+                )  # noqa
 
     def add_pending(self, coro):
         fut = ensure_future(coro, loop=self.loop)

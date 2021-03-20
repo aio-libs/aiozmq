@@ -11,24 +11,23 @@ from aiozmq._test_util import check_errno, find_unused_port
 
 
 class Protocol(aiozmq.ZmqProtocol):
-
     def __init__(self, loop):
         self.transport = None
         self.connected = asyncio.Future(loop=loop)
         self.closed = asyncio.Future(loop=loop)
-        self.state = 'INITIAL'
+        self.state = "INITIAL"
         self.received = asyncio.Queue(loop=loop)
         self.paused = False
 
     def connection_made(self, transport):
         self.transport = transport
-        assert self.state == 'INITIAL', self.state
-        self.state = 'CONNECTED'
+        assert self.state == "INITIAL", self.state
+        self.state = "CONNECTED"
         self.connected.set_result(None)
 
     def connection_lost(self, exc):
-        assert self.state == 'CONNECTED', self.state
-        self.state = 'CLOSED'
+        assert self.state == "CONNECTED", self.state
+        self.state = "CLOSED"
         self.transport = None
         self.closed.set_result(None)
 
@@ -40,12 +39,11 @@ class Protocol(aiozmq.ZmqProtocol):
 
     def msg_received(self, data):
         assert isinstance(data, list), data
-        assert self.state == 'CONNECTED', self.state
+        assert self.state == "CONNECTED", self.state
         self.received.put_nowait(data)
 
 
 class BaseZmqEventLoopTestsMixin:
-
     @asyncio.coroutine
     def make_dealer_router(self):
         port = find_unused_port()
@@ -53,17 +51,19 @@ class BaseZmqEventLoopTestsMixin:
         tr1, pr1 = yield from aiozmq.create_zmq_connection(
             lambda: Protocol(self.loop),
             zmq.DEALER,
-            bind='tcp://127.0.0.1:{}'.format(port),
-            loop=self.loop)
-        self.assertEqual('CONNECTED', pr1.state)
+            bind="tcp://127.0.0.1:{}".format(port),
+            loop=self.loop,
+        )
+        self.assertEqual("CONNECTED", pr1.state)
         yield from pr1.connected
 
         tr2, pr2 = yield from aiozmq.create_zmq_connection(
             lambda: Protocol(self.loop),
             zmq.ROUTER,
-            connect='tcp://127.0.0.1:{}'.format(port),
-            loop=self.loop)
-        self.assertEqual('CONNECTED', pr2.state)
+            connect="tcp://127.0.0.1:{}".format(port),
+            loop=self.loop,
+        )
+        self.assertEqual("CONNECTED", pr2.state)
         yield from pr2.connected
 
         return tr1, pr1, tr2, pr2
@@ -75,17 +75,19 @@ class BaseZmqEventLoopTestsMixin:
         tr1, pr1 = yield from aiozmq.create_zmq_connection(
             lambda: Protocol(self.loop),
             zmq.PUB,
-            bind='tcp://127.0.0.1:{}'.format(port),
-            loop=self.loop)
-        self.assertEqual('CONNECTED', pr1.state)
+            bind="tcp://127.0.0.1:{}".format(port),
+            loop=self.loop,
+        )
+        self.assertEqual("CONNECTED", pr1.state)
         yield from pr1.connected
 
         tr2, pr2 = yield from aiozmq.create_zmq_connection(
             lambda: Protocol(self.loop),
             zmq.SUB,
-            connect='tcp://127.0.0.1:{}'.format(port),
-            loop=self.loop)
-        self.assertEqual('CONNECTED', pr2.state)
+            connect="tcp://127.0.0.1:{}".format(port),
+            loop=self.loop,
+        )
+        self.assertEqual("CONNECTED", pr2.state)
         yield from pr2.connected
 
         return tr1, pr1, tr2, pr2
@@ -96,9 +98,10 @@ class BaseZmqEventLoopTestsMixin:
             tr1, pr1 = yield from aiozmq.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.REQ,
-                bind='inproc://test',
-                loop=self.loop)
-            self.assertEqual('CONNECTED', pr1.state)
+                bind="inproc://test",
+                loop=self.loop,
+            )
+            self.assertEqual("CONNECTED", pr1.state)
             yield from pr1.connected
             return tr1, pr1
 
@@ -109,9 +112,10 @@ class BaseZmqEventLoopTestsMixin:
             tr2, pr2 = yield from aiozmq.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.REP,
-                connect='inproc://test',
-                loop=self.loop)
-            self.assertEqual('CONNECTED', pr2.state)
+                connect="inproc://test",
+                loop=self.loop,
+            )
+            self.assertEqual("CONNECTED", pr2.state)
             yield from pr2.connected
             return tr2, pr2
 
@@ -121,12 +125,12 @@ class BaseZmqEventLoopTestsMixin:
 
         @asyncio.coroutine
         def communicate():
-            tr1.write([b'request'])
+            tr1.write([b"request"])
             request = yield from pr2.received.get()
-            self.assertEqual([b'request'], request)
-            tr2.write([b'answer'])
+            self.assertEqual([b"request"], request)
+            tr2.write([b"answer"])
             answer = yield from pr1.received.get()
-            self.assertEqual([b'answer'], answer)
+            self.assertEqual([b"answer"], answer)
 
         self.loop.run_until_complete(communicate())
 
@@ -136,26 +140,25 @@ class BaseZmqEventLoopTestsMixin:
             tr2.close()
 
             yield from pr1.closed
-            self.assertEqual('CLOSED', pr1.state)
+            self.assertEqual("CLOSED", pr1.state)
             yield from pr2.closed
-            self.assertEqual('CLOSED', pr2.state)
+            self.assertEqual("CLOSED", pr2.state)
 
         self.loop.run_until_complete(closing())
 
     def test_pub_sub(self):
-
         @asyncio.coroutine
         def go():
             tr1, pr1, tr2, pr2 = yield from self.make_pub_sub()
-            tr2.setsockopt(zmq.SUBSCRIBE, b'node_id')
+            tr2.setsockopt(zmq.SUBSCRIBE, b"node_id")
 
             for i in range(5):
-                tr1.write([b'node_id', b'publish'])
+                tr1.write([b"node_id", b"publish"])
                 try:
-                    request = yield from asyncio.wait_for(pr2.received.get(),
-                                                          0.1,
-                                                          loop=self.loop)
-                    self.assertEqual([b'node_id', b'publish'], request)
+                    request = yield from asyncio.wait_for(
+                        pr2.received.get(), 0.1, loop=self.loop
+                    )
+                    self.assertEqual([b"node_id", b"publish"], request)
                     break
                 except asyncio.TimeoutError:
                     pass
@@ -165,9 +168,9 @@ class BaseZmqEventLoopTestsMixin:
             tr1.close()
             tr2.close()
             yield from pr1.closed
-            self.assertEqual('CLOSED', pr1.state)
+            self.assertEqual("CLOSED", pr1.state)
             yield from pr2.closed
-            self.assertEqual('CLOSED', pr2.state)
+            self.assertEqual("CLOSED", pr2.state)
 
         self.loop.run_until_complete(go())
 
@@ -179,8 +182,9 @@ class BaseZmqEventLoopTestsMixin:
             tr, pr = yield from aiozmq.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
-                bind='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop)
+                bind="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+            )
             yield from pr.connected
             self.assertEqual(zmq.DEALER, tr.getsockopt(zmq.TYPE))
             return tr, pr
@@ -191,28 +195,28 @@ class BaseZmqEventLoopTestsMixin:
         @asyncio.coroutine
         def go():
             tr1, pr1, tr2, pr2 = yield from self.make_dealer_router()
-            tr1.write([b'request'])
+            tr1.write([b"request"])
             request = yield from pr2.received.get()
-            self.assertEqual([mock.ANY, b'request'], request)
-            tr2.write([request[0], b'answer'])
+            self.assertEqual([mock.ANY, b"request"], request)
+            tr2.write([request[0], b"answer"])
             answer = yield from pr1.received.get()
-            self.assertEqual([b'answer'], answer)
+            self.assertEqual([b"answer"], answer)
 
             tr1.close()
             tr2.close()
 
             yield from pr1.closed
-            self.assertEqual('CLOSED', pr1.state)
+            self.assertEqual("CLOSED", pr1.state)
             yield from pr2.closed
-            self.assertEqual('CLOSED', pr2.state)
+            self.assertEqual("CLOSED", pr2.state)
 
         self.loop.run_until_complete(go())
 
     def test_binds(self):
         port1 = find_unused_port()
         port2 = find_unused_port()
-        addr1 = 'tcp://127.0.0.1:{}'.format(port1)
-        addr2 = 'tcp://127.0.0.1:{}'.format(port2)
+        addr1 = "tcp://127.0.0.1:{}".format(port1)
+        addr2 = "tcp://127.0.0.1:{}".format(port2)
 
         @asyncio.coroutine
         def connect():
@@ -220,18 +224,20 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 bind=[addr1, addr2],
-                loop=self.loop)
+                loop=self.loop,
+            )
             yield from pr.connected
 
             self.assertEqual({addr1, addr2}, tr.bindings())
 
-            addr3 = yield from tr.bind('tcp://127.0.0.1:*')
+            addr3 = yield from tr.bind("tcp://127.0.0.1:*")
             self.assertEqual({addr1, addr2, addr3}, tr.bindings())
             yield from tr.unbind(addr2)
             self.assertEqual({addr1, addr3}, tr.bindings())
             self.assertIn(addr1, tr.bindings())
-            self.assertRegex(repr(tr.bindings()),
-                             r'{tcp://127.0.0.1:.\d+, tcp://127.0.0.1:\d+}')
+            self.assertRegex(
+                repr(tr.bindings()), r"{tcp://127.0.0.1:.\d+, tcp://127.0.0.1:\d+}"
+            )
             tr.close()
 
         self.loop.run_until_complete(connect())
@@ -240,9 +246,9 @@ class BaseZmqEventLoopTestsMixin:
         port1 = find_unused_port()
         port2 = find_unused_port()
         port3 = find_unused_port()
-        addr1 = 'tcp://127.0.0.1:{}'.format(port1)
-        addr2 = 'tcp://127.0.0.1:{}'.format(port2)
-        addr3 = 'tcp://127.0.0.1:{}'.format(port3)
+        addr1 = "tcp://127.0.0.1:{}".format(port1)
+        addr2 = "tcp://127.0.0.1:{}".format(port2)
+        addr3 = "tcp://127.0.0.1:{}".format(port3)
 
         @asyncio.coroutine
         def go():
@@ -250,7 +256,8 @@ class BaseZmqEventLoopTestsMixin:
                 lambda: Protocol(self.loop),
                 zmq.REQ,
                 connect=[addr1, addr2],
-                loop=self.loop)
+                loop=self.loop,
+            )
             yield from pr.connected
 
             self.assertEqual({addr1, addr2}, tr.connections())
@@ -268,10 +275,8 @@ class BaseZmqEventLoopTestsMixin:
         @asyncio.coroutine
         def connect():
             tr, pr = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.PUB,
-                zmq_sock=zmq_sock,
-                loop=self.loop)
+                lambda: Protocol(self.loop), zmq.PUB, zmq_sock=zmq_sock, loop=self.loop
+            )
             yield from pr.connected
             return tr, pr
 
@@ -286,10 +291,8 @@ class BaseZmqEventLoopTestsMixin:
         @asyncio.coroutine
         def connect():
             tr, pr = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.SUB,
-                zmq_sock=zmq_sock,
-                loop=self.loop)
+                lambda: Protocol(self.loop), zmq.SUB, zmq_sock=zmq_sock, loop=self.loop
+            )
             yield from pr.connected
             return tr, pr
 
@@ -304,10 +307,8 @@ class BaseZmqEventLoopTestsMixin:
         @asyncio.coroutine
         def connect():
             tr, pr = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.SUB,
-                zmq_sock=zmq_sock,
-                loop=self.loop)
+                lambda: Protocol(self.loop), zmq.SUB, zmq_sock=zmq_sock, loop=self.loop
+            )
             yield from pr.connected
             return tr, pr
 
@@ -316,60 +317,49 @@ class BaseZmqEventLoopTestsMixin:
         self.assertIn(ctx.exception.errno, (zmq.ENOTSUP, zmq.ENOTSOCK))
 
     def test_create_zmq_connection_invalid_bind(self):
-
         @asyncio.coroutine
         def connect():
             tr, pr = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.SUB,
-                bind=2,
-                loop=self.loop)
+                lambda: Protocol(self.loop), zmq.SUB, bind=2, loop=self.loop
+            )
 
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(connect())
 
     def test_create_zmq_connection_invalid_connect(self):
-
         @asyncio.coroutine
         def connect():
             tr, pr = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.SUB,
-                connect=2,
-                loop=self.loop)
+                lambda: Protocol(self.loop), zmq.SUB, connect=2, loop=self.loop
+            )
 
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(connect())
 
-    @unittest.skipIf(sys.platform == 'win32',
-                     "Windows calls abort() on bad socket")
+    @unittest.skipIf(sys.platform == "win32", "Windows calls abort() on bad socket")
     def test_create_zmq_connection_closes_socket_on_bad_bind(self):
-
         @asyncio.coroutine
         def connect():
             tr, pr = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.SUB,
-                bind='badaddr',
-                loop=self.loop)
+                lambda: Protocol(self.loop), zmq.SUB, bind="badaddr", loop=self.loop
+            )
             yield from pr.connected
             return tr, pr
 
         with self.assertRaises(OSError):
             self.loop.run_until_complete(connect())
 
-    @unittest.skipIf(sys.platform == 'win32',
-                     "Windows calls abort() on bad socket")
+    @unittest.skipIf(sys.platform == "win32", "Windows calls abort() on bad socket")
     def test_create_zmq_connection_closes_socket_on_bad_connect(self):
-
         @asyncio.coroutine
         def connect():
             with self.assertRaises(OSError):
                 yield from aiozmq.create_zmq_connection(
                     lambda: Protocol(self.loop),
                     zmq.SUB,
-                    connect='badaddr',
-                    loop=self.loop)
+                    connect="badaddr",
+                    loop=self.loop,
+                )
 
         self.loop.run_until_complete(connect())
 
@@ -378,12 +368,10 @@ class BaseZmqEventLoopTestsMixin:
 
         @asyncio.coroutine
         def connect():
-            addr = 'tcp://localhost:{}'.format(port)
+            addr = "tcp://localhost:{}".format(port)
             tr, pr = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.SUB,
-                connect=addr,
-                loop=self.loop)
+                lambda: Protocol(self.loop), zmq.SUB, connect=addr, loop=self.loop
+            )
             yield from pr.connected
 
             self.assertEqual({addr}, tr.connections())
@@ -399,8 +387,9 @@ class BaseZmqEventLoopTestsMixin:
             tr, pr = yield from aiozmq.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.SUB,
-                connect='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop)
+                connect="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+            )
             yield from pr.connected
             return tr, pr
 
@@ -418,8 +407,9 @@ class BaseZmqEventLoopTestsMixin:
             tr, pr = yield from aiozmq.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.SUB,
-                connect='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop)
+                connect="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+            )
             yield from pr.connected
             return tr, pr
 
@@ -431,116 +421,110 @@ class BaseZmqEventLoopTestsMixin:
 
     def test_unbind_from_nonbinded_addr(self):
         port = find_unused_port()
-        addr = 'tcp://127.0.0.1:{}'.format(port)
+        addr = "tcp://127.0.0.1:{}".format(port)
 
         @asyncio.coroutine
         def connect():
             tr, pr = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.SUB,
-                bind=addr,
-                loop=self.loop)
+                lambda: Protocol(self.loop), zmq.SUB, bind=addr, loop=self.loop
+            )
             yield from pr.connected
 
             self.assertEqual({addr}, tr.bindings())
             with self.assertRaises(OSError) as ctx:
-                yield from tr.unbind('ipc:///some-addr')  # non-bound addr
+                yield from tr.unbind("ipc:///some-addr")  # non-bound addr
 
             # TODO: check travis build and remove skip when test passed.
-            if (ctx.exception.errno == zmq.EAGAIN and
-                    os.environ.get('TRAVIS')):
-                raise unittest.SkipTest("Travis has a bug, it returns "
-                                        "EAGAIN for unknown endpoint")
-            self.assertIn(ctx.exception.errno,
-                          (errno.ENOENT, zmq.EPROTONOSUPPORT))
+            if ctx.exception.errno == zmq.EAGAIN and os.environ.get("TRAVIS"):
+                raise unittest.SkipTest(
+                    "Travis has a bug, it returns " "EAGAIN for unknown endpoint"
+                )
+            self.assertIn(ctx.exception.errno, (errno.ENOENT, zmq.EPROTONOSUPPORT))
             self.assertEqual({addr}, tr.bindings())
 
         self.loop.run_until_complete(connect())
 
     def test_disconnect_from_nonbinded_addr(self):
         port = find_unused_port()
-        addr = 'tcp://127.0.0.1:{}'.format(port)
+        addr = "tcp://127.0.0.1:{}".format(port)
 
         @asyncio.coroutine
         def go():
             tr, pr = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.SUB,
-                connect=addr,
-                loop=self.loop)
+                lambda: Protocol(self.loop), zmq.SUB, connect=addr, loop=self.loop
+            )
             yield from pr.connected
 
             self.assertEqual({addr}, tr.connections())
             with self.assertRaises(OSError) as ctx:
-                yield from tr.disconnect('ipc:///some-addr')  # non-bound addr
+                yield from tr.disconnect("ipc:///some-addr")  # non-bound addr
 
             # TODO: check travis build and remove skip when test passed.
-            if (ctx.exception.errno == zmq.EAGAIN and
-                    os.environ.get('TRAVIS')):
-                raise unittest.SkipTest("Travis has a bug, it returns "
-                                        "EAGAIN for unknown endpoint")
-            self.assertIn(ctx.exception.errno,
-                          (errno.ENOENT, zmq.EPROTONOSUPPORT))
+            if ctx.exception.errno == zmq.EAGAIN and os.environ.get("TRAVIS"):
+                raise unittest.SkipTest(
+                    "Travis has a bug, it returns " "EAGAIN for unknown endpoint"
+                )
+            self.assertIn(ctx.exception.errno, (errno.ENOENT, zmq.EPROTONOSUPPORT))
             self.assertEqual({addr}, tr.connections())
 
         self.loop.run_until_complete(go())
 
     def test_subscriptions_of_invalid_socket(self):
-
         @asyncio.coroutine
         def connect():
             tr, pr = yield from aiozmq.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.PUSH,
-                bind='tcp://127.0.0.1:*',
-                loop=self.loop)
+                bind="tcp://127.0.0.1:*",
+                loop=self.loop,
+            )
             yield from pr.connected
             return tr, pr
 
         tr, pr = self.loop.run_until_complete(connect())
-        self.assertRaises(NotImplementedError, tr.subscribe, b'a')
-        self.assertRaises(NotImplementedError, tr.unsubscribe, b'a')
+        self.assertRaises(NotImplementedError, tr.subscribe, b"a")
+        self.assertRaises(NotImplementedError, tr.unsubscribe, b"a")
         self.assertRaises(NotImplementedError, tr.subscriptions)
 
     def test_double_subscribe(self):
-
         @asyncio.coroutine
         def connect():
             tr, pr = yield from aiozmq.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.SUB,
-                bind='tcp://127.0.0.1:*',
-                loop=self.loop)
+                bind="tcp://127.0.0.1:*",
+                loop=self.loop,
+            )
             yield from pr.connected
             return tr, pr
 
         tr, pr = self.loop.run_until_complete(connect())
-        tr.subscribe(b'val')
-        self.assertEqual({b'val'}, tr.subscriptions())
+        tr.subscribe(b"val")
+        self.assertEqual({b"val"}, tr.subscriptions())
 
-        tr.subscribe(b'val')
-        self.assertEqual({b'val'}, tr.subscriptions())
+        tr.subscribe(b"val")
+        self.assertEqual({b"val"}, tr.subscriptions())
 
     def test_double_unsubscribe(self):
-
         @asyncio.coroutine
         def connect():
             tr, pr = yield from aiozmq.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.SUB,
-                bind='tcp://127.0.0.1:*',
-                loop=self.loop)
+                bind="tcp://127.0.0.1:*",
+                loop=self.loop,
+            )
             yield from pr.connected
             return tr, pr
 
         try:
             tr, pr = self.loop.run_until_complete(connect())
-            tr.subscribe(b'val')
-            self.assertEqual({b'val'}, tr.subscriptions())
+            tr.subscribe(b"val")
+            self.assertEqual({b"val"}, tr.subscriptions())
 
-            tr.unsubscribe(b'val')
+            tr.unsubscribe(b"val")
             self.assertFalse(tr.subscriptions())
-            tr.unsubscribe(b'val')
+            tr.unsubscribe(b"val")
             self.assertFalse(tr.subscriptions())
         except OSError as exc:
             if exc.errno == errno.ENOTSOCK:
@@ -548,33 +532,33 @@ class BaseZmqEventLoopTestsMixin:
                 raise unittest.SkipTest("Malformed answer")
 
     def test_unsubscribe_unknown_filter(self):
-
         @asyncio.coroutine
         def connect():
             tr, pr = yield from aiozmq.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.SUB,
-                bind='tcp://127.0.0.1:*',
-                loop=self.loop)
+                bind="tcp://127.0.0.1:*",
+                loop=self.loop,
+            )
             yield from pr.connected
             return tr, pr
 
         tr, pr = self.loop.run_until_complete(connect())
 
-        tr.unsubscribe(b'val')
+        tr.unsubscribe(b"val")
         self.assertFalse(tr.subscriptions())
-        tr.unsubscribe(b'val')
+        tr.unsubscribe(b"val")
         self.assertFalse(tr.subscriptions())
 
     def test_endpoint_is_not_a_str(self):
-
         @asyncio.coroutine
         def go():
             tr, pr = yield from aiozmq.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.PUSH,
-                bind='tcp://127.0.0.1:*',
-                loop=self.loop)
+                bind="tcp://127.0.0.1:*",
+                loop=self.loop,
+            )
             yield from pr.connected
 
             with self.assertRaises(TypeError):
@@ -592,15 +576,13 @@ class BaseZmqEventLoopTestsMixin:
         self.loop.run_until_complete(go())
 
     def test_transfer_big_data(self):
-
         @asyncio.coroutine
         def go():
             tr1, pr1, tr2, pr2 = yield from self.make_dealer_router()
 
             start = 65
             cnt = 26
-            data = [chr(i).encode('ascii')*1000
-                    for i in range(start, start+cnt)]
+            data = [chr(i).encode("ascii") * 1000 for i in range(start, start + cnt)]
 
             for i in range(2000):
                 tr1.write(data)
@@ -614,15 +596,13 @@ class BaseZmqEventLoopTestsMixin:
         self.loop.run_until_complete(go())
 
     def test_transfer_big_data_send_after_closing(self):
-
         @asyncio.coroutine
         def go():
             tr1, pr1, tr2, pr2 = yield from self.make_dealer_router()
 
             start = 65
             cnt = 26
-            data = [chr(i).encode('ascii')*1000
-                    for i in range(start, start+cnt)]
+            data = [chr(i).encode("ascii") * 1000 for i in range(start, start + cnt)]
 
             self.assertFalse(pr1.paused)
 
@@ -643,20 +623,26 @@ class BaseZmqEventLoopTestsMixin:
     def test_default_event_loop(self):
         asyncio.set_event_loop(self.loop)
         port = find_unused_port()
-        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
-            lambda: Protocol(self.loop),
-            zmq.REQ,
-            bind='tcp://127.0.0.1:{}'.format(port)))
+        tr1, pr1 = self.loop.run_until_complete(
+            aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.REQ,
+                bind="tcp://127.0.0.1:{}".format(port),
+            )
+        )
         self.assertIs(self.loop, tr1._loop)
         tr1.close()
 
     def test_close_closing(self):
         port = find_unused_port()
-        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
-            lambda: Protocol(self.loop),
-            zmq.REQ,
-            bind='tcp://127.0.0.1:{}'.format(port),
-            loop=self.loop))
+        tr1, pr1 = self.loop.run_until_complete(
+            aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.REQ,
+                bind="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+            )
+        )
         tr1.close()
         self.assertTrue(tr1._closing)
         tr1.close()
@@ -664,11 +650,14 @@ class BaseZmqEventLoopTestsMixin:
 
     def test_pause_reading(self):
         port = find_unused_port()
-        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
-            lambda: Protocol(self.loop),
-            zmq.REQ,
-            bind='tcp://127.0.0.1:{}'.format(port),
-            loop=self.loop))
+        tr1, pr1 = self.loop.run_until_complete(
+            aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.REQ,
+                bind="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+            )
+        )
         self.assertFalse(tr1._paused)
         tr1.pause_reading()
         self.assertTrue(tr1._paused)
@@ -678,22 +667,28 @@ class BaseZmqEventLoopTestsMixin:
 
     def test_pause_reading_closed(self):
         port = find_unused_port()
-        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
-            lambda: Protocol(self.loop),
-            zmq.REQ,
-            bind='tcp://127.0.0.1:{}'.format(port),
-            loop=self.loop))
+        tr1, pr1 = self.loop.run_until_complete(
+            aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.REQ,
+                bind="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+            )
+        )
         tr1.close()
         with self.assertRaises(RuntimeError):
             tr1.pause_reading()
 
     def test_pause_reading_paused(self):
         port = find_unused_port()
-        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
-            lambda: Protocol(self.loop),
-            zmq.REQ,
-            bind='tcp://127.0.0.1:{}'.format(port),
-            loop=self.loop))
+        tr1, pr1 = self.loop.run_until_complete(
+            aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.REQ,
+                bind="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+            )
+        )
         tr1.pause_reading()
         self.assertTrue(tr1._paused)
         with self.assertRaises(RuntimeError):
@@ -702,70 +697,85 @@ class BaseZmqEventLoopTestsMixin:
 
     def test_resume_reading_not_paused(self):
         port = find_unused_port()
-        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
-            lambda: Protocol(self.loop),
-            zmq.REQ,
-            bind='tcp://127.0.0.1:{}'.format(port),
-            loop=self.loop))
+        tr1, pr1 = self.loop.run_until_complete(
+            aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.REQ,
+                bind="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+            )
+        )
         with self.assertRaises(RuntimeError):
             tr1.resume_reading()
         tr1.close()
 
-    @mock.patch('aiozmq.core.logger')
+    @mock.patch("aiozmq.core.logger")
     def test_warning_on_connection_lost(self, m_log):
         port = find_unused_port()
-        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
-            lambda: Protocol(self.loop),
-            zmq.REQ,
-            bind='tcp://127.0.0.1:{}'.format(port),
-            loop=self.loop))
+        tr1, pr1 = self.loop.run_until_complete(
+            aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.REQ,
+                bind="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+            )
+        )
         self.assertEqual(0, tr1._conn_lost)
         tr1.LOG_THRESHOLD_FOR_CONNLOST_WRITES = 2
         tr1.close()
         self.assertEqual(1, tr1._conn_lost)
-        tr1.write([b'data'])
+        tr1.write([b"data"])
         self.assertEqual(2, tr1._conn_lost)
         self.assertFalse(m_log.warning.called)
-        tr1.write([b'data'])
+        tr1.write([b"data"])
         self.assertEqual(3, tr1._conn_lost)
-        m_log.warning.assert_called_with('write to closed ZMQ socket.')
+        m_log.warning.assert_called_with("write to closed ZMQ socket.")
 
     def test_close_on_error(self):
         port = find_unused_port()
-        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
-            lambda: Protocol(self.loop),
-            zmq.REQ,
-            bind='tcp://127.0.0.1:{}'.format(port),
-            loop=self.loop))
+        tr1, pr1 = self.loop.run_until_complete(
+            aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.REQ,
+                bind="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+            )
+        )
         handler = mock.Mock()
         self.loop.set_exception_handler(handler)
-        sock = tr1.get_extra_info('zmq_socket')
+        sock = tr1.get_extra_info("zmq_socket")
         sock.close()
-        tr1.write([b'data'])
+        tr1.write([b"data"])
         self.assertTrue(tr1._closing)
         handler.assert_called_with(
             self.loop,
-            {'protocol': pr1,
-             'exception': mock.ANY,
-             'transport': tr1,
-             'message': 'Fatal write error on zmq socket transport'})
+            {
+                "protocol": pr1,
+                "exception": mock.ANY,
+                "transport": tr1,
+                "message": "Fatal write error on zmq socket transport",
+            },
+        )
         # expecting 'Socket operation on non-socket'
-        if sys.platform == 'darwin':
+        if sys.platform == "darwin":
             errno = 38
         else:
             errno = 88
-        check_errno(errno, handler.call_args[0][1]['exception'])
+        check_errno(errno, handler.call_args[0][1]["exception"])
 
     def test_double_force_close(self):
         port = find_unused_port()
-        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
-            lambda: Protocol(self.loop),
-            zmq.REQ,
-            bind='tcp://127.0.0.1:{}'.format(port),
-            loop=self.loop))
+        tr1, pr1 = self.loop.run_until_complete(
+            aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.REQ,
+                bind="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+            )
+        )
         handler = mock.Mock()
         self.loop.set_exception_handler(handler)
-        err = RuntimeError('error')
+        err = RuntimeError("error")
         tr1._fatal_error(err)
         tr1._fatal_error(err)
         self.loop.run_until_complete(pr1.closed)
@@ -778,13 +788,15 @@ class BaseZmqEventLoopTestsMixin:
             tr, pr = yield from aiozmq.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
-                bind='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop)
+                bind="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+            )
             yield from pr.connected
             self.assertRegex(
                 repr(tr),
-                '<ZmqTransport sock=<[^>]+> '
-                'type=DEALER read=idle write=<idle, bufsize=0>>')
+                "<ZmqTransport sock=<[^>]+> "
+                "type=DEALER read=idle write=<idle, bufsize=0>>",
+            )
             tr.close()
 
         self.loop.run_until_complete(coro())
@@ -797,27 +809,32 @@ class BaseZmqEventLoopTestsMixin:
             tr, pr = yield from aiozmq.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
-                bind='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop)
+                bind="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+            )
             yield from pr.connected
 
-            self.assertEqual(zmq.DEALER, tr.get_extra_info('zmq_type'))
+            self.assertEqual(zmq.DEALER, tr.get_extra_info("zmq_type"))
             tr.close()
 
         self.loop.run_until_complete(coro())
 
     @unittest.skipIf(
-        zmq.zmq_version_info() < (4,) or zmq.pyzmq_version_info() < (14, 4,),
-        "Socket monitor requires libzmq >= 4 and pyzmq >= 14.4")
+        zmq.zmq_version_info() < (4,)
+        or zmq.pyzmq_version_info()
+        < (
+            14,
+            4,
+        ),
+        "Socket monitor requires libzmq >= 4 and pyzmq >= 14.4",
+    )
     def test_implicit_monitor_disable(self):
-
         @asyncio.coroutine
         def go():
 
             tr, pr = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.DEALER,
-                loop=self.loop)
+                lambda: Protocol(self.loop), zmq.DEALER, loop=self.loop
+            )
             yield from pr.connected
 
             yield from tr.enable_monitor()
@@ -830,17 +847,21 @@ class BaseZmqEventLoopTestsMixin:
         self.loop.run_until_complete(go())
 
     @unittest.skipIf(
-        zmq.zmq_version_info() < (4,) or zmq.pyzmq_version_info() < (14, 4,),
-        "Socket monitor requires libzmq >= 4 and pyzmq >= 14.4")
+        zmq.zmq_version_info() < (4,)
+        or zmq.pyzmq_version_info()
+        < (
+            14,
+            4,
+        ),
+        "Socket monitor requires libzmq >= 4 and pyzmq >= 14.4",
+    )
     def test_force_close_monitor(self):
-
         @asyncio.coroutine
         def go():
 
             tr, pr = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.DEALER,
-                loop=self.loop)
+                lambda: Protocol(self.loop), zmq.DEALER, loop=self.loop
+            )
             yield from pr.connected
 
             yield from tr.enable_monitor()
@@ -854,7 +875,6 @@ class BaseZmqEventLoopTestsMixin:
 
 
 class ZmqEventLoopTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
-
     def setUp(self):
         self.loop = aiozmq.ZmqEventLoop()
         asyncio.set_event_loop(None)
@@ -866,7 +886,6 @@ class ZmqEventLoopTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
 
 
 class ZmqLooplessTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
-
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(None)
@@ -878,22 +897,24 @@ class ZmqLooplessTests(BaseZmqEventLoopTestsMixin, unittest.TestCase):
 
     def test_unsubscribe_from_fd_on_error(self):
         port = find_unused_port()
-        tr1, pr1 = self.loop.run_until_complete(aiozmq.create_zmq_connection(
-            lambda: Protocol(self.loop),
-            zmq.REQ,
-            bind='tcp://127.0.0.1:{}'.format(port),
-            loop=self.loop))
+        tr1, pr1 = self.loop.run_until_complete(
+            aiozmq.create_zmq_connection(
+                lambda: Protocol(self.loop),
+                zmq.REQ,
+                bind="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+            )
+        )
         handler = mock.Mock()
         self.loop.set_exception_handler(handler)
-        sock = tr1.get_extra_info('zmq_socket')
+        sock = tr1.get_extra_info("zmq_socket")
         sock.close()
-        tr1.write([b'data'])
+        tr1.write([b"data"])
         with self.assertRaises(KeyError):
             self.loop._selector.get_key(tr1._fd)
 
 
 class ZmqEventLoopExternalContextTests(unittest.TestCase):
-
     def setUp(self):
         self.ctx = zmq.Context()
         self.loop = aiozmq.ZmqEventLoop(zmq_context=self.ctx)
@@ -913,16 +934,15 @@ class ZmqEventLoopExternalContextTests(unittest.TestCase):
             st, sp = yield from aiozmq.create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.ROUTER,
-                bind='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop)
+                bind="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+            )
             yield from sp.connected
             addr = list(st.bindings())[0]
 
             ct, cp = yield from aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop),
-                zmq.DEALER,
-                connect=addr,
-                loop=self.loop)
+                lambda: Protocol(self.loop), zmq.DEALER, connect=addr, loop=self.loop
+            )
             yield from cp.connected
 
             ct.close()

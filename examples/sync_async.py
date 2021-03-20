@@ -7,27 +7,41 @@ import time
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--addr', default='tcp://127.0.0.1:7777',
-                    help="Address to use, default `%(default)s`")
+    ap.add_argument(
+        "--addr",
+        default="tcp://127.0.0.1:7777",
+        help="Address to use, default `%(default)s`",
+    )
     gr = ap.add_mutually_exclusive_group()
-    gr.add_argument('--sync', action='store_const', dest='mode',
-                    const=sync_main, default=None,
-                    help="Run synchronous example")
-    gr.add_argument('--async', action='store_const', dest='mode',
-                    const=async_main,
-                    help="Run asynchronous example")
+    gr.add_argument(
+        "--sync",
+        action="store_const",
+        dest="mode",
+        const=sync_main,
+        default=None,
+        help="Run synchronous example",
+    )
+    gr.add_argument(
+        "--async",
+        action="store_const",
+        dest="mode",
+        const=async_main,
+        help="Run asynchronous example",
+    )
 
-    ap.add_argument('--client', action='store_true', default=False,
-                    help="Run client part")
-    ap.add_argument('--server', action='store_true', default=False,
-                    help="Run server part")
+    ap.add_argument(
+        "--client", action="store_true", default=False, help="Run client part"
+    )
+    ap.add_argument(
+        "--server", action="store_true", default=False, help="Run server part"
+    )
 
     options = ap.parse_args()
     return options.mode(options)
 
 
 def read_data():
-    return input("Enter some phrase: ").encode('utf-8').split()
+    return input("Enter some phrase: ").encode("utf-8").split()
 
 
 def sync_main(options):
@@ -62,7 +76,7 @@ def sync_main(options):
                 return
             except zmq.ZMQError:
                 pass
-        time.sleep(.1)
+        time.sleep(0.1)
 
 
 def async_main(options):
@@ -73,8 +87,7 @@ def async_main(options):
 
     @asyncio.coroutine
     def server():
-        router = yield from aiozmq.create_zmq_stream(
-            zmq.ROUTER, bind=options.addr)
+        router = yield from aiozmq.create_zmq_stream(zmq.ROUTER, bind=options.addr)
         while True:
             try:
                 data = yield from router.read()
@@ -87,8 +100,7 @@ def async_main(options):
 
     @asyncio.coroutine
     def client():
-        dealer = yield from aiozmq.create_zmq_stream(
-            zmq.DEALER, connect=options.addr)
+        dealer = yield from aiozmq.create_zmq_stream(zmq.DEALER, connect=options.addr)
         data = read_data()
         dealer.write(data)
         print("Async client write: {!r}".format(data))
@@ -112,5 +124,5 @@ def async_main(options):
             loop.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -8,7 +8,6 @@ from aiozmq._test_util import find_unused_port, RpcMixin
 
 
 class Point:
-
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -20,14 +19,15 @@ class Point:
 
 
 translation_table = {
-    0: (Point,
+    0: (
+        Point,
         lambda value: msgpack.packb((value.x, value.y)),
-        lambda binary: Point(*msgpack.unpackb(binary))),
+        lambda binary: Point(*msgpack.unpackb(binary)),
+    ),
 }
 
 
 class MyHandler(aiozmq.rpc.AttrHandler):
-
     @aiozmq.rpc.method
     @asyncio.coroutine
     def func(self, point):
@@ -37,7 +37,6 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
 
 class RpcTranslatorsMixin(RpcMixin):
-
     def make_rpc_pair(self, *, error_table=None):
         port = find_unused_port()
 
@@ -45,13 +44,16 @@ class RpcTranslatorsMixin(RpcMixin):
         def create():
             server = yield from aiozmq.rpc.serve_rpc(
                 MyHandler(),
-                bind='tcp://127.0.0.1:{}'.format(port),
+                bind="tcp://127.0.0.1:{}".format(port),
                 loop=self.loop,
-                translation_table=translation_table)
+                translation_table=translation_table,
+            )
             client = yield from aiozmq.rpc.connect_rpc(
-                connect='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop, error_table=error_table,
-                translation_table=translation_table)
+                connect="tcp://127.0.0.1:{}".format(port),
+                loop=self.loop,
+                error_table=error_table,
+                translation_table=translation_table,
+            )
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())
@@ -71,7 +73,6 @@ class RpcTranslatorsMixin(RpcMixin):
 
 
 class LoopRpcTranslatorsTests(unittest.TestCase, RpcTranslatorsMixin):
-
     def setUp(self):
         self.loop = aiozmq.ZmqEventLoop()
         asyncio.set_event_loop(None)
@@ -86,7 +87,6 @@ class LoopRpcTranslatorsTests(unittest.TestCase, RpcTranslatorsMixin):
 
 
 class LooplessRpcTranslatorsTests(unittest.TestCase, RpcTranslatorsMixin):
-
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(None)

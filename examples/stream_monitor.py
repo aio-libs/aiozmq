@@ -15,13 +15,10 @@ def monitor_stream(stream):
 
 @asyncio.coroutine
 def go():
-    router = yield from aiozmq.create_zmq_stream(
-        zmq.ROUTER,
-        bind='tcp://127.0.0.1:*')
+    router = yield from aiozmq.create_zmq_stream(zmq.ROUTER, bind="tcp://127.0.0.1:*")
     addr = list(router.transport.bindings())[0]
 
-    dealer = yield from aiozmq.create_zmq_stream(
-        zmq.DEALER)
+    dealer = yield from aiozmq.create_zmq_stream(zmq.DEALER)
 
     yield from dealer.transport.enable_monitor()
 
@@ -30,7 +27,7 @@ def go():
     yield from dealer.transport.connect(addr)
 
     for i in range(10):
-        msg = (b'data', b'ask', str(i).encode('utf-8'))
+        msg = (b"data", b"ask", str(i).encode("utf-8"))
         dealer.write(msg)
         data = yield from router.read()
         router.write(data)
@@ -46,5 +43,5 @@ def main():
     print("DONE")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

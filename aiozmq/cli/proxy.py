@@ -8,56 +8,75 @@ def get_arguments():
     ap = argparse.ArgumentParser(description="ZMQ Proxy tool")
 
     def common_arguments(ap):
-        ap.add_argument('--front-bind', metavar="ADDR", action='append',
-                        help="Binds frontend socket to specified address")
-        ap.add_argument('--front-connect', metavar="ADDR", action='append',
-                        help="Connects frontend socket to specified address")
+        ap.add_argument(
+            "--front-bind",
+            metavar="ADDR",
+            action="append",
+            help="Binds frontend socket to specified address",
+        )
+        ap.add_argument(
+            "--front-connect",
+            metavar="ADDR",
+            action="append",
+            help="Connects frontend socket to specified address",
+        )
 
-        ap.add_argument('--back-bind', metavar="ADDR", action='append',
-                        help="Binds backend socket to specified address")
-        ap.add_argument('--back-connect', metavar="ADDR", action='append',
-                        help="Connects backend socket to specified address")
+        ap.add_argument(
+            "--back-bind",
+            metavar="ADDR",
+            action="append",
+            help="Binds backend socket to specified address",
+        )
+        ap.add_argument(
+            "--back-connect",
+            metavar="ADDR",
+            action="append",
+            help="Connects backend socket to specified address",
+        )
 
-        ap.add_argument('--monitor-bind', metavar="ADDR", action='append',
-                        help="Creates and binds monitor socket"
-                             " to specified address")
-        ap.add_argument('--monitor-connect', metavar="ADDR", action='append',
-                        help="Creates and connects monitor socket"
-                             " to specified address")
+        ap.add_argument(
+            "--monitor-bind",
+            metavar="ADDR",
+            action="append",
+            help="Creates and binds monitor socket" " to specified address",
+        )
+        ap.add_argument(
+            "--monitor-connect",
+            metavar="ADDR",
+            action="append",
+            help="Creates and connects monitor socket" " to specified address",
+        )
 
-    parsers = ap.add_subparsers(
-        title="Commands", help="ZMQ Proxy tool commands")
+    parsers = ap.add_subparsers(title="Commands", help="ZMQ Proxy tool commands")
 
     sub = parsers.add_parser(
-        'queue',
+        "queue",
         help="Creates Shared Queue proxy"
-             " (frontend/backend sockets are ZMQ_ROUTER/ZMQ_DEALER)")
-    sub.set_defaults(sock_types=(zmq.ROUTER, zmq.DEALER),
-                     action=serve_proxy)
+        " (frontend/backend sockets are ZMQ_ROUTER/ZMQ_DEALER)",
+    )
+    sub.set_defaults(sock_types=(zmq.ROUTER, zmq.DEALER), action=serve_proxy)
     common_arguments(sub)
     sub = parsers.add_parser(
-        'forwarder',
+        "forwarder",
         help="Creates Forwarder proxy"
-             " (frontend/backend sockets are ZMQ_XSUB/ZMQ_XPUB)")
-    sub.set_defaults(sock_types=(zmq.XSUB, zmq.XPUB),
-                     action=serve_proxy)
+        " (frontend/backend sockets are ZMQ_XSUB/ZMQ_XPUB)",
+    )
+    sub.set_defaults(sock_types=(zmq.XSUB, zmq.XPUB), action=serve_proxy)
     common_arguments(sub)
     sub = parsers.add_parser(
-        'streamer',
+        "streamer",
         help="Creates Streamer proxy"
-             " (frontend/backend sockets are ZMQ_PULL/ZMQ_PUSH)")
-    sub.set_defaults(sock_types=(zmq.PULL, zmq.PUSH),
-                     action=serve_proxy)
+        " (frontend/backend sockets are ZMQ_PULL/ZMQ_PUSH)",
+    )
+    sub.set_defaults(sock_types=(zmq.PULL, zmq.PUSH), action=serve_proxy)
     common_arguments(sub)
 
     sub = parsers.add_parser(
-        'monitor',
-        help="Connects/binds to monitor socket and dumps all traffic")
+        "monitor", help="Connects/binds to monitor socket and dumps all traffic"
+    )
     sub.set_defaults(action=monitor)
-    sub.add_argument('--connect', metavar="ADDR",
-                     help="Connect to monitor socket")
-    sub.add_argument('--bind', metavar="ADDR",
-                     help="Bind monitor socket")
+    sub.add_argument("--connect", metavar="ADDR", help="Connect to monitor socket")
+    sub.add_argument("--bind", metavar="ADDR", help="Bind monitor socket")
     return ap
 
 
@@ -118,7 +137,7 @@ def monitor(options):
     bind = [options.bind] if options.bind else []
     connect = [options.connect] if options.connect else []
     bind_connect(sock, bind, connect)
-    sock.setsockopt(zmq.SUBSCRIBE, b'')
+    sock.setsockopt(zmq.SUBSCRIBE, b"")
 
     try:
         while True:
@@ -129,8 +148,7 @@ def monitor(options):
             except Exception as err:
                 print("Error receiving message: {!r}".format(err))
             else:
-                print(datetime.now().isoformat(),
-                      "Message received: {!r}".format(data))
+                print(datetime.now().isoformat(), "Message received: {!r}".format(data))
     finally:
         sock.close()
         ctx.term()

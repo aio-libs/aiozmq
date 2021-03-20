@@ -11,16 +11,15 @@ from .base import (
     ServiceClosedError,
     _BaseProtocol,
     _BaseServerProtocol,
-    )
+)
 from .log import logger
 from .util import (
     _MethodCall,
-    )
+)
 
 
 @asyncio.coroutine
-def connect_pipeline(*, connect=None, bind=None, loop=None,
-                     translation_table=None):
+def connect_pipeline(*, connect=None, bind=None, loop=None, translation_table=None):
     """A coroutine that creates and connects/binds Pipeline client instance.
 
     Usually for this function you need to use *connect* parameter, but
@@ -39,14 +38,26 @@ def connect_pipeline(*, connect=None, bind=None, loop=None,
 
     transp, proto = yield from create_zmq_connection(
         lambda: _ClientProtocol(loop, translation_table=translation_table),
-        zmq.PUSH, connect=connect, bind=bind, loop=loop)
+        zmq.PUSH,
+        connect=connect,
+        bind=bind,
+        loop=loop,
+    )
     return PipelineClient(loop, proto)
 
 
 @asyncio.coroutine
-def serve_pipeline(handler, *, connect=None, bind=None, loop=None,
-                   translation_table=None, log_exceptions=False,
-                   exclude_log_exceptions=(), timeout=None):
+def serve_pipeline(
+    handler,
+    *,
+    connect=None,
+    bind=None,
+    loop=None,
+    translation_table=None,
+    log_exceptions=False,
+    exclude_log_exceptions=(),
+    timeout=None
+):
     """A coroutine that creates and connects/binds Pipeline server instance.
 
     Usually for this function you need to use *bind* parameter, but
@@ -75,21 +86,27 @@ def serve_pipeline(handler, *, connect=None, bind=None, loop=None,
         loop = asyncio.get_event_loop()
 
     trans, proto = yield from create_zmq_connection(
-        lambda: _ServerProtocol(loop, handler,
-                                translation_table=translation_table,
-                                log_exceptions=log_exceptions,
-                                exclude_log_exceptions=exclude_log_exceptions,
-                                timeout=timeout),
-        zmq.PULL, connect=connect, bind=bind, loop=loop)
+        lambda: _ServerProtocol(
+            loop,
+            handler,
+            translation_table=translation_table,
+            log_exceptions=log_exceptions,
+            exclude_log_exceptions=exclude_log_exceptions,
+            timeout=timeout,
+        ),
+        zmq.PULL,
+        connect=connect,
+        bind=bind,
+        loop=loop,
+    )
     return Service(loop, proto)
 
 
 class _ClientProtocol(_BaseProtocol):
-
     def call(self, name, args, kwargs):
         if self.transport is None:
             raise ServiceClosedError()
-        bname = name.encode('utf-8')
+        bname = name.encode("utf-8")
         bargs = self.packer.packb(args)
         bkwargs = self.packer.packb(kwargs)
         self.transport.write([bname, bargs, bkwargs])
@@ -99,7 +116,6 @@ class _ClientProtocol(_BaseProtocol):
 
 
 class PipelineClient(Service):
-
     def __init__(self, loop, proto):
         super().__init__(loop, proto)
 
@@ -114,14 +130,13 @@ class PipelineClient(Service):
 
 
 class _ServerProtocol(_BaseServerProtocol):
-
     def msg_received(self, data):
         bname, bargs, bkwargs = data
 
         args = self.packer.unpackb(bargs)
         kwargs = self.packer.unpackb(bkwargs)
         try:
-            name = bname.decode('utf-8')
+            name = bname.decode("utf-8")
             func = self.dispatch(name)
             args, kwargs, ret_ann = self.check_args(func, args, kwargs)
         except (NotFoundError, ParametersError) as exc:
@@ -136,8 +151,9 @@ class _ServerProtocol(_BaseServerProtocol):
                     fut.set_result(func(*args, **kwargs))
                 except Exception as exc:
                     fut.set_exception(exc)
-        fut.add_done_callback(partial(self.process_call_result,
-                                      name=name, args=args, kwargs=kwargs))
+        fut.add_done_callback(
+            partial(self.process_call_result, name=name, args=args, kwargs=kwargs)
+        )
 
     def process_call_result(self, fut, *, name, args, kwargs):
         self.discard_pending(fut)

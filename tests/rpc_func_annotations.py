@@ -12,11 +12,10 @@ def my_checker(val):
     if isinstance(val, int) or val is None:
         return val
     else:
-        raise ValueError('bad value')
+        raise ValueError("bad value")
 
 
 class MyHandler(aiozmq.rpc.AttrHandler):
-
     @aiozmq.rpc.method
     @asyncio.coroutine
     def no_params(self, arg):
@@ -53,7 +52,6 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
 
 class FuncAnnotationsTestsMixin:
-
     def close(self, service):
         service.close()
         self.loop.run_until_complete(service.wait_closed())
@@ -64,13 +62,12 @@ class FuncAnnotationsTestsMixin:
         @asyncio.coroutine
         def create():
             server = yield from aiozmq.rpc.serve_rpc(
-                MyHandler(),
-                bind='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop)
+                MyHandler(), bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+            )
 
             client = yield from aiozmq.rpc.connect_rpc(
-                connect='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop)
+                connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
+            )
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())
@@ -81,14 +78,16 @@ class FuncAnnotationsTestsMixin:
 
         msg = "Expected 'bad_arg' annotation to be callable"
         with self.assertRaisesRegex(ValueError, msg):
+
             @aiozmq.rpc.method
             def test(good_arg: int, bad_arg: 0):
                 pass
 
         msg = "Expected return annotation to be callable"
         with self.assertRaisesRegex(ValueError, msg):
+
             @aiozmq.rpc.method
-            def test2() -> 'int':
+            def test2() -> "int":
                 pass
 
     def test_no_params(self):
@@ -108,16 +107,16 @@ class FuncAnnotationsTestsMixin:
         def communicate():
             ret = yield from client.call.single_param(1)
             self.assertEqual(ret, 2)
-            ret = yield from client.call.single_param('1')
+            ret = yield from client.call.single_param("1")
             self.assertEqual(ret, 2)
             ret = yield from client.call.single_param(1.0)
             self.assertEqual(ret, 2)
 
             msg = "Invalid value for argument 'arg'"
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.call.single_param('1.0')
+                yield from client.call.single_param("1.0")
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.call.single_param('bad value')
+                yield from client.call.single_param("bad value")
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
                 yield from client.call.single_param({})
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
@@ -131,7 +130,7 @@ class FuncAnnotationsTestsMixin:
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
                 yield from client.call.single_param()
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.call.single_param(bad='value')
+                yield from client.call.single_param(bad="value")
 
             if sys.version_info >= (3, 5):
                 msg = "TypeError.*got an unexpected keyword argument 'bad'"
@@ -139,7 +138,7 @@ class FuncAnnotationsTestsMixin:
                 msg = "TypeError.*too many keyword arguments"
 
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.call.single_param(1, bad='value')
+                yield from client.call.single_param(1, bad="value")
 
         self.loop.run_until_complete(communicate())
 
@@ -166,7 +165,7 @@ class FuncAnnotationsTestsMixin:
         def communicate():
             ret = yield from client.call.ret_annotation(1)
             self.assertEqual(ret, 1.0)
-            ret = yield from client.call.ret_annotation('2')
+            ret = yield from client.call.ret_annotation("2")
             self.assertEqual(ret, 2.0)
 
         self.loop.run_until_complete(communicate())
@@ -180,11 +179,11 @@ class FuncAnnotationsTestsMixin:
             self.assertEqual(ret, 1)
             ret = yield from client.call.bad_return(1.2)
             self.assertEqual(ret, 1)
-            ret = yield from client.call.bad_return('2')
+            ret = yield from client.call.bad_return("2")
             self.assertEqual(ret, 2)
 
             with self.assertRaises(ValueError):
-                yield from client.call.bad_return('1.0')
+                yield from client.call.bad_return("1.0")
             with self.assertRaises(TypeError):
                 yield from client.call.bad_return(None)
 
@@ -207,9 +206,7 @@ class FuncAnnotationsTestsMixin:
         self.loop.run_until_complete(communicate())
 
 
-class LoopFuncAnnotationsTests(unittest.TestCase,
-                               FuncAnnotationsTestsMixin):
-
+class LoopFuncAnnotationsTests(unittest.TestCase, FuncAnnotationsTestsMixin):
     def setUp(self):
         self.loop = aiozmq.ZmqEventLoop()
         asyncio.set_event_loop(None)
@@ -225,9 +222,7 @@ class LoopFuncAnnotationsTests(unittest.TestCase,
         # zmq.Context.instance().term()
 
 
-class LooplessFuncAnnotationsTests(unittest.TestCase,
-                                   FuncAnnotationsTestsMixin):
-
+class LooplessFuncAnnotationsTests(unittest.TestCase, FuncAnnotationsTestsMixin):
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(None)

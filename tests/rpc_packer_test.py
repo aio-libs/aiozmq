@@ -10,7 +10,6 @@ from functools import partial
 
 
 class Point:
-
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -22,20 +21,19 @@ class Point:
 
 
 class PackerTests(unittest.TestCase):
-
     def test_packb_simple(self):
         packer = _Packer()
-        self.assertEqual(packb('test'), packer.packb('test'))
+        self.assertEqual(packb("test"), packer.packb("test"))
         self.assertEqual(packb([123]), packer.packb([123]))
         self.assertEqual(packb((123,)), packer.packb([123]))
 
     def test_unpackb_simple(self):
         packer = _Packer()
-        self.assertEqual('test', packer.unpackb(packb('test')))
+        self.assertEqual("test", packer.unpackb(packb("test")))
         self.assertEqual((123,), packer.unpackb(packb([123])))
         self.assertEqual((123,), packer.unpackb(packb((123,))))
 
-    @mock.patch('aiozmq.rpc.packer.ExtType')
+    @mock.patch("aiozmq.rpc.packer.ExtType")
     def test_ext_type__date(self, ExtTypeMock):
         packer = _Packer()
 
@@ -48,7 +46,7 @@ class PackerTests(unittest.TestCase):
         packer.ext_type_pack_hook(dt)
         ExtTypeMock.assert_called_once_with(CODE, data)
 
-    @mock.patch('aiozmq.rpc.packer.ExtType')
+    @mock.patch("aiozmq.rpc.packer.ExtType")
     def test_ext_type__datetime(self, ExtTypeMock):
         packer = _Packer()
 
@@ -61,13 +59,12 @@ class PackerTests(unittest.TestCase):
         packer.ext_type_pack_hook(dt)
         ExtTypeMock.assert_called_once_with(CODE, data)
 
-    @mock.patch('aiozmq.rpc.packer.ExtType')
+    @mock.patch("aiozmq.rpc.packer.ExtType")
     def test_ext_type__datetime_tzinfo(self, ExtTypeMock):
         packer = _Packer()
 
         CODE = 126
-        dt = datetime.datetime(2014, 3, 25, 16, 12,
-                               tzinfo=datetime.timezone.utc)
+        dt = datetime.datetime(2014, 3, 25, 16, 12, tzinfo=datetime.timezone.utc)
         data = dumps(dt, protocol=HIGHEST_PROTOCOL)
 
         self.assertEqual(dt, packer.ext_type_unpack_hook(CODE, data))
@@ -75,7 +72,7 @@ class PackerTests(unittest.TestCase):
         packer.ext_type_pack_hook(dt)
         ExtTypeMock.assert_called_once_with(CODE, data)
 
-    @mock.patch('aiozmq.rpc.packer.ExtType')
+    @mock.patch("aiozmq.rpc.packer.ExtType")
     def test_ext_type__time(self, ExtTypeMock):
         packer = _Packer()
 
@@ -88,7 +85,7 @@ class PackerTests(unittest.TestCase):
         packer.ext_type_pack_hook(tm)
         ExtTypeMock.assert_called_once_with(CODE, data)
 
-    @mock.patch('aiozmq.rpc.packer.ExtType')
+    @mock.patch("aiozmq.rpc.packer.ExtType")
     def test_ext_type__time_tzinfo(self, ExtTypeMock):
         packer = _Packer()
 
@@ -101,7 +98,7 @@ class PackerTests(unittest.TestCase):
         packer.ext_type_pack_hook(tm)
         ExtTypeMock.assert_called_once_with(CODE, data)
 
-    @mock.patch('aiozmq.rpc.packer.ExtType')
+    @mock.patch("aiozmq.rpc.packer.ExtType")
     def test_ext_type__timedelta(self, ExtTypeMock):
         packer = _Packer()
 
@@ -114,7 +111,7 @@ class PackerTests(unittest.TestCase):
         packer.ext_type_pack_hook(td)
         ExtTypeMock.assert_called_once_with(CODE, data)
 
-    @mock.patch('aiozmq.rpc.packer.ExtType')
+    @mock.patch("aiozmq.rpc.packer.ExtType")
     def test_ext_type__tzinfo(self, ExtTypeMock):
         packer = _Packer()
 
@@ -138,11 +135,11 @@ class PackerTests(unittest.TestCase):
         with self.assertRaisesRegex(TypeError, "Unknown type: "):
             packer.ext_type_pack_hook(packer)
 
-        self.assertEqual(ExtType(1, b''), packer.ext_type_unpack_hook(1, b''))
+        self.assertEqual(ExtType(1, b""), packer.ext_type_unpack_hook(1, b""))
 
         # TODO: should be more specific errors
         with self.assertRaises(Exception):
-            packer.ext_type_unpack_hook(127, b'bad data')
+            packer.ext_type_unpack_hook(127, b"bad data")
 
     def test_simple_translators(self):
         translation_table = {
@@ -180,10 +177,10 @@ class PackerTests(unittest.TestCase):
         class B(A):
             pass
 
-        dump_a = mock.Mock(return_value=b'a')
+        dump_a = mock.Mock(return_value=b"a")
         load_a = mock.Mock(return_value=A())
 
-        dump_b = mock.Mock(return_value=b'b')
+        dump_b = mock.Mock(return_value=b"b")
         load_b = mock.Mock(return_value=B())
 
         translation_table = {
@@ -191,5 +188,5 @@ class PackerTests(unittest.TestCase):
             2: (B, dump_b, load_b),
         }
         packer = _Packer(translation_table=translation_table)
-        self.assertEqual(packer.packb(ExtType(1, b'a')), packer.packb(A()))
-        self.assertEqual(packer.packb(ExtType(2, b'b')), packer.packb(B()))
+        self.assertEqual(packer.packb(ExtType(1, b"a")), packer.packb(A()))
+        self.assertEqual(packer.packb(ExtType(2, b"b")), packer.packb(B()))

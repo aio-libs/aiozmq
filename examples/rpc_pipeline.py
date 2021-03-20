@@ -4,7 +4,6 @@ from itertools import count
 
 
 class Handler(aiozmq.rpc.AttrHandler):
-
     def __init__(self):
         self.connected = False
 
@@ -17,12 +16,10 @@ class Handler(aiozmq.rpc.AttrHandler):
 @asyncio.coroutine
 def go():
     handler = Handler()
-    listener = yield from aiozmq.rpc.serve_pipeline(
-        handler, bind='tcp://*:*')
+    listener = yield from aiozmq.rpc.serve_pipeline(handler, bind="tcp://*:*")
     listener_addr = list(listener.transport.bindings())[0]
 
-    notifier = yield from aiozmq.rpc.connect_pipeline(
-        connect=listener_addr)
+    notifier = yield from aiozmq.rpc.connect_pipeline(connect=listener_addr)
 
     for step in count(0):
         yield from notifier.notify.remote_func(step, 1, 2)
@@ -42,5 +39,5 @@ def main():
     print("DONE")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

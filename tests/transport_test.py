@@ -26,18 +26,18 @@ def dummy():
 # test.test_asyncio.utils in CPython.
 # https://github.com/python/cpython/blob/9602643120a509858d0bee4215d7f150e6125468/Lib/test/test_asyncio/utils.py
 
+
 def make_test_protocol(base):
     dct = {}
     for name in dir(base):
-        if name.startswith('__') and name.endswith('__'):
+        if name.startswith("__") and name.endswith("__"):
             # skip magic names
             continue
         dct[name] = mock.Mock(return_value=None)
-    return type('TestProtocol', (base,) + base.__bases__, dct)()
+    return type("TestProtocol", (base,) + base.__bases__, dct)()
 
 
 class TestSelector(selectors.BaseSelector):
-
     def __init__(self):
         self.keys = {}
 
@@ -81,20 +81,24 @@ class TestLoop(asyncio.base_events.BaseEventLoop):
 
     def assert_reader(self, fd, callback, *args):
         if fd not in self.readers:
-            raise AssertionError('fd {fd} is not registered'.format(fd=fd))
+            raise AssertionError("fd {fd} is not registered".format(fd=fd))
         handle = self.readers[fd]
         if handle._callback != callback:
             raise AssertionError(
-                'unexpected callback: {handle._callback} != {callback}'.format(
-                    handle=handle, callback=callback))
+                "unexpected callback: {handle._callback} != {callback}".format(
+                    handle=handle, callback=callback
+                )
+            )
         if handle._args != args:
             raise AssertionError(
-                'unexpected callback args: {handle._args} != {args}'.format(
-                    handle=handle, args=args))
+                "unexpected callback args: {handle._args} != {args}".format(
+                    handle=handle, args=args
+                )
+            )
 
     def assert_no_reader(self, fd):
         if fd in self.readers:
-            raise AssertionError('fd {fd} is registered'.format(fd=fd))
+            raise AssertionError("fd {fd} is registered".format(fd=fd))
 
     def _add_writer(self, fd, callback, *args):
         self.writers[fd] = asyncio.events.Handle(callback, args, self)
@@ -108,12 +112,12 @@ class TestLoop(asyncio.base_events.BaseEventLoop):
             return False
 
     def assert_writer(self, fd, callback, *args):
-        assert fd in self.writers, 'fd {} is not registered'.format(fd)
+        assert fd in self.writers, "fd {} is not registered".format(fd)
         handle = self.writers[fd]
-        assert handle._callback == callback, '{!r} != {!r}'.format(
-            handle._callback, callback)
-        assert handle._args == args, '{!r} != {!r}'.format(
-            handle._args, args)
+        assert handle._callback == callback, "{!r} != {!r}".format(
+            handle._callback, callback
+        )
+        assert handle._args == args, "{!r} != {!r}".format(handle._args, args)
 
     def _ensure_fd_no_transport(self, fd):
         try:
@@ -122,8 +126,8 @@ class TestLoop(asyncio.base_events.BaseEventLoop):
             pass
         else:
             raise RuntimeError(
-                'File descriptor {!r} is used by transport {!r}'.format(
-                    fd, transport))
+                "File descriptor {!r} is used by transport {!r}".format(fd, transport)
+            )
 
     def add_reader(self, fd, callback, *args):
         """Add a reader callback."""
@@ -157,7 +161,6 @@ class TestLoop(asyncio.base_events.BaseEventLoop):
 
 
 class TransportTests(unittest.TestCase):
-
     def setUp(self):
         self.loop = TestLoop()
         self.sock = mock.Mock()
@@ -171,7 +174,7 @@ class TransportTests(unittest.TestCase):
         self.loop.close()
 
     def test_empty_write(self):
-        self.tr.write([b''])
+        self.tr.write([b""])
         self.assertTrue(self.sock.send_multipart.called)
         self.assertFalse(self.proto.pause_writing.called)
         self.assertFalse(self.tr._buffer)
@@ -180,8 +183,8 @@ class TransportTests(unittest.TestCase):
         self.assertNotIn(self.sock, self.loop.writers)
 
     def test_write(self):
-        self.tr.write((b'a', b'b'))
-        self.sock.send_multipart.assert_called_with((b'a', b'b'), zmq.DONTWAIT)
+        self.tr.write((b"a", b"b"))
+        self.sock.send_multipart.assert_called_with((b"a", b"b"), zmq.DONTWAIT)
         self.assertFalse(self.proto.pause_writing.called)
         self.assertFalse(self.tr._buffer)
         self.assertEqual(0, self.tr._buffer_size)
@@ -190,50 +193,46 @@ class TransportTests(unittest.TestCase):
 
     def test_partial_write(self):
         self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
-        self.tr.write((b'a', b'b'))
-        self.sock.send_multipart.assert_called_with((b'a', b'b'), zmq.DONTWAIT)
+        self.tr.write((b"a", b"b"))
+        self.sock.send_multipart.assert_called_with((b"a", b"b"), zmq.DONTWAIT)
         self.assertFalse(self.proto.pause_writing.called)
-        self.assertEqual([(2, (b'a', b'b'))], list(self.tr._buffer))
+        self.assertEqual([(2, (b"a", b"b"))], list(self.tr._buffer))
         self.assertEqual(2, self.tr._buffer_size)
         self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
 
     def test_partial_double_write(self):
         self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
-        self.tr.write((b'a', b'b'))
-        self.tr.write((b'c',))
-        self.sock.send_multipart.mock_calls = [
-            mock.call((b'a', b'b'), zmq.DONTWAIT)]
+        self.tr.write((b"a", b"b"))
+        self.tr.write((b"c",))
+        self.sock.send_multipart.mock_calls = [mock.call((b"a", b"b"), zmq.DONTWAIT)]
         self.assertFalse(self.proto.pause_writing.called)
-        self.assertEqual([(2, (b'a', b'b')), (1, (b'c',))],
-                         list(self.tr._buffer))
+        self.assertEqual([(2, (b"a", b"b")), (1, (b"c",))], list(self.tr._buffer))
         self.assertEqual(3, self.tr._buffer_size)
         self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
 
     def test__write_ready(self):
-        self.tr._buffer.append((2, (b'a', b'b')))
-        self.tr._buffer.append((1, (b'c',)))
+        self.tr._buffer.append((2, (b"a", b"b")))
+        self.tr._buffer.append((1, (b"c",)))
         self.tr._buffer_size = 3
         self.loop.add_writer(self.sock, self.tr._write_ready)
 
         self.tr._write_ready()
 
-        self.sock.send_multipart.mock_calls = [
-            mock.call((b'a', b'b'), zmq.DONTWAIT)]
+        self.sock.send_multipart.mock_calls = [mock.call((b"a", b"b"), zmq.DONTWAIT)]
         self.assertFalse(self.proto.pause_writing.called)
-        self.assertEqual([(1, (b'c',))], list(self.tr._buffer))
+        self.assertEqual([(1, (b"c",))], list(self.tr._buffer))
         self.assertEqual(1, self.tr._buffer_size)
         self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
 
     def test__write_ready_sent_whole_buffer(self):
-        self.tr._buffer.append((2, (b'a', b'b')))
+        self.tr._buffer.append((2, (b"a", b"b")))
         self.tr._buffer_size = 2
         self.loop.add_writer(self.sock, self.tr._write_ready)
 
-        self.sock.send_multipart.mock_calls = [
-            mock.call((b'a', b'b'), zmq.DONTWAIT)]
+        self.sock.send_multipart.mock_calls = [mock.call((b"a", b"b"), zmq.DONTWAIT)]
         self.tr._write_ready()
 
         self.assertFalse(self.proto.pause_writing.called)
@@ -243,12 +242,13 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(1, self.loop.remove_writer_count[self.sock])
 
     def test__write_ready_raises_ZMQError(self):
-        self.tr._buffer.append((2, (b'a', b'b')))
+        self.tr._buffer.append((2, (b"a", b"b")))
         self.tr._buffer_size = 2
         self.loop.add_writer(self.sock, self.tr._write_ready)
 
-        self.sock.send_multipart.side_effect = zmq.ZMQError(errno.ENOTSUP,
-                                                            'not supported')
+        self.sock.send_multipart.side_effect = zmq.ZMQError(
+            errno.ENOTSUP, "not supported"
+        )
         self.tr._write_ready()
         self.assertFalse(self.proto.pause_writing.called)
         self.assertFalse(self.tr._buffer)
@@ -259,15 +259,25 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(1, self.loop.remove_reader_count[self.sock])
 
     def test__write_ready_raises_EAGAIN(self):
-        self.tr._buffer.append((2, (b'a', b'b')))
+        self.tr._buffer.append((2, (b"a", b"b")))
         self.tr._buffer_size = 2
         self.loop.add_writer(self.sock, self.tr._write_ready)
 
-        self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN,
-                                                            'try again')
+        self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN, "try again")
         self.tr._write_ready()
         self.assertFalse(self.proto.pause_writing.called)
-        self.assertEqual([(2, (b'a', b'b',))], list(self.tr._buffer))
+        self.assertEqual(
+            [
+                (
+                    2,
+                    (
+                        b"a",
+                        b"b",
+                    ),
+                )
+            ],
+            list(self.tr._buffer),
+        )
         self.assertEqual(2, self.tr._buffer_size)
         self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
@@ -316,7 +326,7 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.sock.close.called)
 
     def test_close_with_waiting_buffer(self):
-        self.tr._buffer = deque([(b'data',)])
+        self.tr._buffer = deque([(b"data",)])
         self.tr._buffer_size = 4
         self.loop.add_writer(self.sock, self.tr._write_ready)
 
@@ -324,7 +334,7 @@ class TransportTests(unittest.TestCase):
 
         self.assertEqual(1, self.loop.remove_reader_count[self.sock])
         self.assertEqual(0, self.loop.remove_writer_count[self.sock])
-        self.assertEqual([(b'data',)], list(self.tr._buffer))
+        self.assertEqual([(b"data",)], list(self.tr._buffer))
         self.assertEqual(4, self.tr._buffer_size)
         self.assertTrue(self.tr._closing)
 
@@ -347,7 +357,7 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(1, self.loop.remove_reader_count[self.sock])
 
     def test_close_on_last__write_ready(self):
-        self.tr._buffer = deque([(4, (b'data',))])
+        self.tr._buffer = deque([(4, (b"data",))])
         self.tr._buffer_size = 4
         self.loop.add_writer(self.sock, self.tr._write_ready)
 
@@ -391,7 +401,7 @@ class TransportTests(unittest.TestCase):
         @asyncio.coroutine
         def go():
             with self.assertRaises(ValueError):
-                yield from self.tr.connect('tcp://example.com:8080')
+                yield from self.tr.connect("tcp://example.com:8080")
 
     def test_write_none(self):
         self.tr.write(None)
@@ -426,7 +436,7 @@ class TransportTests(unittest.TestCase):
         self.sock.close.assert_called_with()
 
     def test_abort_with_waiting_buffer(self):
-        self.tr._buffer = deque([(b'data',)])
+        self.tr._buffer = deque([(b"data",)])
         self.tr._buffer_size = 4
         self.loop.add_writer(self.sock, self.tr._write_ready)
 
@@ -447,7 +457,7 @@ class TransportTests(unittest.TestCase):
         self.assertTrue(self.sock.close.called)
 
     def test_abort_with_close_on_waiting_buffer(self):
-        self.tr._buffer = deque([(b'data',)])
+        self.tr._buffer = deque([(b"data",)])
         self.tr._buffer_size = 4
         self.loop.add_writer(self.sock, self.tr._write_ready)
 
@@ -512,75 +522,74 @@ class TransportTests(unittest.TestCase):
 
     def test_setsockopt_EINTR(self):
         self.sock.setsockopt.side_effect = [zmq.ZMQError(errno.EINTR), None]
-        self.assertIsNone(self.tr.setsockopt('opt', 'val'))
-        self.assertEqual([mock.call('opt', 'val'), mock.call('opt', 'val')],
-                         self.sock.setsockopt.call_args_list)
+        self.assertIsNone(self.tr.setsockopt("opt", "val"))
+        self.assertEqual(
+            [mock.call("opt", "val"), mock.call("opt", "val")],
+            self.sock.setsockopt.call_args_list,
+        )
 
     def test_getsockopt_EINTR(self):
-        self.sock.getsockopt.side_effect = [zmq.ZMQError(errno.EINTR), 'val']
-        self.assertEqual('val', self.tr.getsockopt('opt'))
-        self.assertEqual([mock.call('opt'), mock.call('opt')],
-                         self.sock.getsockopt.call_args_list)
+        self.sock.getsockopt.side_effect = [zmq.ZMQError(errno.EINTR), "val"]
+        self.assertEqual("val", self.tr.getsockopt("opt"))
+        self.assertEqual(
+            [mock.call("opt"), mock.call("opt")], self.sock.getsockopt.call_args_list
+        )
 
     def test_write_EAGAIN(self):
         self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
-        self.tr.write((b'a', b'b'))
-        self.sock.send_multipart.assert_called_once_with(
-            (b'a', b'b'), zmq.DONTWAIT)
+        self.tr.write((b"a", b"b"))
+        self.sock.send_multipart.assert_called_once_with((b"a", b"b"), zmq.DONTWAIT)
         self.assertFalse(self.proto.pause_writing.called)
-        self.assertEqual([(2, (b'a', b'b'))], list(self.tr._buffer))
+        self.assertEqual([(2, (b"a", b"b"))], list(self.tr._buffer))
         self.assertEqual(2, self.tr._buffer_size)
         self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
 
     def test_write_EINTR(self):
         self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EINTR)
-        self.tr.write((b'a', b'b'))
-        self.sock.send_multipart.assert_called_once_with(
-            (b'a', b'b'), zmq.DONTWAIT)
+        self.tr.write((b"a", b"b"))
+        self.sock.send_multipart.assert_called_once_with((b"a", b"b"), zmq.DONTWAIT)
         self.assertFalse(self.proto.pause_writing.called)
-        self.assertEqual([(2, (b'a', b'b'))], list(self.tr._buffer))
+        self.assertEqual([(2, (b"a", b"b"))], list(self.tr._buffer))
         self.assertEqual(2, self.tr._buffer_size)
         self.assertFalse(self.exc_handler.called)
         self.loop.assert_writer(self.sock, self.tr._write_ready)
 
     def test_write_common_error(self):
         self.sock.send_multipart.side_effect = zmq.ZMQError(errno.ENOTSUP)
-        self.tr.write((b'a', b'b'))
-        self.sock.send_multipart.assert_called_once_with(
-            (b'a', b'b'), zmq.DONTWAIT)
+        self.tr.write((b"a", b"b"))
+        self.sock.send_multipart.assert_called_once_with((b"a", b"b"), zmq.DONTWAIT)
         self.assertFalse(self.proto.pause_writing.called)
         self.assertFalse(self.tr._buffer)
         self.assertEqual(0, self.tr._buffer_size)
         self.assertNotIn(self.sock, self.loop.writers)
-        check_errno(errno.ENOTSUP,
-                    self.exc_handler.call_args[0][1]['exception'])
+        check_errno(errno.ENOTSUP, self.exc_handler.call_args[0][1]["exception"])
 
     def test_subscribe_invalid_socket_type(self):
         self.tr._zmq_type = zmq.PUB
-        self.assertRaises(NotImplementedError, self.tr.subscribe, b'a')
-        self.assertRaises(NotImplementedError, self.tr.unsubscribe, b'a')
+        self.assertRaises(NotImplementedError, self.tr.subscribe, b"a")
+        self.assertRaises(NotImplementedError, self.tr.unsubscribe, b"a")
         self.assertRaises(NotImplementedError, self.tr.subscriptions)
 
     def test_double_subscribe(self):
-        self.tr.subscribe(b'val')
-        self.tr.subscribe(b'val')
-        self.assertEqual({b'val'}, self.tr.subscriptions())
-        self.sock.setsockopt.assert_called_once_with(zmq.SUBSCRIBE, b'val')
+        self.tr.subscribe(b"val")
+        self.tr.subscribe(b"val")
+        self.assertEqual({b"val"}, self.tr.subscriptions())
+        self.sock.setsockopt.assert_called_once_with(zmq.SUBSCRIBE, b"val")
 
     def test_subscribe_bad_value_type(self):
-        self.assertRaises(TypeError, self.tr.subscribe, 'a')
+        self.assertRaises(TypeError, self.tr.subscribe, "a")
         self.assertFalse(self.tr.subscriptions())
-        self.assertRaises(TypeError, self.tr.unsubscribe, 'a')
+        self.assertRaises(TypeError, self.tr.unsubscribe, "a")
         self.assertFalse(self.sock.setsockopt.called)
         self.assertFalse(self.tr.subscriptions())
 
     def test_unsubscribe(self):
-        self.tr.subscribe(b'val')
+        self.tr.subscribe(b"val")
 
-        self.tr.unsubscribe(b'val')
+        self.tr.unsubscribe(b"val")
         self.assertFalse(self.tr.subscriptions())
-        self.sock.setsockopt.assert_called_with(zmq.UNSUBSCRIBE, b'val')
+        self.sock.setsockopt.assert_called_with(zmq.UNSUBSCRIBE, b"val")
 
     def test__set_write_buffer_limits1(self):
         self.tr.set_write_buffer_limits(low=10)
@@ -604,7 +613,7 @@ class TransportTests(unittest.TestCase):
         self.tr.set_write_buffer_limits(high=10)
         self.assertFalse(self.tr._protocol_paused)
         self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
-        self.tr.write([b'binary data'])
+        self.tr.write([b"binary data"])
         self.assertEqual(11, self.tr._buffer_size)
         self.assertTrue(self.tr._protocol_paused)
         self.proto.pause_writing.assert_called_with()
@@ -615,20 +624,23 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.tr._protocol_paused)
         self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
         self.proto.pause_writing.side_effect = exc = RuntimeError()
-        self.tr.write([b'binary data'])
+        self.tr.write([b"binary data"])
         self.assertEqual(11, self.tr._buffer_size)
         self.assertTrue(self.tr._protocol_paused)
         ceh.assert_called_with(
-            {'transport': self.tr,
-             'exception': exc,
-             'protocol': self.proto,
-             'message': 'protocol.pause_writing() failed'})
+            {
+                "transport": self.tr,
+                "exception": exc,
+                "protocol": self.proto,
+                "message": "protocol.pause_writing() failed",
+            }
+        )
 
     def test__maybe_pause_protocol_already_paused(self):
         self.tr.set_write_buffer_limits(high=10)
         self.tr._protocol_paused = True
         self.sock.send_multipart.side_effect = zmq.ZMQError(errno.EAGAIN)
-        self.tr.write([b'binary data'])
+        self.tr.write([b"binary data"])
         self.assertEqual(11, self.tr._buffer_size)
         self.assertTrue(self.tr._protocol_paused)
         self.assertFalse(self.proto.pause_writing.called)
@@ -637,7 +649,7 @@ class TransportTests(unittest.TestCase):
         self.tr.set_write_buffer_limits()
         self.tr._protocol_paused = True
         self.tr._buffer_size = 11
-        self.tr._buffer.append((11, [b'binary data']))
+        self.tr._buffer.append((11, [b"binary data"]))
 
         self.tr._write_ready()
         self.assertEqual(0, self.tr._buffer_size)
@@ -650,7 +662,7 @@ class TransportTests(unittest.TestCase):
         self.tr.set_write_buffer_limits()
         self.tr._protocol_paused = True
         self.tr._buffer_size = 11
-        self.tr._buffer.append((11, [b'binary data']))
+        self.tr._buffer.append((11, [b"binary data"]))
         ceh = self.loop.call_exception_handler = mock.Mock()
         self.proto.resume_writing.side_effect = exc = RuntimeError()
 
@@ -660,10 +672,13 @@ class TransportTests(unittest.TestCase):
 
         self.assertFalse(self.tr._protocol_paused)
         ceh.assert_called_with(
-            {'transport': self.tr,
-             'exception': exc,
-             'protocol': self.proto,
-             'message': 'protocol.resume_writing() failed'})
+            {
+                "transport": self.tr,
+                "exception": exc,
+                "protocol": self.proto,
+                "message": "protocol.resume_writing() failed",
+            }
+        )
 
     def test_pause_resume_reading(self):
         self.assertFalse(self.tr._paused)
@@ -703,16 +718,15 @@ class TransportTests(unittest.TestCase):
 
 
 class LooplessTransportTests(unittest.TestCase):
-
     def setUp(self):
         self.loop = TestLoop()
         self.sock = mock.Mock()
         self.sock.closed = False
         self.waiter = asyncio.Future(loop=self.loop)
         self.proto = make_test_protocol(aiozmq.ZmqProtocol)
-        self.tr = _ZmqLooplessTransportImpl(self.loop,
-                                            zmq.SUB, self.sock, self.proto,
-                                            self.waiter)
+        self.tr = _ZmqLooplessTransportImpl(
+            self.loop, zmq.SUB, self.sock, self.proto, self.waiter
+        )
         self.exc_handler = mock.Mock()
         self.loop.set_exception_handler(self.exc_handler)
 
@@ -737,15 +751,15 @@ class LooplessTransportTests(unittest.TestCase):
         self.assertFalse(self.sock.send_multipart.called)
 
     def test_incomplete_pending_write(self):
-        self.tr._buffer = [(4, [b'data'])]
+        self.tr._buffer = [(4, [b"data"])]
         self.tr._buffer_size = 4
         self.sock.send_multipart.side_effect = zmq.Again(errno.EAGAIN)
         self.tr._do_write()
         self.assertEqual(4, self.tr._buffer_size)
-        self.assertEqual([(4, [b'data'])], self.tr._buffer)
+        self.assertEqual([(4, [b"data"])], self.tr._buffer)
 
     def test_bad_pending_write(self):
-        self.tr._buffer = [(4, [b'data'])]
+        self.tr._buffer = [(4, [b"data"])]
         self.tr._buffer_size = 4
         self.sock.send_multipart.side_effect = zmq.ZMQError(errno.ENOTSOCK)
         self.tr._do_write()
