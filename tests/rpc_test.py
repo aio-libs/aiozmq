@@ -52,7 +52,8 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         await asyncio.sleep(0.2, loop=self.loop)
 
     @aiozmq.rpc.method
-    async def fut(self):
+    @asyncio.coroutine
+    def fut(self):
         return asyncio.Future(loop=self.loop)
 
     @aiozmq.rpc.method
@@ -692,7 +693,7 @@ class RpcTestsMixin(RpcMixin):
 class LoopRpcTests(unittest.TestCase, RpcTestsMixin):
     def setUp(self):
         self.loop = aiozmq.ZmqEventLoop()
-        asyncio.set_event_loop(None)
+        asyncio.set_event_loop(self.loop)
         self.client = self.server = None
         self.err_queue = asyncio.Queue(loop=self.loop)
 
@@ -707,7 +708,7 @@ class LoopRpcTests(unittest.TestCase, RpcTestsMixin):
 class LoopLessRpcTests(unittest.TestCase, RpcTestsMixin):
     def setUp(self):
         self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(None)
+        asyncio.set_event_loop(self.loop)
         self.client = self.server = None
         self.err_queue = asyncio.Queue(loop=self.loop)
 
