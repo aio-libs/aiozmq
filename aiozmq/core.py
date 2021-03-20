@@ -93,7 +93,7 @@ async def create_zmq_connection(
         raise OSError(exc.errno, exc.strerror) from exc
 
     protocol = protocol_factory()
-    waiter = asyncio.Future(loop=loop)
+    waiter = asyncio.Future()
     transport = _ZmqLooplessTransportImpl(loop, zmq_type, zmq_sock, protocol, waiter)
     await waiter
 
@@ -204,8 +204,8 @@ class _ZmqEventProtocol(ZmqProtocol):
 
     def __init__(self, loop, main_protocol):
         self._protocol = main_protocol
-        self.wait_ready = asyncio.Future(loop=loop)
-        self.wait_closed = asyncio.Future(loop=loop)
+        self.wait_ready = asyncio.Future()
+        self.wait_closed = asyncio.Future()
 
     def connection_made(self, transport):
         self.transport = transport

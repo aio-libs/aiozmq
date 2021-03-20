@@ -24,11 +24,11 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port)
             )
 
             s2 = await aiozmq.create_zmq_stream(
-                zmq.ROUTER, connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.ROUTER, connect="tcp://127.0.0.1:{}".format(port)
             )
 
             s1.write([b"request"])
@@ -45,11 +45,11 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port)
             )
 
             s2 = await aiozmq.create_zmq_stream(
-                zmq.ROUTER, connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.ROUTER, connect="tcp://127.0.0.1:{}".format(port)
             )
 
             self.assertFalse(s2.at_closing())
@@ -63,9 +63,7 @@ class ZmqStreamTests(unittest.TestCase):
 
     def test_transport(self):
         async def go():
-            s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:*", loop=self.loop
-            )
+            s1 = await aiozmq.create_zmq_stream(zmq.DEALER, bind="tcp://127.0.0.1:*")
 
             self.assertIsInstance(s1.transport, aiozmq.ZmqTransport)
             s1.close()
@@ -77,9 +75,7 @@ class ZmqStreamTests(unittest.TestCase):
 
     def test_get_extra_info(self):
         async def go():
-            s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:*", loop=self.loop
-            )
+            s1 = await aiozmq.create_zmq_stream(zmq.DEALER, bind="tcp://127.0.0.1:*")
 
             self.assertIsInstance(s1.get_extra_info("zmq_socket"), zmq.Socket)
 
@@ -87,9 +83,7 @@ class ZmqStreamTests(unittest.TestCase):
 
     def test_exception(self):
         async def go():
-            s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:*", loop=self.loop
-            )
+            s1 = await aiozmq.create_zmq_stream(zmq.DEALER, bind="tcp://127.0.0.1:*")
 
             self.assertIsNone(s1.exception())
 
@@ -107,9 +101,7 @@ class ZmqStreamTests(unittest.TestCase):
 
     def test_set_read_buffer_limits1(self):
         async def go():
-            s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:*", loop=self.loop
-            )
+            s1 = await aiozmq.create_zmq_stream(zmq.DEALER, bind="tcp://127.0.0.1:*")
 
             s1.set_read_buffer_limits(low=10)
             self.assertEqual(10, s1._low_water)
@@ -121,9 +113,7 @@ class ZmqStreamTests(unittest.TestCase):
 
     def test_set_read_buffer_limits2(self):
         async def go():
-            s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:*", loop=self.loop
-            )
+            s1 = await aiozmq.create_zmq_stream(zmq.DEALER, bind="tcp://127.0.0.1:*")
 
             s1.set_read_buffer_limits(high=60)
             self.assertEqual(15, s1._low_water)
@@ -135,9 +125,7 @@ class ZmqStreamTests(unittest.TestCase):
 
     def test_set_read_buffer_limits3(self):
         async def go():
-            s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:*", loop=self.loop
-            )
+            s1 = await aiozmq.create_zmq_stream(zmq.DEALER, bind="tcp://127.0.0.1:*")
 
             with self.assertRaises(ValueError):
                 s1.set_read_buffer_limits(high=1, low=2)
@@ -151,17 +139,17 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port)
             )
 
             s2 = await aiozmq.create_zmq_stream(
-                zmq.ROUTER, connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.ROUTER, connect="tcp://127.0.0.1:{}".format(port)
             )
 
             s2.set_read_buffer_limits(high=5)
             s1.write([b"request"])
 
-            await asyncio.sleep(0.01, loop=self.loop)
+            await asyncio.sleep(0.01)
             self.assertTrue(s2._paused)
 
             msg = await s2.read()
@@ -172,9 +160,7 @@ class ZmqStreamTests(unittest.TestCase):
 
     def test_set_exception(self):
         async def go():
-            s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:*", loop=self.loop
-            )
+            s1 = await aiozmq.create_zmq_stream(zmq.DEALER, bind="tcp://127.0.0.1:*")
 
             exc = RuntimeError("some exc")
             s1.set_exception(exc)
@@ -187,16 +173,14 @@ class ZmqStreamTests(unittest.TestCase):
 
     def test_set_exception_with_waiter(self):
         async def go():
-            s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:*", loop=self.loop
-            )
+            s1 = await aiozmq.create_zmq_stream(zmq.DEALER, bind="tcp://127.0.0.1:*")
 
             async def f():
                 await s1.read()
 
-            t1 = ensure_future(f(), loop=self.loop)
+            t1 = ensure_future(f())
             # to run f() up to await
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             self.assertIsNotNone(s1._waiter)
 
@@ -213,16 +197,14 @@ class ZmqStreamTests(unittest.TestCase):
 
     def test_set_exception_with_cancelled_waiter(self):
         async def go():
-            s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:*", loop=self.loop
-            )
+            s1 = await aiozmq.create_zmq_stream(zmq.DEALER, bind="tcp://127.0.0.1:*")
 
             async def f():
                 await s1.read()
 
-            t1 = ensure_future(f(), loop=self.loop)
+            t1 = ensure_future(f())
             # to run f() up to await
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             self.assertIsNotNone(s1._waiter)
             t1.cancel()
@@ -238,16 +220,14 @@ class ZmqStreamTests(unittest.TestCase):
 
     def test_double_reading(self):
         async def go():
-            s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:*", loop=self.loop
-            )
+            s1 = await aiozmq.create_zmq_stream(zmq.DEALER, bind="tcp://127.0.0.1:*")
 
             async def f():
                 await s1.read()
 
-            t1 = ensure_future(f(), loop=self.loop)
+            t1 = ensure_future(f())
             # to run f() up to await
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             with self.assertRaises(RuntimeError):
                 await s1.read()
@@ -261,18 +241,18 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port)
             )
 
             async def f():
                 await s1.read()
 
-            t1 = ensure_future(f(), loop=self.loop)
+            t1 = ensure_future(f())
             # to run f() up to await
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             s1.close()
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             with self.assertRaises(aiozmq.ZmqStreamClosed):
                 t1.result()
@@ -284,20 +264,20 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port)
             )
 
             async def f():
                 await s1.read()
 
-            t1 = ensure_future(f(), loop=self.loop)
+            t1 = ensure_future(f())
             # to run f() up to await
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             t1.cancel()
             s1.feed_closing()
 
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
             with self.assertRaises(asyncio.CancelledError):
                 t1.result()
 
@@ -308,20 +288,20 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port)
             )
 
             async def f():
                 await s1.read()
 
-            t1 = ensure_future(f(), loop=self.loop)
+            t1 = ensure_future(f())
             # to run f() up to await
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             t1.cancel()
             s1.feed_msg([b"data"])
 
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
             with self.assertRaises(asyncio.CancelledError):
                 t1.result()
 
@@ -335,7 +315,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.REP, bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.REP, bind="tcp://127.0.0.1:{}".format(port)
             )
             handler = mock.Mock()
             self.loop.set_exception_handler(handler)
@@ -354,7 +334,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.REP, bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.REP, bind="tcp://127.0.0.1:{}".format(port)
             )
             await s1.drain()
 
@@ -365,7 +345,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port)
             )
 
             self.assertFalse(s1._paused)
@@ -382,7 +362,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port)
             )
 
             self.assertFalse(s1._paused)
@@ -391,8 +371,8 @@ class ZmqStreamTests(unittest.TestCase):
             async def f():
                 await s1.drain()
 
-            fut = ensure_future(f(), loop=self.loop)
-            await asyncio.sleep(0.01, loop=self.loop)
+            fut = ensure_future(f())
+            await asyncio.sleep(0.01)
 
             self.assertTrue(s1._protocol._paused)
             s1._protocol.resume_writing()
@@ -409,7 +389,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port)
             )
 
             s1._protocol.pause_writing()
@@ -422,7 +402,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port)
             )
 
             self.assertFalse(s1._paused)
@@ -431,8 +411,8 @@ class ZmqStreamTests(unittest.TestCase):
             async def f():
                 await s1.drain()
 
-            fut = ensure_future(f(), loop=self.loop)
-            await asyncio.sleep(0.01, loop=self.loop)
+            fut = ensure_future(f())
+            await asyncio.sleep(0.01)
 
             s1.close()
             await fut
@@ -444,11 +424,11 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port)
             )
 
             s1.close()
-            await asyncio.sleep(0, loop=self.loop)
+            await asyncio.sleep(0)
 
             with self.assertRaises(ConnectionResetError):
                 await s1.drain()
@@ -460,7 +440,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.DEALER, bind="tcp://127.0.0.1:{}".format(port)
             )
 
             self.assertFalse(s1._paused)
@@ -469,8 +449,8 @@ class ZmqStreamTests(unittest.TestCase):
             async def f():
                 await s1.drain()
 
-            fut = ensure_future(f(), loop=self.loop)
-            await asyncio.sleep(0.01, loop=self.loop)
+            fut = ensure_future(f())
+            await asyncio.sleep(0.01)
 
             exc = RuntimeError("exception")
             s1._protocol.connection_lost(exc)
@@ -485,7 +465,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             s2 = await aiozmq.create_zmq_stream(
-                zmq.ROUTER, connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                zmq.ROUTER, connect="tcp://127.0.0.1:{}".format(port)
             )
 
             self.assertFalse(s2.at_closing())
@@ -514,7 +494,7 @@ class ZmqStreamTests(unittest.TestCase):
 
         async def go():
             addr = "tcp://127.0.0.1:{}".format(port)
-            s1 = await aiozmq.create_zmq_stream(zmq.ROUTER, bind=addr, loop=self.loop)
+            s1 = await aiozmq.create_zmq_stream(zmq.ROUTER, bind=addr)
 
             async def f(s, events):
                 try:
@@ -524,10 +504,10 @@ class ZmqStreamTests(unittest.TestCase):
                 except aiozmq.ZmqStreamClosed:
                     pass
 
-            s2 = await aiozmq.create_zmq_stream(zmq.DEALER, loop=self.loop)
+            s2 = await aiozmq.create_zmq_stream(zmq.DEALER)
 
             events = []
-            t = ensure_future(f(s2, events), loop=self.loop)
+            t = ensure_future(f(s2, events))
 
             await s2.transport.enable_monitor()
             await s2.transport.connect(addr)
@@ -557,9 +537,7 @@ class ZmqStreamTests(unittest.TestCase):
 
     def test_default_events_backlog(self):
         async def go():
-            s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:*", loop=self.loop
-            )
+            s1 = await aiozmq.create_zmq_stream(zmq.DEALER, bind="tcp://127.0.0.1:*")
 
             self.assertEqual(100, s1._event_queue.maxlen)
 
@@ -568,7 +546,7 @@ class ZmqStreamTests(unittest.TestCase):
     def test_custom_events_backlog(self):
         async def go():
             s1 = await aiozmq.create_zmq_stream(
-                zmq.DEALER, bind="tcp://127.0.0.1:*", loop=self.loop, events_backlog=1
+                zmq.DEALER, bind="tcp://127.0.0.1:*", events_backlog=1
             )
 
             self.assertEqual(1, s1._event_queue.maxlen)

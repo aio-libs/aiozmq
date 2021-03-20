@@ -161,6 +161,7 @@ class TestLoop(asyncio.base_events.BaseEventLoop):
 class TransportTests(unittest.TestCase):
     def setUp(self):
         self.loop = TestLoop()
+        asyncio.set_event_loop(self.loop)
         self.sock = mock.Mock()
         self.sock.closed = False
         self.proto = make_test_protocol(aiozmq.ZmqProtocol)
@@ -170,6 +171,7 @@ class TransportTests(unittest.TestCase):
 
     def tearDown(self):
         self.loop.close()
+        asyncio.set_event_loop(None)
 
     def test_empty_write(self):
         self.tr.write([b""])
@@ -717,9 +719,10 @@ class TransportTests(unittest.TestCase):
 class LooplessTransportTests(unittest.TestCase):
     def setUp(self):
         self.loop = TestLoop()
+        asyncio.set_event_loop(self.loop)
         self.sock = mock.Mock()
         self.sock.closed = False
-        self.waiter = asyncio.Future(loop=self.loop)
+        self.waiter = asyncio.Future()
         self.proto = make_test_protocol(aiozmq.ZmqProtocol)
         self.tr = _ZmqLooplessTransportImpl(
             self.loop, zmq.SUB, self.sock, self.proto, self.waiter
@@ -729,6 +732,7 @@ class LooplessTransportTests(unittest.TestCase):
 
     def tearDown(self):
         self.loop.close()
+        asyncio.set_event_loop(None)
 
     def test_incomplete_read(self):
         self.sock.recv_multipart.side_effect = zmq.Again(errno.EAGAIN)

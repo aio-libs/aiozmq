@@ -171,8 +171,8 @@ def _test_core_aiozmq(count, loop):
     print(".", end="", flush=True)
 
     async def go():
-        router_closed = asyncio.Future(loop=loop)
-        dealer_closed = asyncio.Future(loop=loop)
+        router_closed = asyncio.Future()
+        dealer_closed = asyncio.Future()
         router, _ = await aiozmq.create_zmq_connection(
             lambda: ZmqRouterProtocol(router_closed),
             zmq.ROUTER,
@@ -211,8 +211,8 @@ def test_core_aiozmq_legacy(count):
     loop = aiozmq.ZmqEventLoop()
 
     async def go():
-        router_closed = asyncio.Future(loop=loop)
-        dealer_closed = asyncio.Future(loop=loop)
+        router_closed = asyncio.Future()
+        dealer_closed = asyncio.Future()
         router, _ = await aiozmq.create_zmq_connection(
             lambda: ZmqRouterProtocol(router_closed),
             zmq.ROUTER,

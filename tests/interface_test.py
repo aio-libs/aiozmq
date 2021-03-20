@@ -8,6 +8,7 @@ from aiozmq.core import SocketEvent
 class ZmqTransportTests(unittest.TestCase):
     def setUp(self):
         self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
 
     def tearDown(self):
         self.loop.close()
@@ -53,6 +54,7 @@ class ZmqProtocolTests(unittest.TestCase):
 class ZmqEventProtocolTests(unittest.TestCase):
     def setUp(self):
         self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
 
     def tearDown(self):
         self.loop.close()

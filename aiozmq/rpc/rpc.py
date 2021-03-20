@@ -216,7 +216,7 @@ class _ClientProtocol(_BaseProtocol):
         bkwargs = self.packer.packb(kwargs)
         header, req_id = self._new_id()
         assert req_id not in self.calls, (req_id, self.calls)
-        fut = asyncio.Future(loop=self.loop)
+        fut = asyncio.Future()
         self.calls[req_id] = fut
         self.transport.write([header, bname, bargs, bkwargs])
         return fut
@@ -290,7 +290,7 @@ class _ServerProtocol(_BaseServerProtocol):
             func = self.dispatch(name)
             args, kwargs, ret_ann = self.check_args(func, args, kwargs)
         except (NotFoundError, ParametersError) as exc:
-            fut = asyncio.Future(loop=self.loop)
+            fut = asyncio.Future()
             fut.add_done_callback(
                 partial(
                     self.process_call_result,
@@ -306,7 +306,7 @@ class _ServerProtocol(_BaseServerProtocol):
             if asyncio.iscoroutinefunction(func):
                 fut = self.add_pending(func(*args, **kwargs))
             else:
-                fut = asyncio.Future(loop=self.loop)
+                fut = asyncio.Future()
                 try:
                     fut.set_result(func(*args, **kwargs))
                 except Exception as exc:

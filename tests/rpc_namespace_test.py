@@ -26,10 +26,10 @@ class RpcNamespaceTestsMixin:
 
         async def create():
             server = await aiozmq.rpc.serve_rpc(
-                RootHandler(), bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                RootHandler(), bind="tcp://127.0.0.1:{}".format(port)
             )
             client = await aiozmq.rpc.connect_rpc(
-                connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                connect="tcp://127.0.0.1:{}".format(port)
             )
             return client, server
 

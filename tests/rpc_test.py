@@ -49,16 +49,16 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
     async def slow_call(self):
-        await asyncio.sleep(0.2, loop=self.loop)
+        await asyncio.sleep(0.2)
 
     @aiozmq.rpc.method
     @asyncio.coroutine
     def fut(self):
-        return asyncio.Future(loop=self.loop)
+        return asyncio.Future()
 
     @aiozmq.rpc.method
     async def cancelled_fut(self):
-        ret = asyncio.Future(loop=self.loop)
+        ret = asyncio.Future()
         ret.cancel()
         return ret
 
@@ -68,17 +68,17 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
     async def not_so_fast(self):
-        await asyncio.sleep(0.001, loop=self.loop)
+        await asyncio.sleep(0.001)
         return "ok"
 
 
 class Protocol(aiozmq.ZmqProtocol):
     def __init__(self, loop):
         self.transport = None
-        self.connected = asyncio.Future(loop=loop)
-        self.closed = asyncio.Future(loop=loop)
+        self.connected = asyncio.Future()
+        self.closed = asyncio.Future()
         self.state = "INITIAL"
-        self.received = asyncio.Queue(loop=loop)
+        self.received = asyncio.Queue()
 
     def connection_made(self, transport):
         self.transport = transport
@@ -327,18 +327,14 @@ class RpcTestsMixin(RpcMixin):
             self.assertTrue(0.08 <= t1 - t0 <= 0.12, t1 - t0)
             server.close()
             client.close()
-            await asyncio.gather(
-                server.wait_closed(), client.wait_closed(), loop=self.loop
-            )
+            await asyncio.gather(server.wait_closed(), client.wait_closed())
 
         self.loop.run_until_complete(communicate())
 
     def test_type_of_handler(self):
         async def go():
             with self.assertRaises(TypeError):
-                await aiozmq.rpc.serve_rpc(
-                    "Bad Handler", bind="tcp://127.0.0.1:*", loop=self.loop
-                )
+                await aiozmq.rpc.serve_rpc("Bad Handler", bind="tcp://127.0.0.1:*")
 
         self.loop.run_until_complete(go())
 
@@ -348,16 +344,14 @@ class RpcTestsMixin(RpcMixin):
             server = await aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
             tr, pr = await create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
                 connect="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
 
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             with log_hook("aiozmq.rpc", self.err_queue):
                 tr.write([b"invalid", b"structure"])
@@ -379,13 +373,11 @@ class RpcTestsMixin(RpcMixin):
             server = await aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
             tr, pr = await create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
                 connect="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
 
             with log_hook("aiozmq.rpc", self.err_queue):
@@ -410,13 +402,11 @@ class RpcTestsMixin(RpcMixin):
             server = await aiozmq.rpc.serve_rpc(
                 MyHandler(self.loop),
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
             tr, pr = await create_zmq_connection(
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
                 connect="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
 
             with log_hook("aiozmq.rpc", self.err_queue):
@@ -448,11 +438,10 @@ class RpcTestsMixin(RpcMixin):
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
 
             client = await aiozmq.rpc.connect_rpc(
-                connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                connect="tcp://127.0.0.1:{}".format(port)
             )
 
             with log_hook("aiozmq.rpc", self.err_queue):
@@ -476,11 +465,10 @@ class RpcTestsMixin(RpcMixin):
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
 
             client = await aiozmq.rpc.connect_rpc(
-                connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                connect="tcp://127.0.0.1:{}".format(port)
             )
 
             with log_hook("aiozmq.rpc", self.err_queue):
@@ -504,11 +492,10 @@ class RpcTestsMixin(RpcMixin):
                 lambda: Protocol(self.loop),
                 zmq.DEALER,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
 
             client = await aiozmq.rpc.connect_rpc(
-                connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                connect="tcp://127.0.0.1:{}".format(port)
             )
 
             with log_hook("aiozmq.rpc", self.err_queue):
@@ -593,13 +580,13 @@ class RpcTestsMixin(RpcMixin):
 
         async def communicate():
             waiter = client.call.fut()
-            await asyncio.sleep(0.01, loop=self.loop)
+            await asyncio.sleep(0.01)
             self.assertEqual(1, len(server._proto.pending_waiters))
             task = next(iter(server._proto.pending_waiters))
             self.assertIsInstance(task, asyncio.Task)
             server.close()
             await server.wait_closed()
-            await asyncio.sleep(0.01, loop=self.loop)
+            await asyncio.sleep(0.01)
             self.assertEqual(0, len(server._proto.pending_waiters))
             del waiter
 
@@ -664,7 +651,7 @@ class RpcTestsMixin(RpcMixin):
                 with self.assertRaises(asyncio.TimeoutError):
                     await client.with_timeout(0.1).call.slow_call()
 
-                await asyncio.sleep(0.3, loop=self.loop)
+                await asyncio.sleep(0.3)
 
                 ret = await client.call.func(2)
                 self.assertEqual(3, ret)
@@ -695,7 +682,7 @@ class LoopRpcTests(unittest.TestCase, RpcTestsMixin):
         self.loop = aiozmq.ZmqEventLoop()
         asyncio.set_event_loop(self.loop)
         self.client = self.server = None
-        self.err_queue = asyncio.Queue(loop=self.loop)
+        self.err_queue = asyncio.Queue()
 
     def tearDown(self):
         self.close_service(self.client)
@@ -710,7 +697,7 @@ class LoopLessRpcTests(unittest.TestCase, RpcTestsMixin):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.client = self.server = None
-        self.err_queue = asyncio.Queue(loop=self.loop)
+        self.err_queue = asyncio.Queue()
 
     def tearDown(self):
         self.close_service(self.client)

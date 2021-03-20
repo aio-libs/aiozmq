@@ -37,7 +37,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
     async def fut(self):
-        f = asyncio.Future(loop=self.loop)
+        f = asyncio.Future()
         await self.queue.put(f)
         await f
 
@@ -225,7 +225,6 @@ class PubSubTestsMixin(RpcMixin):
             server = await aiozmq.rpc.serve_pubsub(
                 MyHandler(self.queue, self.loop),
                 bind="tcp://127.0.0.1:*",
-                loop=self.loop,
             )
             self.assertRaises(TypeError, server.subscribe, 123)
 
@@ -236,7 +235,6 @@ class PubSubTestsMixin(RpcMixin):
             server = await aiozmq.rpc.serve_pubsub(
                 MyHandler(self.queue, self.loop),
                 bind="tcp://127.0.0.1:*",
-                loop=self.loop,
             )
             self.assertRaises(TypeError, server.subscribe, 123)
 
@@ -280,7 +278,6 @@ class PubSubTestsMixin(RpcMixin):
                 await aiozmq.rpc.serve_pubsub(
                     {},
                     bind="tcp://127.0.0.1:{}".format(port),
-                    loop=self.loop,
                     subscribe=123,
                 )
 
@@ -334,7 +331,7 @@ class PubSubTestsMixin(RpcMixin):
             self.assertIsInstance(task, asyncio.Task)
             server.close()
             await server.wait_closed()
-            await asyncio.sleep(0.1, loop=self.loop)
+            await asyncio.sleep(0.1)
             self.assertEqual(0, len(server._proto.pending_waiters))
             fut.cancel()
 
@@ -344,10 +341,10 @@ class PubSubTestsMixin(RpcMixin):
 class LoopPubSubTests(unittest.TestCase, PubSubTestsMixin):
     def setUp(self):
         self.loop = aiozmq.ZmqEventLoop()
-        asyncio.set_event_loop(None)
+        asyncio.set_event_loop(self.loop)
         self.client = self.server = None
-        self.queue = asyncio.Queue(loop=self.loop)
-        self.err_queue = asyncio.Queue(loop=self.loop)
+        self.queue = asyncio.Queue()
+        self.err_queue = asyncio.Queue()
 
     def tearDown(self):
         self.close_service(self.client)
@@ -360,10 +357,10 @@ class LoopPubSubTests(unittest.TestCase, PubSubTestsMixin):
 class LooplessPubSubTests(unittest.TestCase, PubSubTestsMixin):
     def setUp(self):
         self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(None)
+        asyncio.set_event_loop(self.loop)
         self.client = self.server = None
-        self.queue = asyncio.Queue(loop=self.loop)
-        self.err_queue = asyncio.Queue(loop=self.loop)
+        self.queue = asyncio.Queue()
+        self.err_queue = asyncio.Queue()
 
     def tearDown(self):
         self.close_service(self.client)

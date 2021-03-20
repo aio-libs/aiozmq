@@ -13,10 +13,10 @@ ZMQ_EVENTS = [getattr(zmq, attr) for attr in dir(zmq) if attr.startswith("EVENT_
 
 class Protocol(aiozmq.ZmqProtocol):
     def __init__(self, loop):
-        self.wait_ready = asyncio.Future(loop=loop)
-        self.wait_done = asyncio.Future(loop=loop)
-        self.wait_closed = asyncio.Future(loop=loop)
-        self.events_received = asyncio.Queue(loop=loop)
+        self.wait_ready = asyncio.Future()
+        self.wait_done = asyncio.Future()
+        self.wait_closed = asyncio.Future()
+        self.events_received = asyncio.Queue()
 
     def connection_made(self, transport):
         self.transport = transport
@@ -65,14 +65,13 @@ class ZmqSocketMonitorTests(unittest.TestCase):
                 lambda: Protocol(self.loop),
                 zmq.ROUTER,
                 bind="tcp://127.0.0.1:{}".format(port),
-                loop=self.loop,
             )
             await sp.wait_ready
             addr = list(st.bindings())[0]
 
             # Create client but don't connect it yet.
             ct, cp = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.DEALER, loop=self.loop
+                lambda: Protocol(self.loop), zmq.DEALER
             )
             await cp.wait_ready
 
@@ -82,9 +81,9 @@ class ZmqSocketMonitorTests(unittest.TestCase):
             # Now that the socket event monitor is established, connect
             # the client to the server which will generate some events.
             await ct.connect(addr)
-            await asyncio.sleep(0.1, loop=self.loop)
+            await asyncio.sleep(0.1)
             await ct.disconnect(addr)
-            await asyncio.sleep(0.1, loop=self.loop)
+            await asyncio.sleep(0.1)
             await ct.connect(addr)
 
             # Send a message to the server. The server should respond and
@@ -111,7 +110,7 @@ class ZmqSocketMonitorTests(unittest.TestCase):
         async def go():
 
             ct, cp = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.DEALER, loop=self.loop
+                lambda: Protocol(self.loop), zmq.DEALER
             )
             await cp.wait_ready
 
@@ -138,7 +137,7 @@ class ZmqSocketMonitorTests(unittest.TestCase):
         async def go():
 
             ct, cp = await aiozmq.create_zmq_connection(
-                lambda: Protocol(self.loop), zmq.DEALER, loop=self.loop
+                lambda: Protocol(self.loop), zmq.DEALER
             )
             await cp.wait_ready
 

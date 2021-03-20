@@ -51,11 +51,11 @@ class FuncAnnotationsTestsMixin:
 
         async def create():
             server = await aiozmq.rpc.serve_rpc(
-                MyHandler(), bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                MyHandler(), bind="tcp://127.0.0.1:{}".format(port)
             )
 
             client = await aiozmq.rpc.connect_rpc(
-                connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
+                connect="tcp://127.0.0.1:{}".format(port)
             )
             return client, server
 
