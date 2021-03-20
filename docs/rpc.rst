@@ -75,14 +75,13 @@ The basic usage is::
        def remote(self, arg1, arg2):
            return arg1 + arg2
 
-   @asyncio.coroutine
-   def go():
-       server =  yield from rpc.serve_rpc(Handler(),
-                                          bind='tcp://127.0.0.1:5555')
+   async def go():
+       server =  await rpc.serve_rpc(Handler(),
+                                     bind='tcp://127.0.0.1:5555')
 
-       client = yield from rpc.connect_rpc(connect='tcp://127.0.0.1:5555')
+       client = await rpc.connect_rpc(connect='tcp://127.0.0.1:5555')
 
-       ret = yield from client.call.remote(1, 2)
+       ret = await client.call.remote(1, 2)
        assert ret == 3
 
    event_loop.run_until_complete(go())
@@ -205,14 +204,13 @@ The basic usage is::
        def remote(self):
            do_something(arg)
 
-   @asyncio.coroutine
-   def go():
-       server =  yield from rpc.serve_pipeline(Handler(),
-                                               bind='tcp://127.0.0.1:5555')
+   async def go():
+       server =  await rpc.serve_pipeline(Handler(),
+                                          bind='tcp://127.0.0.1:5555')
 
-       client = yield from rpc.connect_pipeline(connect='tcp://127.0.0.1:5555')
+       client = await rpc.connect_pipeline(connect='tcp://127.0.0.1:5555')
 
-       ret = yield from client.notify.remote(1)
+       ret = await client.notify.remote(1)
 
    event_loop.run_until_complete(go())
 
@@ -319,15 +317,14 @@ The basic usage is::
        def remote(self):
            do_something(arg)
 
-   @asyncio.coroutine
-   def go():
-       server =  yield from rpc.serve_pubsub(Handler(),
-                                             subscribe='topic',
-                                             bind='tcp://127.0.0.1:5555')
+   async def go():
+       server =  await rpc.serve_pubsub(Handler(),
+                                        subscribe='topic',
+                                        bind='tcp://127.0.0.1:5555')
 
-       client = yield from rpc.connect_pubsub(connect='tcp://127.0.0.1:5555')
+       client = await rpc.connect_pubsub(connect='tcp://127.0.0.1:5555')
 
-       ret = yield from client.publish('topic').remote(1)
+       ret = await client.publish('topic').remote(1)
 
    event_loop.run_until_complete(go())
 
@@ -420,7 +417,7 @@ If a remote server method raises an exception, that exception is passed
 back to the client and raised on the client side, as follows::
 
     try:
-        yield from client.call.func_raises_value_error()
+        await client.call.func_raises_value_error()
     except ValueError as exc:
         log.exception(exc)
 
@@ -602,16 +599,15 @@ example::
         def remote(self, val):
             return val
 
-    @asyncio.coroutine
-    def go():
-        server = yield from aiozmq.rpc.serve_rpc(
+    async def go():
+        server = await aiozmq.rpc.serve_rpc(
             ServerHandler(), bind='tcp://127.0.0.1:5555',
             translation_table=translation_table)
-        client = yield from aiozmq.rpc.connect_rpc(
+        client = await aiozmq.rpc.connect_rpc(
             connect='tcp://127.0.0.1:5555',
             translation_table=translation_table)
 
-        ret = yield from client.call.remote(Point(1, 2))
+        ret = await client.call.remote(Point(1, 2))
         assert ret == Point(1, 2)
 
 You should create a *translation table* and pass it to both
@@ -705,10 +701,10 @@ servers: :func:`serve_rpc`, :func:`serve_pipeline` and
 
 If, say, you make PubSub server as::
 
-   server =  yield from rpc.serve_pubsub(handler,
-                                         subscribe='topic',
-                                         bind='tcp://127.0.0.1:5555',
-                                         log_exceptions=True)
+   server = await rpc.serve_pubsub(handler,
+                                   subscribe='topic',
+                                   bind='tcp://127.0.0.1:5555',
+                                   log_exceptions=True)
 
 then exceptions raised from *handler* remote calls will be logged by
 standard :attr:`aiozmq.rpc.logger`.
@@ -721,11 +717,11 @@ exceptions over the log, but record all other unexpected errors.
 
 For that case you can use *exclude_log_exceptions* parameter::
 
-   server =  yield from rpc.serve_rpc(handler,
-                                      bind='tcp://127.0.0.1:7777',
-                                      log_exceptions=True,
-                                      exclude_log_exceptions=(MyError,
-                                                              OtherError))
+   server = await rpc.serve_rpc(handler,
+                                bind='tcp://127.0.0.1:7777',
+                                log_exceptions=True,
+                                exclude_log_exceptions=(MyError,
+                                                        OtherError))
 
 
 Exceptions
@@ -882,14 +878,14 @@ Classes
 
       A construction like::
 
-          ret = yield from client.call.ns.method(1, 2, 3)
+          ret = await client.call.ns.method(1, 2, 3)
 
       makes a remote call with arguments(1, 2, 3) and returns the answer
       from this call.
 
       You can also pass *named parameters*::
 
-          ret = yield from client.call.ns.method(1, b=2, c=3)
+          ret = await client.call.ns.method(1, b=2, c=3)
 
       If the call raises an exception that exception propagates to client side.
 
@@ -897,7 +893,7 @@ Classes
       ``ValueError`` instance with *args* sent by remote::
 
           try:
-              yield from client.call.raise_value_error()
+              await client.call.raise_value_error()
           except ValueError as exc:
               process_error(exc)
 
@@ -905,13 +901,13 @@ Classes
 
       Override default timeout for client. Can be used in two forms::
 
-          yield from client.with_timeout(1.5).call.func()
+          await client.with_timeout(1.5).call.func()
 
       and::
 
           with client.with_timeout(1.5) as new_client:
-              yield from new_client.call.func1()
-              yield from new_client.call.func2()
+              await new_client.call.func1()
+              await new_client.call.func2()
 
       :param float timeout: a timeout for RPC calls. If
          *timeout* is not *None* and remote call takes longer than
@@ -938,7 +934,7 @@ Classes
 
       Construction like::
 
-          ret = yield from client.notify.ns.method(1, 2, 3)
+          ret = await client.notify.ns.method(1, 2, 3)
 
       makes a remote call with arguments(1, 2, 3) and returns *None*.
 
@@ -959,7 +955,7 @@ Classes
 
       A construction like::
 
-          ret = yield from client.publish('topic').ns.method(1, b=2)
+          ret = await client.publish('topic').ns.method(1, b=2)
 
       makes a remote call with arguments ``(1, b=2)`` and topic name
       ``b'topic'`` and returns *None*.

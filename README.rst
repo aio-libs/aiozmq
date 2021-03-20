@@ -42,20 +42,19 @@ Simple high-level client-server RPC example:
             return a + b
 
 
-    @asyncio.coroutine
-    def go():
-        server = yield from aiozmq.rpc.serve_rpc(
+    async def go():
+        server = await aiozmq.rpc.serve_rpc(
             ServerHandler(), bind='tcp://127.0.0.1:5555')
-        client = yield from aiozmq.rpc.connect_rpc(
+        client = await aiozmq.rpc.connect_rpc(
             connect='tcp://127.0.0.1:5555')
 
-        ret = yield from client.call.remote_func(1, 2)
+        ret = await client.call.remote_func(1, 2)
         assert 3 == ret
 
         server.close()
         client.close()
 
-    asyncio.get_event_loop().run_until_complete(go())
+    asyncio.run(go())
 
 Low-level request-reply example:
 
@@ -65,28 +64,27 @@ Low-level request-reply example:
     import aiozmq
     import zmq
 
-    @asyncio.coroutine
-    def go():
-        router = yield from aiozmq.create_zmq_stream(
+    async def go():
+        router = await aiozmq.create_zmq_stream(
             zmq.ROUTER,
             bind='tcp://127.0.0.1:*')
 
         addr = list(router.transport.bindings())[0]
-        dealer = yield from aiozmq.create_zmq_stream(
+        dealer = await aiozmq.create_zmq_stream(
             zmq.DEALER,
             connect=addr)
 
         for i in range(10):
             msg = (b'data', b'ask', str(i).encode('utf-8'))
             dealer.write(msg)
-            data = yield from router.read()
+            data = await router.read()
             router.write(data)
-            answer = yield from dealer.read()
+            answer = await dealer.read()
             print(answer)
         dealer.close()
         router.close()
 
-    asyncio.get_event_loop().run_until_complete(go())
+    asyncio.run(go())
 
 
 Comparison to pyzmq
@@ -109,7 +107,7 @@ For details see https://github.com/zeromq/pyzmq/issues/894
 Requirements
 ------------
 
-* Python_ 3.5+
+* Python_ 3.6+
 * pyzmq_ 13.1+
 * optional submodule ``aiozmq.rpc`` requires msgpack_ 0.5+
 

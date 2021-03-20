@@ -15,27 +15,26 @@ def b():
 handlers_dict = {"a": a, "subnamespace": {"b": b}}
 
 
-@asyncio.coroutine
-def go():
-    server = yield from aiozmq.rpc.serve_rpc(handlers_dict, bind="tcp://*:*")
+async def go():
+    server = await aiozmq.rpc.serve_rpc(handlers_dict, bind="tcp://*:*")
     server_addr = list(server.transport.bindings())[0]
 
-    client = yield from aiozmq.rpc.connect_rpc(connect=server_addr)
+    client = await aiozmq.rpc.connect_rpc(connect=server_addr)
 
-    ret = yield from client.call.a()
+    ret = await client.call.a()
     assert "a" == ret
 
-    ret = yield from client.call.subnamespace.b()
+    ret = await client.call.subnamespace.b()
     assert "b" == ret
 
     server.close()
-    yield from server.wait_closed()
+    await server.wait_closed()
     client.close()
-    yield from client.wait_closed()
+    await client.wait_closed()
 
 
 def main():
-    asyncio.get_event_loop().run_until_complete(go())
+    asyncio.run(go())
     print("DONE")
 
 

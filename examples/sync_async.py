@@ -85,12 +85,11 @@ def async_main(options):
 
     stop = asyncio.Future()
 
-    @asyncio.coroutine
-    def server():
-        router = yield from aiozmq.create_zmq_stream(zmq.ROUTER, bind=options.addr)
+    async def server():
+        router = await aiozmq.create_zmq_stream(zmq.ROUTER, bind=options.addr)
         while True:
             try:
-                data = yield from router.read()
+                data = await router.read()
             except asyncio.CancelledError:
                 break
             print("Async server read: {!r}".format(data))
@@ -98,13 +97,12 @@ def async_main(options):
             print("Async server write: {!r}".format(data))
         router.close()
 
-    @asyncio.coroutine
-    def client():
-        dealer = yield from aiozmq.create_zmq_stream(zmq.DEALER, connect=options.addr)
+    async def client():
+        dealer = await aiozmq.create_zmq_stream(zmq.DEALER, connect=options.addr)
         data = read_data()
         dealer.write(data)
         print("Async client write: {!r}".format(data))
-        echo = yield from dealer.read()
+        echo = await dealer.read()
         print("Async client read: {!r}".format(echo))
         stop.set_result(None)
 

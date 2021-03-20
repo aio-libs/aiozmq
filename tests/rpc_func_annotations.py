@@ -17,34 +17,24 @@ def my_checker(val):
 
 class MyHandler(aiozmq.rpc.AttrHandler):
     @aiozmq.rpc.method
-    @asyncio.coroutine
-    def no_params(self, arg):
+    async def no_params(self, arg):
         return arg + 1
-        yield
 
     @aiozmq.rpc.method
-    @asyncio.coroutine
-    def single_param(self, arg: int):
+    async def single_param(self, arg: int):
         return arg + 1
-        yield
 
     @aiozmq.rpc.method
-    @asyncio.coroutine
-    def custom_annotation(self, arg: my_checker):
+    async def custom_annotation(self, arg: my_checker):
         return arg
-        yield
 
     @aiozmq.rpc.method
-    @asyncio.coroutine
-    def ret_annotation(self, arg: int = 1) -> float:
+    async def ret_annotation(self, arg: int = 1) -> float:
         return float(arg)
-        yield
 
     @aiozmq.rpc.method
-    @asyncio.coroutine
-    def bad_return(self, arg) -> int:
+    async def bad_return(self, arg) -> int:
         return arg
-        yield
 
     @aiozmq.rpc.method
     def has_default(self, arg: int = None):
@@ -59,13 +49,12 @@ class FuncAnnotationsTestsMixin:
     def make_rpc_pair(self):
         port = find_unused_port()
 
-        @asyncio.coroutine
-        def create():
-            server = yield from aiozmq.rpc.serve_rpc(
+        async def create():
+            server = await aiozmq.rpc.serve_rpc(
                 MyHandler(), bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
             )
 
-            client = yield from aiozmq.rpc.connect_rpc(
+            client = await aiozmq.rpc.connect_rpc(
                 connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
             )
             return client, server
@@ -93,9 +82,8 @@ class FuncAnnotationsTestsMixin:
     def test_no_params(self):
         client, server = self.make_rpc_pair()
 
-        @asyncio.coroutine
-        def communicate():
-            ret = yield from client.call.no_params(1)
+        async def communicate():
+            ret = await client.call.no_params(1)
             self.assertEqual(ret, 2)
 
         self.loop.run_until_complete(communicate())
@@ -103,24 +91,23 @@ class FuncAnnotationsTestsMixin:
     def test_single_param(self):
         client, server = self.make_rpc_pair()
 
-        @asyncio.coroutine
-        def communicate():
-            ret = yield from client.call.single_param(1)
+        async def communicate():
+            ret = await client.call.single_param(1)
             self.assertEqual(ret, 2)
-            ret = yield from client.call.single_param("1")
+            ret = await client.call.single_param("1")
             self.assertEqual(ret, 2)
-            ret = yield from client.call.single_param(1.0)
+            ret = await client.call.single_param(1.0)
             self.assertEqual(ret, 2)
 
             msg = "Invalid value for argument 'arg'"
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.call.single_param("1.0")
+                await client.call.single_param("1.0")
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.call.single_param("bad value")
+                await client.call.single_param("bad value")
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.call.single_param({})
+                await client.call.single_param({})
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.call.single_param(None)
+                await client.call.single_param(None)
 
             if sys.version_info >= (3, 5):
                 msg = "TypeError.*missing a required argument: 'arg'"
@@ -128,9 +115,9 @@ class FuncAnnotationsTestsMixin:
                 msg = "TypeError.*'arg' parameter lacking default value"
 
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.call.single_param()
+                await client.call.single_param()
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.call.single_param(bad="value")
+                await client.call.single_param(bad="value")
 
             if sys.version_info >= (3, 5):
                 msg = "TypeError.*got an unexpected keyword argument 'bad'"
@@ -138,34 +125,32 @@ class FuncAnnotationsTestsMixin:
                 msg = "TypeError.*too many keyword arguments"
 
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.call.single_param(1, bad="value")
+                await client.call.single_param(1, bad="value")
 
         self.loop.run_until_complete(communicate())
 
     def test_custom_annotation(self):
         client, server = self.make_rpc_pair()
 
-        @asyncio.coroutine
-        def communicate():
-            ret = yield from client.call.custom_annotation(1)
+        async def communicate():
+            ret = await client.call.custom_annotation(1)
             self.assertEqual(ret, 1)
-            ret = yield from client.call.custom_annotation(None)
+            ret = await client.call.custom_annotation(None)
             self.assertIsNone(ret)
 
             msg = "Invalid value for argument 'arg': ValueError.*bad value.*"
             with self.assertRaisesRegex(aiozmq.rpc.ParametersError, msg):
-                yield from client.call.custom_annotation(1.0)
+                await client.call.custom_annotation(1.0)
 
         self.loop.run_until_complete(communicate())
 
     def test_ret_annotation(self):
         client, server = self.make_rpc_pair()
 
-        @asyncio.coroutine
-        def communicate():
-            ret = yield from client.call.ret_annotation(1)
+        async def communicate():
+            ret = await client.call.ret_annotation(1)
             self.assertEqual(ret, 1.0)
-            ret = yield from client.call.ret_annotation("2")
+            ret = await client.call.ret_annotation("2")
             self.assertEqual(ret, 2.0)
 
         self.loop.run_until_complete(communicate())
@@ -173,35 +158,33 @@ class FuncAnnotationsTestsMixin:
     def test_bad_return(self):
         client, server = self.make_rpc_pair()
 
-        @asyncio.coroutine
-        def communicate():
-            ret = yield from client.call.bad_return(1)
+        async def communicate():
+            ret = await client.call.bad_return(1)
             self.assertEqual(ret, 1)
-            ret = yield from client.call.bad_return(1.2)
+            ret = await client.call.bad_return(1.2)
             self.assertEqual(ret, 1)
-            ret = yield from client.call.bad_return("2")
+            ret = await client.call.bad_return("2")
             self.assertEqual(ret, 2)
 
             with self.assertRaises(ValueError):
-                yield from client.call.bad_return("1.0")
+                await client.call.bad_return("1.0")
             with self.assertRaises(TypeError):
-                yield from client.call.bad_return(None)
+                await client.call.bad_return(None)
 
         self.loop.run_until_complete(communicate())
 
     def test_default_value_not_passed_to_annotation(self):
         client, server = self.make_rpc_pair()
 
-        @asyncio.coroutine
-        def communicate():
-            ret = yield from client.call.has_default(1)
+        async def communicate():
+            ret = await client.call.has_default(1)
             self.assertEqual(ret, 1)
 
-            ret = yield from client.call.has_default()
+            ret = await client.call.has_default()
             self.assertEqual(ret, None)
 
             with self.assertRaises(ValueError):
-                yield from client.call.has_default(None)
+                await client.call.has_default(None)
 
         self.loop.run_until_complete(communicate())
 

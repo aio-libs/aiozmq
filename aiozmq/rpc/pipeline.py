@@ -18,8 +18,9 @@ from .util import (
 )
 
 
-@asyncio.coroutine
-def connect_pipeline(*, connect=None, bind=None, loop=None, translation_table=None):
+async def connect_pipeline(
+    *, connect=None, bind=None, loop=None, translation_table=None
+):
     """A coroutine that creates and connects/binds Pipeline client instance.
 
     Usually for this function you need to use *connect* parameter, but
@@ -36,7 +37,7 @@ def connect_pipeline(*, connect=None, bind=None, loop=None, translation_table=No
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    transp, proto = yield from create_zmq_connection(
+    transp, proto = await create_zmq_connection(
         lambda: _ClientProtocol(loop, translation_table=translation_table),
         zmq.PUSH,
         connect=connect,
@@ -46,8 +47,7 @@ def connect_pipeline(*, connect=None, bind=None, loop=None, translation_table=No
     return PipelineClient(loop, proto)
 
 
-@asyncio.coroutine
-def serve_pipeline(
+async def serve_pipeline(
     handler,
     *,
     connect=None,
@@ -85,7 +85,7 @@ def serve_pipeline(
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    trans, proto = yield from create_zmq_connection(
+    trans, proto = await create_zmq_connection(
         lambda: _ServerProtocol(
             loop,
             handler,
@@ -124,7 +124,7 @@ class PipelineClient(Service):
         """Return object for dynamic Pipeline calls.
 
         The usage is:
-        yield from client.pipeline.ns.func(1, 2)
+        await client.pipeline.ns.func(1, 2)
         """
         return _MethodCall(self._proto)
 

@@ -16,10 +16,8 @@ from unittest import mock
 from aiozmq._test_util import check_errno
 
 
-@asyncio.coroutine
-def dummy():
-    if False:
-        yield
+async def dummy():
+    pass
 
 
 # make_test_protocol, TestSelector, and TestLoop were taken from
@@ -398,10 +396,9 @@ class TransportTests(unittest.TestCase):
         self.assertFalse(self.tr.can_write_eof())
 
     def test_dns_address(self):
-        @asyncio.coroutine
-        def go():
+        async def go():
             with self.assertRaises(ValueError):
-                yield from self.tr.connect("tcp://example.com:8080")
+                await self.tr.connect("tcp://example.com:8080")
 
     def test_write_none(self):
         self.tr.write(None)

@@ -13,29 +13,28 @@ class Handler(aiozmq.rpc.AttrHandler):
         print("HANDLER", step, a, b)
 
 
-@asyncio.coroutine
-def go():
+async def go():
     handler = Handler()
-    listener = yield from aiozmq.rpc.serve_pipeline(handler, bind="tcp://*:*")
+    listener = await aiozmq.rpc.serve_pipeline(handler, bind="tcp://*:*")
     listener_addr = list(listener.transport.bindings())[0]
 
-    notifier = yield from aiozmq.rpc.connect_pipeline(connect=listener_addr)
+    notifier = await aiozmq.rpc.connect_pipeline(connect=listener_addr)
 
     for step in count(0):
-        yield from notifier.notify.remote_func(step, 1, 2)
+        await notifier.notify.remote_func(step, 1, 2)
         if handler.connected:
             break
         else:
-            yield from asyncio.sleep(0.01)
+            await asyncio.sleep(0.01)
 
     listener.close()
-    yield from listener.wait_closed()
+    await listener.wait_closed()
     notifier.close()
-    yield from notifier.wait_closed()
+    await notifier.wait_closed()
 
 
 def main():
-    asyncio.get_event_loop().run_until_complete(go())
+    asyncio.run(go())
     print("DONE")
 
 

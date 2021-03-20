@@ -1,4 +1,3 @@
-import asyncio
 from asyncio import BaseProtocol, BaseTransport
 
 
@@ -116,13 +115,13 @@ class ZmqTransport(BaseTransport):
         raise NotImplementedError
 
     def connect(self, endpoint):
-        """Connect transpot to endpoint.
+        """Connect transport to endpoint.
 
         endpoint is a string in format transport://address as ZeroMQ requires.
 
         For TCP connections endpoint should specify IPv4 or IPv6 address,
         not DNS name.
-        Use yield from get_event_loop().getaddrinfo(host, port)
+        Use await get_event_loop().getaddrinfo(host, port)
         for translating DNS into address.
 
         Raise ValueError if endpoint is tcp DNS address.
@@ -185,8 +184,7 @@ class ZmqTransport(BaseTransport):
         """
         raise NotImplementedError
 
-    @asyncio.coroutine
-    def enable_monitor(self, events=None):
+    async def enable_monitor(self, events=None):
         """Enables socket events to be reported for this socket.
         Socket events are passed to the protocol's ZmqProtocol's
         event_received method.

@@ -38,33 +38,32 @@ class ZmqRouterProtocol(aiozmq.ZmqProtocol):
         self.on_close.set_result(exc)
 
 
-@asyncio.coroutine
-def go():
+async def go():
     router_closed = asyncio.Future()
     dealer_closed = asyncio.Future()
-    router, _ = yield from aiozmq.create_zmq_connection(
+    router, _ = await aiozmq.create_zmq_connection(
         lambda: ZmqRouterProtocol(router_closed), zmq.ROUTER, bind="tcp://127.0.0.1:*"
     )
 
     addr = list(router.bindings())[0]
     queue = asyncio.Queue()
-    dealer, _ = yield from aiozmq.create_zmq_connection(
+    dealer, _ = await aiozmq.create_zmq_connection(
         lambda: ZmqDealerProtocol(queue, dealer_closed), zmq.DEALER, connect=addr
     )
 
     for i in range(10):
         msg = (b"data", b"ask", str(i).encode("utf-8"))
         dealer.write(msg)
-        answer = yield from queue.get()
+        answer = await queue.get()
         print(answer)
     dealer.close()
-    yield from dealer_closed
+    await dealer_closed
     router.close()
-    yield from router_closed
+    await router_closed
 
 
 def main():
-    asyncio.get_event_loop().run_until_complete(go())
+    asyncio.run(go())
     print("DONE")
 
 

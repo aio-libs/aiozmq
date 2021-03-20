@@ -11,8 +11,8 @@ tests_require = install_requires + ["msgpack>=0.5.0"]
 extras_require = {"rpc": ["msgpack>=0.5.0"]}
 
 
-if sys.version_info < (3, 5):
-    raise RuntimeError("aiozmq requires Python 3.5 or higher")
+if sys.version_info < (3, 6):
+    raise RuntimeError("aiozmq requires Python 3.6 or higher")
 
 
 def read(f):
