@@ -1,0 +1,48 @@
+name: main
+
+on:
+  push:
+    branches: [master]
+    tags: ['*']
+  pull_request:
+    paths-ignore:
+    - .gitignore
+    - LICENSE
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.5', '3.6', '3.7', '3.8']
+        msgpack: ['', '1']
+        debug: ['', '1']
+
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python }}
+    - name: install zmq
+      run:
+        - apt-get update -qq
+        - apt-get install -qq libzmq3-dev
+    - name: install python dependencies
+      run:
+        - pip install --upgrade pip setuptools wheel
+        - python setup.py install
+        - test ${{ matrix.msgpack }} == 1 && pip install msgpack || true
+        - pip install pyflakes pycodestyle docutils codecov
+    - name: test
+      run:
+        - python -c "import zmq; print('ZMQ version:', zmq.zmq_version())"
+        - pycodestyle aiozmq examples tests benchmarks
+        - pyflakes .
+        - export USE_MSGPACK=${{ matrix.msgpack }}
+        - export PYTHONASYNCIODEBUG=${{ matrix.debug }}
+        - python setup.py check -rm
+        - if python -c "import sys; sys.exit(sys.version_info < (3,5))"; then
+              python setup.py check -s;
+          fi
+        - python runtests.py --coverage -v
