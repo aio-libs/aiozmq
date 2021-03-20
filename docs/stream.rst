@@ -17,28 +17,27 @@ Here's an example::
     import aiozmq
     import zmq
 
-    @asyncio.coroutine
-    def go():
-        router = yield from aiozmq.create_zmq_stream(
+    async def go():
+        router = await aiozmq.create_zmq_stream(
             zmq.ROUTER,
             bind='tcp://127.0.0.1:*')
 
         addr = list(router.transport.bindings())[0]
-        dealer = yield from aiozmq.create_zmq_stream(
+        dealer = await aiozmq.create_zmq_stream(
             zmq.DEALER,
             connect=addr)
 
         for i in range(10):
             msg = (b'data', b'ask', str(i).encode('utf-8'))
             dealer.write(msg)
-            data = yield from router.read()
+            data = await router.read()
             router.write(data)
-            answer = yield from dealer.read()
+            answer = await dealer.read()
             print(answer)
         dealer.close()
         router.close()
 
-    asyncio.get_event_loop().run_until_complete(go())
+    asyncio.run(go())
 
 The code creates two streams for request and response part of
 :term:`ZeroMQ` connection and sends message through the wire with
@@ -157,11 +156,11 @@ ZmqStream
       The intended use is to write::
 
           w.write(data)
-          yield from w.drain()
+          await w.drain()
 
       When the transport buffer is full (the protocol is paused), block until
       the buffer is (partially) drained and the protocol is resumed. When there
-      is nothing to wait for, the yield-from continues immediately.
+      is nothing to wait for, the await continues immediately.
 
       This method is a :ref:`coroutine <coroutine>`.
 
@@ -189,7 +188,7 @@ ZmqStream
       Monitoring mode should be enabled by
       :meth:`ZmqTransport.enable_monitor` call first::
 
-          yield from stream.transport.enable_monitor()
+          await stream.transport.enable_monitor()
 
       .. versionadded:: 0.7
 

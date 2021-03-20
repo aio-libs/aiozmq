@@ -13,19 +13,17 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         self.queue = queue
         self.loop = loop
 
-    @asyncio.coroutine
     @aiozmq.rpc.method
-    def coro(self, arg):
-        yield from self.queue.put(arg)
+    async def coro(self, arg):
+        await self.queue.put(arg)
 
     @aiozmq.rpc.method
     def func(self, arg):
         self.queue.put_nowait(arg)
 
-    @asyncio.coroutine
     @aiozmq.rpc.method
-    def add(self, arg: int = 1):
-        yield from self.queue.put(arg + 1)
+    async def add(self, arg: int = 1):
+        await self.queue.put(arg + 1)
 
     @aiozmq.rpc.method
     def func_error(self):
@@ -37,11 +35,10 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         return 3
 
     @aiozmq.rpc.method
-    @asyncio.coroutine
-    def fut(self):
+    async def fut(self):
         f = asyncio.Future(loop=self.loop)
-        yield from self.queue.put(f)
-        yield from f
+        await self.queue.put(f)
+        await f
 
 
 class PipelineTestsMixin(RpcMixin):
@@ -62,9 +59,8 @@ class PipelineTestsMixin(RpcMixin):
     def make_pipeline_pair(
         self, log_exceptions=False, exclude_log_exceptions=(), use_loop=True
     ):
-        @asyncio.coroutine
-        def create():
-            server = yield from aiozmq.rpc.serve_pipeline(
+        async def create():
+            server = await aiozmq.rpc.serve_pipeline(
                 MyHandler(self.queue, self.loop),
                 bind="tcp://127.0.0.1:*",
                 loop=self.loop if use_loop else None,
@@ -72,7 +68,7 @@ class PipelineTestsMixin(RpcMixin):
                 exclude_log_exceptions=exclude_log_exceptions,
             )
             connect = next(iter(server.transport.bindings()))
-            client = yield from aiozmq.rpc.connect_pipeline(
+            client = await aiozmq.rpc.connect_pipeline(
                 connect=connect, loop=self.loop if use_loop else None
             )
             return client, server
@@ -83,14 +79,13 @@ class PipelineTestsMixin(RpcMixin):
     def test_coro(self):
         client, server = self.make_pipeline_pair()
 
-        @asyncio.coroutine
-        def communicate():
-            yield from client.notify.coro(1)
-            ret = yield from self.queue.get()
+        async def communicate():
+            await client.notify.coro(1)
+            ret = await self.queue.get()
             self.assertEqual(1, ret)
 
-            yield from client.notify.coro(2)
-            ret = yield from self.queue.get()
+            await client.notify.coro(2)
+            ret = await self.queue.get()
             self.assertEqual(2, ret)
 
         self.loop.run_until_complete(communicate())
@@ -98,13 +93,12 @@ class PipelineTestsMixin(RpcMixin):
     def test_add(self):
         client, server = self.make_pipeline_pair()
 
-        @asyncio.coroutine
-        def communicate():
-            yield from client.notify.add()
-            ret = yield from self.queue.get()
+        async def communicate():
+            await client.notify.add()
+            ret = await self.queue.get()
             self.assertEqual(ret, 2)
-            yield from client.notify.add(2)
-            ret = yield from self.queue.get()
+            await client.notify.add(2)
+            ret = await self.queue.get()
             self.assertEqual(ret, 3)
 
         self.loop.run_until_complete(communicate())
@@ -112,12 +106,11 @@ class PipelineTestsMixin(RpcMixin):
     def test_bad_handler(self):
         client, server = self.make_pipeline_pair()
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
             with log_hook("aiozmq.rpc", self.err_queue):
-                yield from client.notify.bad_handler()
+                await client.notify.bad_handler()
 
-                ret = yield from self.err_queue.get()
+                ret = await self.err_queue.get()
                 self.assertEqual(logging.ERROR, ret.levelno)
                 self.assertEqual("Call to %r caused error: %r", ret.msg)
                 self.assertEqual(("bad_handler", mock.ANY), ret.args)
@@ -128,10 +121,9 @@ class PipelineTestsMixin(RpcMixin):
     def test_func(self):
         client, server = self.make_pipeline_pair()
 
-        @asyncio.coroutine
-        def communicate():
-            yield from client.notify.func(123)
-            ret = yield from self.queue.get()
+        async def communicate():
+            await client.notify.func(123)
+            ret = await self.queue.get()
             self.assertEqual(ret, 123)
 
         self.loop.run_until_complete(communicate())
@@ -139,12 +131,11 @@ class PipelineTestsMixin(RpcMixin):
     def test_func_error(self):
         client, server = self.make_pipeline_pair(log_exceptions=True)
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
             with log_hook("aiozmq.rpc", self.err_queue):
-                yield from client.notify.func_error()
+                await client.notify.func_error()
 
-                ret = yield from self.err_queue.get()
+                ret = await self.err_queue.get()
                 self.assertEqual(logging.ERROR, ret.levelno)
                 self.assertEqual(
                     "An exception %r from method %r "
@@ -170,23 +161,20 @@ class PipelineTestsMixin(RpcMixin):
     def test_warning_if_remote_return_not_None(self):
         client, server = self.make_pipeline_pair()
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
             with log_hook("aiozmq.rpc", self.err_queue):
-                yield from client.notify.suspicious(1)
-                ret = yield from self.queue.get()
+                await client.notify.suspicious(1)
+                ret = await self.queue.get()
                 self.assertEqual(1, ret)
 
-                ret = yield from self.err_queue.get()
+                ret = await self.err_queue.get()
                 self.assertEqual(logging.WARNING, ret.levelno)
                 self.assertEqual("Pipeline handler %r returned not None", ret.msg)
                 self.assertEqual(("suspicious",), ret.args)
                 self.assertIsNone(ret.exc_info)
 
-        @asyncio.coroutine
-        def dummy():
-            if False:
-                yield
+        async def dummy():
+            pass
 
         self.loop.run_until_complete(communicate())
         self.loop.run_until_complete(dummy())
@@ -194,28 +182,26 @@ class PipelineTestsMixin(RpcMixin):
     def test_call_closed_pipeline(self):
         client, server = self.make_pipeline_pair()
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
             client.close()
-            yield from client.wait_closed()
+            await client.wait_closed()
             with self.assertRaises(aiozmq.rpc.ServiceClosedError):
-                yield from client.notify.func()
+                await client.notify.func()
 
         self.loop.run_until_complete(communicate())
 
     def test_server_close(self):
         client, server = self.make_pipeline_pair()
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
             client.notify.fut()
-            fut = yield from self.queue.get()
+            fut = await self.queue.get()
             self.assertEqual(1, len(server._proto.pending_waiters))
             task = next(iter(server._proto.pending_waiters))
             self.assertIsInstance(task, asyncio.Task)
             server.close()
-            yield from server.wait_closed()
-            yield from asyncio.sleep(0.1, loop=self.loop)
+            await server.wait_closed()
+            await asyncio.sleep(0.1, loop=self.loop)
             self.assertEqual(0, len(server._proto.pending_waiters))
             fut.cancel()
 

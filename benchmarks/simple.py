@@ -170,11 +170,10 @@ def test_core_aiozmq_loopless(count):
 def _test_core_aiozmq(count, loop):
     print(".", end="", flush=True)
 
-    @asyncio.coroutine
-    def go():
+    async def go():
         router_closed = asyncio.Future(loop=loop)
         dealer_closed = asyncio.Future(loop=loop)
-        router, _ = yield from aiozmq.create_zmq_connection(
+        router, _ = await aiozmq.create_zmq_connection(
             lambda: ZmqRouterProtocol(router_closed),
             zmq.ROUTER,
             bind="tcp://127.0.0.1:*",
@@ -182,7 +181,7 @@ def _test_core_aiozmq(count, loop):
         )
 
         addr = next(iter(router.bindings()))
-        dealer, _ = yield from aiozmq.create_zmq_connection(
+        dealer, _ = await aiozmq.create_zmq_connection(
             lambda: ZmqDealerProtocol(count, dealer_closed),
             zmq.DEALER,
             connect=addr,
@@ -194,11 +193,11 @@ def _test_core_aiozmq(count, loop):
         gc.collect()
         t1 = time.monotonic()
         dealer.write(msg)
-        yield from dealer_closed
+        await dealer_closed
         t2 = time.monotonic()
         gc.collect()
         router.close()
-        yield from router_closed
+        await router_closed
         return t2 - t1
 
     ret = loop.run_until_complete(go())
@@ -211,11 +210,10 @@ def test_core_aiozmq_legacy(count):
     print(".", end="", flush=True)
     loop = aiozmq.ZmqEventLoop()
 
-    @asyncio.coroutine
-    def go():
+    async def go():
         router_closed = asyncio.Future(loop=loop)
         dealer_closed = asyncio.Future(loop=loop)
-        router, _ = yield from aiozmq.create_zmq_connection(
+        router, _ = await aiozmq.create_zmq_connection(
             lambda: ZmqRouterProtocol(router_closed),
             zmq.ROUTER,
             bind="tcp://127.0.0.1:*",
@@ -223,7 +221,7 @@ def test_core_aiozmq_legacy(count):
         )
 
         addr = next(iter(router.bindings()))
-        dealer, _ = yield from aiozmq.create_zmq_connection(
+        dealer, _ = await aiozmq.create_zmq_connection(
             lambda: ZmqDealerProtocol(count, dealer_closed),
             zmq.DEALER,
             connect=addr,
@@ -235,11 +233,11 @@ def test_core_aiozmq_legacy(count):
         gc.collect()
         t1 = time.monotonic()
         dealer.write(msg)
-        yield from dealer_closed
+        await dealer_closed
         t2 = time.monotonic()
         gc.collect()
         router.close()
-        yield from router_closed
+        await router_closed
         return t2 - t1
 
     ret = loop.run_until_complete(go())
@@ -258,26 +256,25 @@ def test_aiozmq_rpc(count):
     print(".", end="", flush=True)
     loop = asyncio.new_event_loop()
 
-    @asyncio.coroutine
-    def go():
-        server = yield from aiozmq.rpc.serve_rpc(
+    async def go():
+        server = await aiozmq.rpc.serve_rpc(
             Handler(), bind="tcp://127.0.0.1:*", loop=loop
         )
         addr = next(iter(server.transport.bindings()))
-        client = yield from aiozmq.rpc.connect_rpc(connect=addr, loop=loop)
+        client = await aiozmq.rpc.connect_rpc(connect=addr, loop=loop)
 
         data = b"\0" * 200
 
         gc.collect()
         t1 = time.monotonic()
         for i in range(count):
-            yield from client.call.func(data)
+            await client.call.func(data)
         t2 = time.monotonic()
         gc.collect()
         server.close()
-        yield from server.wait_closed()
+        await server.wait_closed()
         client.close()
-        yield from client.wait_closed()
+        await client.wait_closed()
         return t2 - t1
 
     ret = loop.run_until_complete(go())

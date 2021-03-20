@@ -18,17 +18,14 @@ class ServerHandler(aiozmq.rpc.AttrHandler):
         raise CustomError(val)
 
 
-@asyncio.coroutine
-def go():
-    server = yield from aiozmq.rpc.serve_rpc(ServerHandler(), bind="tcp://*:*")
+async def go():
+    server = await aiozmq.rpc.serve_rpc(ServerHandler(), bind="tcp://*:*")
     server_addr = list(server.transport.bindings())[0]
 
-    client = yield from aiozmq.rpc.connect_rpc(
-        connect=server_addr, error_table=error_table
-    )
+    client = await aiozmq.rpc.connect_rpc(connect=server_addr, error_table=error_table)
 
     try:
-        yield from client.call.remote("value")
+        await client.call.remote("value")
     except CustomError as exc:
         exc.val == "value"
 
@@ -37,7 +34,7 @@ def go():
 
 
 def main():
-    asyncio.get_event_loop().run_until_complete(go())
+    asyncio.run(go())
     print("DONE")
 
 

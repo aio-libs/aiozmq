@@ -8,8 +8,7 @@ class ZmqStreamClosed(Exception):
     """A stream was closed"""
 
 
-@asyncio.coroutine
-def create_zmq_stream(
+async def create_zmq_stream(
     zmq_type,
     *,
     bind=None,
@@ -43,7 +42,7 @@ def create_zmq_stream(
     stream = ZmqStream(
         loop=loop, high=high_read, low=low_read, events_backlog=events_backlog
     )
-    tr, _ = yield from create_zmq_connection(
+    tr, _ = await create_zmq_connection(
         lambda: stream._protocol,
         zmq_type,
         bind=bind,
@@ -104,8 +103,7 @@ class ZmqStreamProtocol(ZmqProtocol):
         else:
             waiter.set_exception(exc)
 
-    @asyncio.coroutine
-    def _drain_helper(self):
+    async def _drain_helper(self):
         if self._connection_lost:
             raise ConnectionResetError("Connection lost")
         if not self._paused:
@@ -114,7 +112,7 @@ class ZmqStreamProtocol(ZmqProtocol):
         assert waiter is None or waiter.cancelled()
         waiter = asyncio.Future(loop=self._loop)
         self._drain_waiter = waiter
-        yield from waiter
+        await waiter
 
     def msg_received(self, msg):
         self._stream.feed_msg(msg)
@@ -164,18 +162,17 @@ class ZmqStream:
     def get_extra_info(self, name, default=None):
         return self._transport.get_extra_info(name, default)
 
-    @asyncio.coroutine
-    def drain(self):
+    async def drain(self):
         """Flush the write buffer.
 
         The intended use is to write
 
           w.write(data)
-          yield from w.drain()
+          await w.drain()
         """
         if self._exception is not None:
             raise self._exception
-        yield from self._protocol._drain_helper()
+        await self._protocol._drain_helper()
 
     def exception(self):
         return self._exception
@@ -277,8 +274,7 @@ class ZmqStream:
             if not event_waiter.cancelled():
                 event_waiter.set_result(None)
 
-    @asyncio.coroutine
-    def read(self):
+    async def read(self):
         if self._exception is not None:
             raise self._exception
 
@@ -293,7 +289,7 @@ class ZmqStream:
                 )
             self._waiter = asyncio.Future(loop=self._loop)
             try:
-                yield from self._waiter
+                await self._waiter
             finally:
                 self._waiter = None
 
@@ -302,8 +298,7 @@ class ZmqStream:
         self._maybe_resume_transport()
         return msg
 
-    @asyncio.coroutine
-    def read_event(self):
+    async def read_event(self):
         if self._closing:
             raise ZmqStreamClosed()
 
@@ -315,7 +310,7 @@ class ZmqStream:
                 )
             self._event_waiter = asyncio.Future(loop=self._loop)
             try:
-                yield from self._event_waiter
+                await self._event_waiter
             finally:
                 self._event_waiter = None
 

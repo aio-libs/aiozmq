@@ -17,30 +17,29 @@ class DynamicHandler(aiozmq.rpc.AttrHandler):
         return (self.namespace, "val")
 
 
-@asyncio.coroutine
-def go():
-    server = yield from aiozmq.rpc.serve_rpc(DynamicHandler(), bind="tcp://*:*")
+async def go():
+    server = await aiozmq.rpc.serve_rpc(DynamicHandler(), bind="tcp://*:*")
     server_addr = list(server.transport.bindings())[0]
 
-    client = yield from aiozmq.rpc.connect_rpc(connect=server_addr)
+    client = await aiozmq.rpc.connect_rpc(connect=server_addr)
 
-    ret = yield from client.call.func()
+    ret = await client.call.func()
     assert ((), "val") == ret, ret
 
-    ret = yield from client.call.a.func()
+    ret = await client.call.a.func()
     assert (("a",), "val") == ret, ret
 
-    ret = yield from client.call.a.b.func()
+    ret = await client.call.a.b.func()
     assert (("a", "b"), "val") == ret, ret
 
     server.close()
-    yield from server.wait_closed()
+    await server.wait_closed()
     client.close()
-    yield from client.wait_closed()
+    await client.wait_closed()
 
 
 def main():
-    asyncio.get_event_loop().run_until_complete(go())
+    asyncio.run(go())
     print("DONE")
 
 

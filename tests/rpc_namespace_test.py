@@ -8,10 +8,8 @@ from aiozmq._test_util import find_unused_port
 
 class MyHandler(aiozmq.rpc.AttrHandler):
     @aiozmq.rpc.method
-    @asyncio.coroutine
-    def func(self, arg):
+    async def func(self, arg):
         return arg + 1
-        yield
 
 
 class RootHandler(aiozmq.rpc.AttrHandler):
@@ -26,12 +24,11 @@ class RpcNamespaceTestsMixin:
     def make_rpc_pair(self):
         port = find_unused_port()
 
-        @asyncio.coroutine
-        def create():
-            server = yield from aiozmq.rpc.serve_rpc(
+        async def create():
+            server = await aiozmq.rpc.serve_rpc(
                 RootHandler(), bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
             )
-            client = yield from aiozmq.rpc.connect_rpc(
+            client = await aiozmq.rpc.connect_rpc(
                 connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
             )
             return client, server
@@ -43,9 +40,8 @@ class RpcNamespaceTestsMixin:
     def test_ns_func(self):
         client, server = self.make_rpc_pair()
 
-        @asyncio.coroutine
-        def communicate():
-            ret = yield from client.call.ns.func(1)
+        async def communicate():
+            ret = await client.call.ns.func(1)
             self.assertEqual(2, ret)
 
         self.loop.run_until_complete(communicate())
@@ -53,30 +49,27 @@ class RpcNamespaceTestsMixin:
     def test_not_found(self):
         client, server = self.make_rpc_pair()
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
             with self.assertRaisesRegex(aiozmq.rpc.NotFoundError, "ns1.func"):
-                yield from client.call.ns1.func(1)
+                await client.call.ns1.func(1)
 
         self.loop.run_until_complete(communicate())
 
     def test_bad_handler(self):
         client, server = self.make_rpc_pair()
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
             with self.assertRaisesRegex(aiozmq.rpc.NotFoundError, "ns.func.foo"):
-                yield from client.call.ns.func.foo(1)
+                await client.call.ns.func.foo(1)
 
         self.loop.run_until_complete(communicate())
 
     def test_missing_namespace_method(self):
         client, server = self.make_rpc_pair()
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
             with self.assertRaisesRegex(aiozmq.rpc.NotFoundError, "ns"):
-                yield from client.call.ns(1)
+                await client.call.ns(1)
 
         self.loop.run_until_complete(communicate())
 

@@ -8,41 +8,40 @@ class ServerHandler(aiozmq.rpc.AttrHandler):
         return a + b
 
 
-@asyncio.coroutine
-def go():
-    server = yield from aiozmq.rpc.serve_rpc(ServerHandler(), bind="tcp://*:*")
+async def go():
+    server = await aiozmq.rpc.serve_rpc(ServerHandler(), bind="tcp://*:*")
     server_addr = list(server.transport.bindings())[0]
 
-    client = yield from aiozmq.rpc.connect_rpc(connect=server_addr)
+    client = await aiozmq.rpc.connect_rpc(connect=server_addr)
 
     try:
-        yield from client.call.unknown_function()
+        await client.call.unknown_function()
     except aiozmq.rpc.NotFoundError as exc:
         print("client.rpc.unknown_function(): {}".format(exc))
 
     try:
-        yield from client.call.remote_func(bad_arg=1)
+        await client.call.remote_func(bad_arg=1)
     except aiozmq.rpc.ParametersError as exc:
         print("client.rpc.remote_func(bad_arg=1): {}".format(exc))
 
     try:
-        yield from client.call.remote_func(1)
+        await client.call.remote_func(1)
     except aiozmq.rpc.ParametersError as exc:
         print("client.rpc.remote_func(1): {}".format(exc))
 
     try:
-        yield from client.call.remote_func("a", "b")
+        await client.call.remote_func("a", "b")
     except aiozmq.rpc.ParametersError as exc:
         print("client.rpc.remote_func('a', 'b'): {}".format(exc))
 
     server.close()
-    yield from server.wait_closed()
+    await server.wait_closed()
     client.close()
-    yield from client.wait_closed()
+    await client.wait_closed()
 
 
 def main():
-    asyncio.get_event_loop().run_until_complete(go())
+    asyncio.run(go())
     print("DONE")
 
 

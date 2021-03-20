@@ -129,13 +129,12 @@ class Service(asyncio.AbstractServer):
             return
         self._proto.transport.close()
 
-    @asyncio.coroutine
-    def wait_closed(self):
+    async def wait_closed(self):
         if self._proto.transport is None:
             return
         waiter = asyncio.Future(loop=self._loop)
         self._proto.done_waiters.append(waiter)
-        yield from waiter
+        await waiter
 
 
 class _BaseProtocol(interface.ZmqProtocol):

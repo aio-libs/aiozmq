@@ -86,7 +86,7 @@ You can discuss the library on Freenode_ at **#aio-libs** channel.
 Dependencies
 ------------
 
-- Python 3.3 and :term:`asyncio` or Python 3.4+
+- Python 3.6+
 - :term:`ZeroMQ` 3.2+
 - :term:`pyzmq` 13.1+ (did not test with earlier versions)
 - aiozmq.rpc requires :term:`msgpack`
@@ -107,28 +107,27 @@ Low-level request-reply example::
     import aiozmq
     import zmq
 
-    @asyncio.coroutine
-    def go():
-        router = yield from aiozmq.create_zmq_stream(
+    async def go():
+        router = await aiozmq.create_zmq_stream(
             zmq.ROUTER,
             bind='tcp://127.0.0.1:*')
 
         addr = list(router.transport.bindings())[0]
-        dealer = yield from aiozmq.create_zmq_stream(
+        dealer = await aiozmq.create_zmq_stream(
             zmq.DEALER,
             connect=addr)
 
         for i in range(10):
             msg = (b'data', b'ask', str(i).encode('utf-8'))
             dealer.write(msg)
-            data = yield from router.read()
+            data = await router.read()
             router.write(data)
-            answer = yield from dealer.read()
+            answer = await dealer.read()
             print(answer)
         dealer.close()
         router.close()
 
-    asyncio.get_event_loop().run_until_complete(go())
+    asyncio.run(go())
 
 
 Example of RPC usage::
@@ -141,20 +140,19 @@ Example of RPC usage::
         def remote_func(self, a:int, b:int) -> int:
             return a + b
 
-    @asyncio.coroutine
-    def go():
-        server = yield from aiozmq.rpc.serve_rpc(
+    async def go():
+        server = await aiozmq.rpc.serve_rpc(
             ServerHandler(), bind='tcp://127.0.0.1:5555')
-        client = yield from aiozmq.rpc.connect_rpc(
+        client = await aiozmq.rpc.connect_rpc(
             connect='tcp://127.0.0.1:5555')
 
-        ret = yield from client.call.remote_func(1, 2)
+        ret = await client.call.remote_func(1, 2)
         assert 3 == ret
 
         server.close()
         client.close()
 
-    asyncio.get_event_loop().run_until_complete(go())
+    asyncio.run(go())
 
 .. note:: To execute the last example you need to :ref:`install
    msgpack<aiozmq-install-msgpack>` first.

@@ -17,8 +17,7 @@ from .base import (
 from .log import logger
 
 
-@asyncio.coroutine
-def connect_pubsub(*, connect=None, bind=None, loop=None, translation_table=None):
+async def connect_pubsub(*, connect=None, bind=None, loop=None, translation_table=None):
     """A coroutine that creates and connects/binds pubsub client.
 
     Usually for this function you need to use connect parameter, but
@@ -36,7 +35,7 @@ def connect_pubsub(*, connect=None, bind=None, loop=None, translation_table=None
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    transp, proto = yield from create_zmq_connection(
+    transp, proto = await create_zmq_connection(
         lambda: _ClientProtocol(loop, translation_table=translation_table),
         zmq.PUB,
         connect=connect,
@@ -46,8 +45,7 @@ def connect_pubsub(*, connect=None, bind=None, loop=None, translation_table=None
     return PubSubClient(loop, proto)
 
 
-@asyncio.coroutine
-def serve_pubsub(
+async def serve_pubsub(
     handler,
     *,
     subscribe=None,
@@ -92,7 +90,7 @@ def serve_pubsub(
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    transp, proto = yield from create_zmq_connection(
+    transp, proto = await create_zmq_connection(
         lambda: _ServerProtocol(
             loop,
             handler,
@@ -149,7 +147,7 @@ class PubSubClient(Service):
         """Return object for dynamic PubSub calls.
 
         The usage is:
-        yield from client.publish('my_topic').ns.func(1, 2)
+        await client.publish('my_topic').ns.func(1, 2)
 
         topic argument may be None otherwise must be isntance of str or bytes
         """

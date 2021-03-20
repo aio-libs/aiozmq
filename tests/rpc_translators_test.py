@@ -29,26 +29,23 @@ translation_table = {
 
 class MyHandler(aiozmq.rpc.AttrHandler):
     @aiozmq.rpc.method
-    @asyncio.coroutine
-    def func(self, point):
+    async def func(self, point):
         assert isinstance(point, Point)
         return point
-        yield
 
 
 class RpcTranslatorsMixin(RpcMixin):
     def make_rpc_pair(self, *, error_table=None):
         port = find_unused_port()
 
-        @asyncio.coroutine
-        def create():
-            server = yield from aiozmq.rpc.serve_rpc(
+        async def create():
+            server = await aiozmq.rpc.serve_rpc(
                 MyHandler(),
                 bind="tcp://127.0.0.1:{}".format(port),
                 loop=self.loop,
                 translation_table=translation_table,
             )
-            client = yield from aiozmq.rpc.connect_rpc(
+            client = await aiozmq.rpc.connect_rpc(
                 connect="tcp://127.0.0.1:{}".format(port),
                 loop=self.loop,
                 error_table=error_table,
@@ -64,9 +61,8 @@ class RpcTranslatorsMixin(RpcMixin):
         client, server = self.make_rpc_pair()
         pt = Point(1, 2)
 
-        @asyncio.coroutine
-        def communicate():
-            ret = yield from client.call.func(pt)
+        async def communicate():
+            ret = await client.call.func(pt)
             self.assertEqual(ret, pt)
 
         self.loop.run_until_complete(communicate())

@@ -60,49 +60,48 @@ class Protocol(aiozmq.ZmqProtocol):
         )
 
 
-@asyncio.coroutine
-def go():
+async def go():
 
-    st, sp = yield from aiozmq.create_zmq_connection(
+    st, sp = await aiozmq.create_zmq_connection(
         Protocol, zmq.ROUTER, bind="tcp://127.0.0.1:*"
     )
-    yield from sp.wait_ready
+    await sp.wait_ready
     addr = list(st.bindings())[0]
 
-    ct, cp = yield from aiozmq.create_zmq_connection(Protocol, zmq.DEALER, connect=addr)
-    yield from cp.wait_ready
+    ct, cp = await aiozmq.create_zmq_connection(Protocol, zmq.DEALER, connect=addr)
+    await cp.wait_ready
 
     # Enable the socket monitor on the client socket. Socket events
     # are passed to the 'event_received' method on the client protocol.
-    yield from ct.enable_monitor()
+    await ct.enable_monitor()
 
     # Trigger some socket events while also sending a message to the
     # server. When the client protocol receives 4 response it will
     # fire the wait_done future.
     for i in range(4):
-        yield from asyncio.sleep(0.1)
-        yield from ct.disconnect(addr)
-        yield from asyncio.sleep(0.1)
-        yield from ct.connect(addr)
-        yield from asyncio.sleep(0.1)
+        await asyncio.sleep(0.1)
+        await ct.disconnect(addr)
+        await asyncio.sleep(0.1)
+        await ct.connect(addr)
+        await asyncio.sleep(0.1)
         ct.write([b"Hello"])
 
-    yield from cp.wait_done
+    await cp.wait_done
 
     # The socket monitor can be explicitly disabled if necessary.
-    # yield from ct.disable_monitor()
+    # await ct.disable_monitor()
 
     # If a socket monitor is left enabled on a socket being closed,
     # the socket monitor will be closed automatically.
     ct.close()
-    yield from cp.wait_closed
+    await cp.wait_closed
 
     st.close()
-    yield from sp.wait_closed
+    await sp.wait_closed
 
 
 def main():
-    asyncio.get_event_loop().run_until_complete(go())
+    asyncio.run(go())
     print("DONE")
 
 
@@ -110,10 +109,7 @@ if __name__ == "__main__":
     # import logging
     # logging.basicConfig(level=logging.DEBUG)
 
-    if zmq.zmq_version_info() < (4,) or zmq.pyzmq_version_info() < (
-        14,
-        4,
-    ):
+    if zmq.zmq_version_info() < (4,) or zmq.pyzmq_version_info() < (14, 4):
         raise NotImplementedError(
             "Socket monitor requires libzmq >= 4 and pyzmq >= 14.4, "
             "have libzmq:{}, pyzmq:{}".format(zmq.zmq_version(), zmq.pyzmq_version())

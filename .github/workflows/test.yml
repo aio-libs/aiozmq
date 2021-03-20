@@ -38,7 +38,7 @@ jobs:
         python -c "import zmq; print('ZMQ version:', zmq.zmq_version())" && \
         pycodestyle aiozmq examples tests benchmarks && \
         pyflakes . && \
-        black --check aiozmq/ benchmarks/ examples/ tests/ setup.py runtests.py
+        black --check aiozmq/ benchmarks/ examples/ tests/ setup.py runtests.py && \
         export USE_MSGPACK=${{ matrix.msgpack }} && \
         export PYTHONASYNCIODEBUG=${{ matrix.debug }} && \
         python setup.py check -rm  && \

@@ -74,7 +74,7 @@ ZmqTransport
    :class:`asyncio.BaseTransport` interface.
 
    End user should never create :class:`~ZmqTransport` objects directly,
-   he gets it by ``yield from aiozmq.create_zmq_connection()`` call.
+   he gets it by ``await aiozmq.create_zmq_connection()`` call.
 
    .. method:: get_extra_info(key, default=None)
 
@@ -252,7 +252,7 @@ ZmqTransport
         :term:`ZeroMQ` requires.
 
         For tcp connections the *endpoint* should specify *IPv4* or
-        *IPv6* address, not *DNS* name.  Use ``yield from
+        *IPv6* address, not *DNS* name.  Use ``await
         get_event_loop().getaddrinfo(host, port)`` for translating
         *DNS* into *IP address*.
 
@@ -430,7 +430,7 @@ ZmqProtocol
          This is the only Protocol callback that is not called through
          :meth:`asyncio.AbstractEventLoop.call_soon` -- if it were, it
          would have no effect when it's most needed (when the app
-         keeps writing without yielding until
+         keeps writing without awaiting until
          :meth:`~ZmqProtocol.pause_writing` is called).
 
    .. method:: resume_writing()

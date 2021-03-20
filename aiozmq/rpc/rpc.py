@@ -33,8 +33,7 @@ __all__ = [
 ]
 
 
-@asyncio.coroutine
-def connect_rpc(
+async def connect_rpc(
     *,
     connect=None,
     bind=None,
@@ -67,7 +66,7 @@ def connect_rpc(
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    transp, proto = yield from create_zmq_connection(
+    transp, proto = await create_zmq_connection(
         lambda: _ClientProtocol(
             loop, error_table=error_table, translation_table=translation_table
         ),
@@ -79,8 +78,7 @@ def connect_rpc(
     return RPCClient(loop, proto, timeout=timeout)
 
 
-@asyncio.coroutine
-def serve_rpc(
+async def serve_rpc(
     handler,
     *,
     connect=None,
@@ -118,7 +116,7 @@ def serve_rpc(
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    transp, proto = yield from create_zmq_connection(
+    transp, proto = await create_zmq_connection(
         lambda: _ServerProtocol(
             loop,
             handler,
@@ -234,7 +232,7 @@ class RPCClient(Service):
         """Return object for dynamic RPC calls.
 
         The usage is:
-        ret = yield from client.call.ns.func(1, 2)
+        ret = await client.call.ns.func(1, 2)
         """
         return _MethodCall(self._proto, timeout=self._timeout)
 

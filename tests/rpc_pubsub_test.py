@@ -15,14 +15,12 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         self.loop = loop
 
     @aiozmq.rpc.method
-    @asyncio.coroutine
-    def start(self):
-        yield from self.queue.put("started")
+    async def start(self):
+        await self.queue.put("started")
 
     @aiozmq.rpc.method
-    @asyncio.coroutine
-    def coro(self, arg):
-        yield from self.queue.put(arg)
+    async def coro(self, arg):
+        await self.queue.put(arg)
 
     @aiozmq.rpc.method
     def func(self, arg: int):
@@ -38,11 +36,10 @@ class MyHandler(aiozmq.rpc.AttrHandler):
         return 3
 
     @aiozmq.rpc.method
-    @asyncio.coroutine
-    def fut(self):
+    async def fut(self):
         f = asyncio.Future(loop=self.loop)
-        yield from self.queue.put(f)
-        yield from f
+        await self.queue.put(f)
+        await f
 
 
 class PubSubTestsMixin(RpcMixin):
@@ -67,9 +64,8 @@ class PubSubTestsMixin(RpcMixin):
 
         loop = self.loop if use_loop else asyncio.get_event_loop()
 
-        @asyncio.coroutine
-        def create():
-            server = yield from aiozmq.rpc.serve_pubsub(
+        async def create():
+            server = await aiozmq.rpc.serve_pubsub(
                 MyHandler(self.queue, self.loop),
                 subscribe=subscribe,
                 bind="tcp://127.0.0.1:*",
@@ -78,7 +74,7 @@ class PubSubTestsMixin(RpcMixin):
                 exclude_log_exceptions=exclude_log_exceptions,
             )
             connect = next(iter(server.transport.bindings()))
-            client = yield from aiozmq.rpc.connect_pubsub(
+            client = await aiozmq.rpc.connect_pubsub(
                 connect=connect, loop=self.loop if use_loop else None
             )
 
@@ -89,10 +85,8 @@ class PubSubTestsMixin(RpcMixin):
                     pub = subscribe
                 for i in range(3):
                     try:
-                        yield from client.publish(pub).start()
-                        ret = yield from asyncio.wait_for(
-                            self.queue.get(), 0.1, loop=loop
-                        )
+                        await client.publish(pub).start()
+                        ret = await asyncio.wait_for(self.queue.get(), 0.1, loop=loop)
                         self.assertEqual(ret, "started")
                         break
                     except asyncio.TimeoutError:
@@ -107,13 +101,12 @@ class PubSubTestsMixin(RpcMixin):
     def test_coro(self):
         client, server = self.make_pubsub_pair("my-topic")
 
-        @asyncio.coroutine
-        def communicate():
-            yield from client.publish("my-topic").coro(1)
-            ret = yield from self.queue.get()
+        async def communicate():
+            await client.publish("my-topic").coro(1)
+            ret = await self.queue.get()
             self.assertEqual(ret, 1)
 
-            yield from client.publish("other-topic").coro(1)
+            await client.publish("other-topic").coro(1)
             self.assertTrue(self.queue.empty())
 
         self.loop.run_until_complete(communicate())
@@ -121,14 +114,13 @@ class PubSubTestsMixin(RpcMixin):
     def test_coro__multiple_topics(self):
         client, server = self.make_pubsub_pair(("topic1", "topic2"))
 
-        @asyncio.coroutine
-        def communicate():
-            yield from client.publish("topic1").coro(1)
-            ret = yield from self.queue.get()
+        async def communicate():
+            await client.publish("topic1").coro(1)
+            ret = await self.queue.get()
             self.assertEqual(ret, 1)
 
-            yield from client.publish("topic2").coro(1)
-            ret = yield from self.queue.get()
+            await client.publish("topic2").coro(1)
+            ret = await self.queue.get()
             self.assertEqual(ret, 1)
 
         self.loop.run_until_complete(communicate())
@@ -136,18 +128,17 @@ class PubSubTestsMixin(RpcMixin):
     def test_coro__subscribe_to_all(self):
         client, server = self.make_pubsub_pair("")
 
-        @asyncio.coroutine
-        def communicate():
-            yield from client.publish("sometopic").coro(123)
-            ret = yield from self.queue.get()
+        async def communicate():
+            await client.publish("sometopic").coro(123)
+            ret = await self.queue.get()
             self.assertEqual(ret, 123)
 
-            yield from client.publish(None).coro("abc")
-            ret = yield from self.queue.get()
+            await client.publish(None).coro("abc")
+            ret = await self.queue.get()
             self.assertEqual(ret, "abc")
 
-            yield from client.publish("").coro(1)
-            ret = yield from self.queue.get()
+            await client.publish("").coro(1)
+            ret = await self.queue.get()
             self.assertEqual(ret, 1)
 
         self.loop.run_until_complete(communicate())
@@ -161,12 +152,11 @@ class PubSubTestsMixin(RpcMixin):
     def test_not_found(self):
         client, server = self.make_pubsub_pair("my-topic")
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
             with log_hook("aiozmq.rpc", self.err_queue):
-                yield from client.publish("my-topic").bad.method(1, 2)
+                await client.publish("my-topic").bad.method(1, 2)
 
-                ret = yield from self.err_queue.get()
+                ret = await self.err_queue.get()
                 self.assertEqual(logging.ERROR, ret.levelno)
                 self.assertEqual("Call to %r caused error: %r", ret.msg)
                 self.assertEqual(("bad.method", mock.ANY), ret.args)
@@ -177,10 +167,9 @@ class PubSubTestsMixin(RpcMixin):
     def test_func(self):
         client, server = self.make_pubsub_pair("my-topic")
 
-        @asyncio.coroutine
-        def communicate():
-            yield from client.publish("my-topic").func(1)
-            ret = yield from self.queue.get()
+        async def communicate():
+            await client.publish("my-topic").func(1)
+            ret = await self.queue.get()
             self.assertEqual(ret, 2)
 
         self.loop.run_until_complete(communicate())
@@ -188,12 +177,11 @@ class PubSubTestsMixin(RpcMixin):
     def test_func__arg_error(self):
         client, server = self.make_pubsub_pair("my-topic")
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
             with log_hook("aiozmq.rpc", self.err_queue):
-                yield from client.publish("my-topic").func("abc")
+                await client.publish("my-topic").func("abc")
 
-                ret = yield from self.err_queue.get()
+                ret = await self.err_queue.get()
                 self.assertEqual(logging.ERROR, ret.levelno)
                 self.assertEqual("Call to %r caused error: %r", ret.msg)
                 self.assertEqual(("func", mock.ANY), ret.args)
@@ -206,12 +194,11 @@ class PubSubTestsMixin(RpcMixin):
     def test_func_raises_error(self):
         client, server = self.make_pubsub_pair("my-topic", log_exceptions=True)
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
             with log_hook("aiozmq.rpc", self.err_queue):
-                yield from client.publish("my-topic").func_raise_error()
+                await client.publish("my-topic").func_raise_error()
 
-                ret = yield from self.err_queue.get()
+                ret = await self.err_queue.get()
                 self.assertEqual(logging.ERROR, ret.levelno)
                 self.assertEqual(
                     "An exception %r from method %r call occurred.\n"
@@ -226,18 +213,16 @@ class PubSubTestsMixin(RpcMixin):
     def test_subscribe_to_bytes(self):
         client, server = self.make_pubsub_pair(b"my-topic")
 
-        @asyncio.coroutine
-        def communicate():
-            yield from client.publish(b"my-topic").func(1)
-            ret = yield from self.queue.get()
+        async def communicate():
+            await client.publish(b"my-topic").func(1)
+            ret = await self.queue.get()
             self.assertEqual(ret, 2)
 
         self.loop.run_until_complete(communicate())
 
     def test_subscribe_to_invalid(self):
-        @asyncio.coroutine
-        def go():
-            server = yield from aiozmq.rpc.serve_pubsub(
+        async def go():
+            server = await aiozmq.rpc.serve_pubsub(
                 MyHandler(self.queue, self.loop),
                 bind="tcp://127.0.0.1:*",
                 loop=self.loop,
@@ -247,9 +232,8 @@ class PubSubTestsMixin(RpcMixin):
         self.loop.run_until_complete(go())
 
     def test_unsubscribe(self):
-        @asyncio.coroutine
-        def go():
-            server = yield from aiozmq.rpc.serve_pubsub(
+        async def go():
+            server = await aiozmq.rpc.serve_pubsub(
                 MyHandler(self.queue, self.loop),
                 bind="tcp://127.0.0.1:*",
                 loop=self.loop,
@@ -280,11 +264,10 @@ class PubSubTestsMixin(RpcMixin):
             use_loop=False, subscribe="topic"
         )
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
 
-            yield from self.client.publish("topic").func(1)
-            ret = yield from self.queue.get()
+            await self.client.publish("topic").func(1)
+            ret = await self.queue.get()
             self.assertEqual(2, ret)
 
         loop.run_until_complete(communicate())
@@ -292,10 +275,9 @@ class PubSubTestsMixin(RpcMixin):
     def test_serve_bad_subscription(self):
         port = find_unused_port()
 
-        @asyncio.coroutine
-        def create():
+        async def create():
             with self.assertRaises(TypeError):
-                yield from aiozmq.rpc.serve_pubsub(
+                await aiozmq.rpc.serve_pubsub(
                     {},
                     bind="tcp://127.0.0.1:{}".format(port),
                     loop=self.loop,
@@ -307,24 +289,22 @@ class PubSubTestsMixin(RpcMixin):
     def test_publish_to_invalid_topic(self):
         client, server = self.make_pubsub_pair("")
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
             with self.assertRaises(TypeError):
-                yield from client.publish(123).coro(123)
+                await client.publish(123).coro(123)
 
         self.loop.run_until_complete(communicate())
 
     def test_warning_if_remote_return_not_None(self):
         client, server = self.make_pubsub_pair("topic")
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
             with log_hook("aiozmq.rpc", self.err_queue):
-                yield from client.publish("topic").suspicious(1)
-                ret = yield from self.queue.get()
+                await client.publish("topic").suspicious(1)
+                ret = await self.queue.get()
                 self.assertEqual(2, ret)
 
-                ret = yield from self.err_queue.get()
+                ret = await self.err_queue.get()
                 self.assertEqual(logging.WARNING, ret.levelno)
                 self.assertEqual("PubSub handler %r returned not None", ret.msg)
                 self.assertEqual(("suspicious",), ret.args)
@@ -335,28 +315,26 @@ class PubSubTestsMixin(RpcMixin):
     def test_call_closed_pubsub(self):
         client, server = self.make_pubsub_pair()
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
             client.close()
-            yield from client.wait_closed()
+            await client.wait_closed()
             with self.assertRaises(aiozmq.rpc.ServiceClosedError):
-                yield from client.publish("ab").func()
+                await client.publish("ab").func()
 
         self.loop.run_until_complete(communicate())
 
     def test_server_close(self):
         client, server = self.make_pubsub_pair("my-topic")
 
-        @asyncio.coroutine
-        def communicate():
+        async def communicate():
             client.publish("my-topic").fut()
-            fut = yield from self.queue.get()
+            fut = await self.queue.get()
             self.assertEqual(1, len(server._proto.pending_waiters))
             task = next(iter(server._proto.pending_waiters))
             self.assertIsInstance(task, asyncio.Task)
             server.close()
-            yield from server.wait_closed()
-            yield from asyncio.sleep(0.1, loop=self.loop)
+            await server.wait_closed()
+            await asyncio.sleep(0.1, loop=self.loop)
             self.assertEqual(0, len(server._proto.pending_waiters))
             fut.cancel()
 
