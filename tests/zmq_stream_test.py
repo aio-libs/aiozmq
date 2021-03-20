@@ -161,7 +161,7 @@ class ZmqStreamTests(unittest.TestCase):
             s2.set_read_buffer_limits(high=5)
             s1.write([b"request"])
 
-            await asyncio.sleep(0.01, loop=self.loop)
+            await asyncio.sleep(0.01)
             self.assertTrue(s2._paused)
 
             msg = await s2.read()
@@ -196,7 +196,7 @@ class ZmqStreamTests(unittest.TestCase):
 
             t1 = ensure_future(f(), loop=self.loop)
             # to run f() up to await
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             self.assertIsNotNone(s1._waiter)
 
@@ -222,7 +222,7 @@ class ZmqStreamTests(unittest.TestCase):
 
             t1 = ensure_future(f(), loop=self.loop)
             # to run f() up to await
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             self.assertIsNotNone(s1._waiter)
             t1.cancel()
@@ -247,7 +247,7 @@ class ZmqStreamTests(unittest.TestCase):
 
             t1 = ensure_future(f(), loop=self.loop)
             # to run f() up to await
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             with self.assertRaises(RuntimeError):
                 await s1.read()
@@ -269,10 +269,10 @@ class ZmqStreamTests(unittest.TestCase):
 
             t1 = ensure_future(f(), loop=self.loop)
             # to run f() up to await
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             s1.close()
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             with self.assertRaises(aiozmq.ZmqStreamClosed):
                 t1.result()
@@ -292,12 +292,12 @@ class ZmqStreamTests(unittest.TestCase):
 
             t1 = ensure_future(f(), loop=self.loop)
             # to run f() up to await
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             t1.cancel()
             s1.feed_closing()
 
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
             with self.assertRaises(asyncio.CancelledError):
                 t1.result()
 
@@ -316,12 +316,12 @@ class ZmqStreamTests(unittest.TestCase):
 
             t1 = ensure_future(f(), loop=self.loop)
             # to run f() up to await
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             t1.cancel()
             s1.feed_msg([b"data"])
 
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
             with self.assertRaises(asyncio.CancelledError):
                 t1.result()
 
@@ -392,7 +392,7 @@ class ZmqStreamTests(unittest.TestCase):
                 await s1.drain()
 
             fut = ensure_future(f(), loop=self.loop)
-            await asyncio.sleep(0.01, loop=self.loop)
+            await asyncio.sleep(0.01)
 
             self.assertTrue(s1._protocol._paused)
             s1._protocol.resume_writing()
@@ -432,7 +432,7 @@ class ZmqStreamTests(unittest.TestCase):
                 await s1.drain()
 
             fut = ensure_future(f(), loop=self.loop)
-            await asyncio.sleep(0.01, loop=self.loop)
+            await asyncio.sleep(0.01)
 
             s1.close()
             await fut
@@ -448,7 +448,7 @@ class ZmqStreamTests(unittest.TestCase):
             )
 
             s1.close()
-            await asyncio.sleep(0, loop=self.loop)
+            await asyncio.sleep(0)
 
             with self.assertRaises(ConnectionResetError):
                 await s1.drain()
@@ -470,7 +470,7 @@ class ZmqStreamTests(unittest.TestCase):
                 await s1.drain()
 
             fut = ensure_future(f(), loop=self.loop)
-            await asyncio.sleep(0.01, loop=self.loop)
+            await asyncio.sleep(0.01)
 
             exc = RuntimeError("exception")
             s1._protocol.connection_lost(exc)

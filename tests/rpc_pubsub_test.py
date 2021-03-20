@@ -334,7 +334,7 @@ class PubSubTestsMixin(RpcMixin):
             self.assertIsInstance(task, asyncio.Task)
             server.close()
             await server.wait_closed()
-            await asyncio.sleep(0.1, loop=self.loop)
+            await asyncio.sleep(0.1)
             self.assertEqual(0, len(server._proto.pending_waiters))
             fut.cancel()
 

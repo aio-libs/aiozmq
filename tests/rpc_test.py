@@ -49,7 +49,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
     async def slow_call(self):
-        await asyncio.sleep(0.2, loop=self.loop)
+        await asyncio.sleep(0.2)
 
     @aiozmq.rpc.method
     @asyncio.coroutine
@@ -68,7 +68,7 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
     async def not_so_fast(self):
-        await asyncio.sleep(0.001, loop=self.loop)
+        await asyncio.sleep(0.001)
         return "ok"
 
 
@@ -357,7 +357,7 @@ class RpcTestsMixin(RpcMixin):
                 loop=self.loop,
             )
 
-            await asyncio.sleep(0.001, loop=self.loop)
+            await asyncio.sleep(0.001)
 
             with log_hook("aiozmq.rpc", self.err_queue):
                 tr.write([b"invalid", b"structure"])
@@ -593,13 +593,13 @@ class RpcTestsMixin(RpcMixin):
 
         async def communicate():
             waiter = client.call.fut()
-            await asyncio.sleep(0.01, loop=self.loop)
+            await asyncio.sleep(0.01)
             self.assertEqual(1, len(server._proto.pending_waiters))
             task = next(iter(server._proto.pending_waiters))
             self.assertIsInstance(task, asyncio.Task)
             server.close()
             await server.wait_closed()
-            await asyncio.sleep(0.01, loop=self.loop)
+            await asyncio.sleep(0.01)
             self.assertEqual(0, len(server._proto.pending_waiters))
             del waiter
 
@@ -664,7 +664,7 @@ class RpcTestsMixin(RpcMixin):
                 with self.assertRaises(asyncio.TimeoutError):
                     await client.with_timeout(0.1).call.slow_call()
 
-                await asyncio.sleep(0.3, loop=self.loop)
+                await asyncio.sleep(0.3)
 
                 ret = await client.call.func(2)
                 self.assertEqual(3, ret)

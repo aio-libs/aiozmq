@@ -82,9 +82,9 @@ class ZmqSocketMonitorTests(unittest.TestCase):
             # Now that the socket event monitor is established, connect
             # the client to the server which will generate some events.
             await ct.connect(addr)
-            await asyncio.sleep(0.1, loop=self.loop)
+            await asyncio.sleep(0.1)
             await ct.disconnect(addr)
-            await asyncio.sleep(0.1, loop=self.loop)
+            await asyncio.sleep(0.1)
             await ct.connect(addr)
 
             # Send a message to the server. The server should respond and
