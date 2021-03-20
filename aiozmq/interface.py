@@ -1,9 +1,8 @@
-
 import asyncio
 from asyncio import BaseProtocol, BaseTransport
 
 
-__all__ = ['ZmqTransport', 'ZmqProtocol']
+__all__ = ["ZmqTransport", "ZmqProtocol"]
 
 
 class ZmqTransport(BaseTransport):
@@ -103,8 +102,7 @@ class ZmqTransport(BaseTransport):
         raise NotImplementedError
 
     def unbind(self, endpoint):
-        """Unbind transpot from endpoint.
-        """
+        """Unbind transpot from endpoint."""
         raise NotImplementedError
 
     def bindings(self):
@@ -133,8 +131,7 @@ class ZmqTransport(BaseTransport):
         raise NotImplementedError
 
     def disconnect(self, endpoint):
-        """Disconnect transpot from endpoint.
-        """
+        """Disconnect transpot from endpoint."""
         raise NotImplementedError
 
     def connections(self):
@@ -211,8 +208,7 @@ class ZmqTransport(BaseTransport):
         raise NotImplementedError
 
     def disable_monitor(self):
-        """Stop the socket event monitor.
-        """
+        """Stop the socket event monitor."""
         raise NotImplementedError
 
 

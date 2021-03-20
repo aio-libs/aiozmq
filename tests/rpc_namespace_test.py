@@ -7,7 +7,6 @@ from aiozmq._test_util import find_unused_port
 
 
 class MyHandler(aiozmq.rpc.AttrHandler):
-
     @aiozmq.rpc.method
     @asyncio.coroutine
     def func(self, arg):
@@ -20,7 +19,6 @@ class RootHandler(aiozmq.rpc.AttrHandler):
 
 
 class RpcNamespaceTestsMixin:
-
     def close(self, service):
         service.close()
         self.loop.run_until_complete(service.wait_closed())
@@ -31,12 +29,11 @@ class RpcNamespaceTestsMixin:
         @asyncio.coroutine
         def create():
             server = yield from aiozmq.rpc.serve_rpc(
-                RootHandler(),
-                bind='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop)
+                RootHandler(), bind="tcp://127.0.0.1:{}".format(port), loop=self.loop
+            )
             client = yield from aiozmq.rpc.connect_rpc(
-                connect='tcp://127.0.0.1:{}'.format(port),
-                loop=self.loop)
+                connect="tcp://127.0.0.1:{}".format(port), loop=self.loop
+            )
             return client, server
 
         self.client, self.server = self.loop.run_until_complete(create())
@@ -58,7 +55,7 @@ class RpcNamespaceTestsMixin:
 
         @asyncio.coroutine
         def communicate():
-            with self.assertRaisesRegex(aiozmq.rpc.NotFoundError, 'ns1.func'):
+            with self.assertRaisesRegex(aiozmq.rpc.NotFoundError, "ns1.func"):
                 yield from client.call.ns1.func(1)
 
         self.loop.run_until_complete(communicate())
@@ -68,8 +65,7 @@ class RpcNamespaceTestsMixin:
 
         @asyncio.coroutine
         def communicate():
-            with self.assertRaisesRegex(aiozmq.rpc.NotFoundError,
-                                        'ns.func.foo'):
+            with self.assertRaisesRegex(aiozmq.rpc.NotFoundError, "ns.func.foo"):
                 yield from client.call.ns.func.foo(1)
 
         self.loop.run_until_complete(communicate())
@@ -79,14 +75,13 @@ class RpcNamespaceTestsMixin:
 
         @asyncio.coroutine
         def communicate():
-            with self.assertRaisesRegex(aiozmq.rpc.NotFoundError, 'ns'):
+            with self.assertRaisesRegex(aiozmq.rpc.NotFoundError, "ns"):
                 yield from client.call.ns(1)
 
         self.loop.run_until_complete(communicate())
 
 
 class LoopRpcNamespaceTests(unittest.TestCase, RpcNamespaceTestsMixin):
-
     def setUp(self):
         self.loop = aiozmq.ZmqEventLoop()
         asyncio.set_event_loop(None)
@@ -103,7 +98,6 @@ class LoopRpcNamespaceTests(unittest.TestCase, RpcNamespaceTestsMixin):
 
 
 class LooplessRpcNamespaceTests(unittest.TestCase, RpcNamespaceTestsMixin):
-
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(None)

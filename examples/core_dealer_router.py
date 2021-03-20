@@ -43,19 +43,17 @@ def go():
     router_closed = asyncio.Future()
     dealer_closed = asyncio.Future()
     router, _ = yield from aiozmq.create_zmq_connection(
-        lambda: ZmqRouterProtocol(router_closed),
-        zmq.ROUTER,
-        bind='tcp://127.0.0.1:*')
+        lambda: ZmqRouterProtocol(router_closed), zmq.ROUTER, bind="tcp://127.0.0.1:*"
+    )
 
     addr = list(router.bindings())[0]
     queue = asyncio.Queue()
     dealer, _ = yield from aiozmq.create_zmq_connection(
-        lambda: ZmqDealerProtocol(queue, dealer_closed),
-        zmq.DEALER,
-        connect=addr)
+        lambda: ZmqDealerProtocol(queue, dealer_closed), zmq.DEALER, connect=addr
+    )
 
     for i in range(10):
-        msg = (b'data', b'ask', str(i).encode('utf-8'))
+        msg = (b"data", b"ask", str(i).encode("utf-8"))
         dealer.write(msg)
         answer = yield from queue.get()
         print(answer)
@@ -70,5 +68,5 @@ def main():
     print("DONE")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

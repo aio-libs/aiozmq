@@ -19,23 +19,30 @@ from .base import (
     ServiceClosedError,
     _BaseProtocol,
     _BaseServerProtocol,
-    )
+)
 from .log import logger
 from .util import (
     _MethodCall,
     _fill_error_table,
-    )
+)
 
 
 __all__ = [
-    'connect_rpc',
-    'serve_rpc',
-    ]
+    "connect_rpc",
+    "serve_rpc",
+]
 
 
 @asyncio.coroutine
-def connect_rpc(*, connect=None, bind=None, loop=None,
-                error_table=None, translation_table=None, timeout=None):
+def connect_rpc(
+    *,
+    connect=None,
+    bind=None,
+    loop=None,
+    error_table=None,
+    translation_table=None,
+    timeout=None
+):
     """A coroutine that creates and connects/binds RPC client.
 
     Usually for this function you need to use *connect* parameter, but
@@ -61,16 +68,29 @@ def connect_rpc(*, connect=None, bind=None, loop=None,
         loop = asyncio.get_event_loop()
 
     transp, proto = yield from create_zmq_connection(
-        lambda: _ClientProtocol(loop, error_table=error_table,
-                                translation_table=translation_table),
-        zmq.DEALER, connect=connect, bind=bind, loop=loop)
+        lambda: _ClientProtocol(
+            loop, error_table=error_table, translation_table=translation_table
+        ),
+        zmq.DEALER,
+        connect=connect,
+        bind=bind,
+        loop=loop,
+    )
     return RPCClient(loop, proto, timeout=timeout)
 
 
 @asyncio.coroutine
-def serve_rpc(handler, *, connect=None, bind=None, loop=None,
-              translation_table=None, log_exceptions=False,
-              exclude_log_exceptions=(), timeout=None):
+def serve_rpc(
+    handler,
+    *,
+    connect=None,
+    bind=None,
+    loop=None,
+    translation_table=None,
+    log_exceptions=False,
+    exclude_log_exceptions=(),
+    timeout=None
+):
     """A coroutine that creates and connects/binds RPC server instance.
 
     Usually for this function you need to use *bind* parameter, but
@@ -99,12 +119,19 @@ def serve_rpc(handler, *, connect=None, bind=None, loop=None,
         loop = asyncio.get_event_loop()
 
     transp, proto = yield from create_zmq_connection(
-        lambda: _ServerProtocol(loop, handler,
-                                translation_table=translation_table,
-                                log_exceptions=log_exceptions,
-                                exclude_log_exceptions=exclude_log_exceptions,
-                                timeout=timeout),
-        zmq.ROUTER, connect=connect, bind=bind, loop=loop)
+        lambda: _ServerProtocol(
+            loop,
+            handler,
+            translation_table=translation_table,
+            log_exceptions=log_exceptions,
+            exclude_log_exceptions=exclude_log_exceptions,
+            timeout=timeout,
+        ),
+        zmq.ROUTER,
+        connect=connect,
+        bind=bind,
+        loop=loop,
+    )
     return Service(loop, proto)
 
 
@@ -114,15 +141,16 @@ _default_error_table = _fill_error_table()
 class _ClientProtocol(_BaseProtocol):
     """Client protocol implementation."""
 
-    REQ_PREFIX = struct.Struct('=HH')
-    REQ_SUFFIX = struct.Struct('=Ld')
-    RESP = struct.Struct('=HHLd?')
+    REQ_PREFIX = struct.Struct("=HH")
+    REQ_SUFFIX = struct.Struct("=Ld")
+    RESP = struct.Struct("=HHLd?")
 
     def __init__(self, loop, *, error_table=None, translation_table=None):
         super().__init__(loop, translation_table=translation_table)
         self.calls = {}
-        self.prefix = self.REQ_PREFIX.pack(os.getpid() % 0x10000,
-                                           random.randrange(0x10000))
+        self.prefix = self.REQ_PREFIX.pack(
+            os.getpid() % 0x10000, random.randrange(0x10000)
+        )
         self.counter = 0
         if error_table is None:
             self.error_table = _default_error_table
@@ -139,11 +167,21 @@ class _ClientProtocol(_BaseProtocol):
             return
         call = self.calls.pop(req_id, None)
         if call is None:
-            logger.critical("Unknown answer id: %d (%d %d %f %d) -> %s",
-                            req_id, pid, rnd, timestamp, is_error, answer)
+            logger.critical(
+                "Unknown answer id: %d (%d %d %f %d) -> %s",
+                req_id,
+                pid,
+                rnd,
+                timestamp,
+                is_error,
+                answer,
+            )
         elif call.cancelled():
-            logger.debug("The future for request #%08x has been cancelled, "
-                         "skip the received result.", req_id)
+            logger.debug(
+                "The future for request #%08x has been cancelled, "
+                "skip the received result.",
+                req_id,
+            )
         else:
             if is_error:
                 call.set_exception(self._translate_error(*answer))
@@ -165,15 +203,17 @@ class _ClientProtocol(_BaseProtocol):
 
     def _new_id(self):
         self.counter += 1
-        if self.counter > 0xffffffff:
+        if self.counter > 0xFFFFFFFF:
             self.counter = 0
-        return (self.prefix + self.REQ_SUFFIX.pack(self.counter, time.time()),
-                self.counter)
+        return (
+            self.prefix + self.REQ_SUFFIX.pack(self.counter, time.time()),
+            self.counter,
+        )
 
     def call(self, name, args, kwargs):
         if self.transport is None:
             raise ServiceClosedError()
-        bname = name.encode('utf-8')
+        bname = name.encode("utf-8")
         bargs = self.packer.packb(args)
         bkwargs = self.packer.packb(kwargs)
         header, req_id = self._new_id()
@@ -185,7 +225,6 @@ class _ClientProtocol(_BaseProtocol):
 
 
 class RPCClient(Service):
-
     def __init__(self, loop, proto, *, timeout):
         super().__init__(loop, proto)
         self._timeout = timeout
@@ -212,29 +251,38 @@ class RPCClient(Service):
 
 class _ServerProtocol(_BaseServerProtocol):
 
-    REQ = struct.Struct('=HHLd')
-    RESP_PREFIX = struct.Struct('=HH')
-    RESP_SUFFIX = struct.Struct('=Ld?')
+    REQ = struct.Struct("=HHLd")
+    RESP_PREFIX = struct.Struct("=HH")
+    RESP_SUFFIX = struct.Struct("=Ld?")
 
-    def __init__(self, loop, handler, *,
-                 translation_table=None,
-                 log_exceptions=False,
-                 exclude_log_exceptions=(),
-                 timeout=None):
-        super().__init__(loop, handler,
-                         translation_table=translation_table,
-                         log_exceptions=log_exceptions,
-                         exclude_log_exceptions=exclude_log_exceptions,
-                         timeout=timeout)
-        self.prefix = self.RESP_PREFIX.pack(os.getpid() % 0x10000,
-                                            random.randrange(0x10000))
+    def __init__(
+        self,
+        loop,
+        handler,
+        *,
+        translation_table=None,
+        log_exceptions=False,
+        exclude_log_exceptions=(),
+        timeout=None
+    ):
+        super().__init__(
+            loop,
+            handler,
+            translation_table=translation_table,
+            log_exceptions=log_exceptions,
+            exclude_log_exceptions=exclude_log_exceptions,
+            timeout=timeout,
+        )
+        self.prefix = self.RESP_PREFIX.pack(
+            os.getpid() % 0x10000, random.randrange(0x10000)
+        )
 
     def msg_received(self, data):
         try:
             *pre, header, bname, bargs, bkwargs = data
             pid, rnd, req_id, timestamp = self.REQ.unpack(header)
 
-            name = bname.decode('utf-8')
+            name = bname.decode("utf-8")
             args = self.packer.unpackb(bargs)
             kwargs = self.packer.unpackb(bkwargs)
         except Exception:
@@ -245,9 +293,16 @@ class _ServerProtocol(_BaseServerProtocol):
             args, kwargs, ret_ann = self.check_args(func, args, kwargs)
         except (NotFoundError, ParametersError) as exc:
             fut = asyncio.Future(loop=self.loop)
-            fut.add_done_callback(partial(self.process_call_result,
-                                          req_id=req_id, pre=pre,
-                                          name=name, args=args, kwargs=kwargs))
+            fut.add_done_callback(
+                partial(
+                    self.process_call_result,
+                    req_id=req_id,
+                    pre=pre,
+                    name=name,
+                    args=args,
+                    kwargs=kwargs,
+                )
+            )
             fut.set_exception(exc)
         else:
             if asyncio.iscoroutinefunction(func):
@@ -258,16 +313,21 @@ class _ServerProtocol(_BaseServerProtocol):
                     fut.set_result(func(*args, **kwargs))
                 except Exception as exc:
                     fut.set_exception(exc)
-            fut.add_done_callback(partial(self.process_call_result,
-                                          req_id=req_id, pre=pre,
-                                          return_annotation=ret_ann,
-                                          name=name,
-                                          args=args,
-                                          kwargs=kwargs))
+            fut.add_done_callback(
+                partial(
+                    self.process_call_result,
+                    req_id=req_id,
+                    pre=pre,
+                    return_annotation=ret_ann,
+                    name=name,
+                    args=args,
+                    kwargs=kwargs,
+                )
+            )
 
-    def process_call_result(self, fut, *, req_id, pre, name,
-                            args, kwargs,
-                            return_annotation=None):
+    def process_call_result(
+        self, fut, *, req_id, pre, name, args, kwargs, return_annotation=None
+    ):
         self.discard_pending(fut)
         self.try_log(fut, name, args, kwargs)
         if self.transport is None:
@@ -276,15 +336,16 @@ class _ServerProtocol(_BaseServerProtocol):
             ret = fut.result()
             if return_annotation is not None:
                 ret = return_annotation(ret)
-            prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
-                                                         time.time(), False)
+            prefix = self.prefix + self.RESP_SUFFIX.pack(req_id, time.time(), False)
             self.transport.write(pre + [prefix, self.packer.packb(ret)])
         except asyncio.CancelledError:
             return
         except Exception as exc:
-            prefix = self.prefix + self.RESP_SUFFIX.pack(req_id,
-                                                         time.time(), True)
+            prefix = self.prefix + self.RESP_SUFFIX.pack(req_id, time.time(), True)
             exc_type = exc.__class__
-            exc_info = (exc_type.__module__ + '.' + exc_type.__qualname__,
-                        exc.args, repr(exc))
+            exc_info = (
+                exc_type.__module__ + "." + exc_type.__qualname__,
+                exc.args,
+                repr(exc),
+            )
             self.transport.write(pre + [prefix, self.packer.packb(exc_info)])

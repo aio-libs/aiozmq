@@ -13,13 +13,12 @@ from .base import (
     ServiceClosedError,
     _BaseProtocol,
     _BaseServerProtocol,
-    )
+)
 from .log import logger
 
 
 @asyncio.coroutine
-def connect_pubsub(*, connect=None, bind=None, loop=None,
-                   translation_table=None):
+def connect_pubsub(*, connect=None, bind=None, loop=None, translation_table=None):
     """A coroutine that creates and connects/binds pubsub client.
 
     Usually for this function you need to use connect parameter, but
@@ -39,14 +38,27 @@ def connect_pubsub(*, connect=None, bind=None, loop=None,
 
     transp, proto = yield from create_zmq_connection(
         lambda: _ClientProtocol(loop, translation_table=translation_table),
-        zmq.PUB, connect=connect, bind=bind, loop=loop)
+        zmq.PUB,
+        connect=connect,
+        bind=bind,
+        loop=loop,
+    )
     return PubSubClient(loop, proto)
 
 
 @asyncio.coroutine
-def serve_pubsub(handler, *, subscribe=None, connect=None, bind=None,
-                 loop=None, translation_table=None, log_exceptions=False,
-                 exclude_log_exceptions=(), timeout=None):
+def serve_pubsub(
+    handler,
+    *,
+    subscribe=None,
+    connect=None,
+    bind=None,
+    loop=None,
+    translation_table=None,
+    log_exceptions=False,
+    exclude_log_exceptions=(),
+    timeout=None
+):
     """A coroutine that creates and connects/binds pubsub server instance.
 
     Usually for this function you need to use *bind* parameter, but
@@ -81,39 +93,46 @@ def serve_pubsub(handler, *, subscribe=None, connect=None, bind=None,
         loop = asyncio.get_event_loop()
 
     transp, proto = yield from create_zmq_connection(
-        lambda: _ServerProtocol(loop, handler,
-                                translation_table=translation_table,
-                                log_exceptions=log_exceptions,
-                                exclude_log_exceptions=exclude_log_exceptions,
-                                timeout=timeout),
-        zmq.SUB, connect=connect, bind=bind, loop=loop)
+        lambda: _ServerProtocol(
+            loop,
+            handler,
+            translation_table=translation_table,
+            log_exceptions=log_exceptions,
+            exclude_log_exceptions=exclude_log_exceptions,
+            timeout=timeout,
+        ),
+        zmq.SUB,
+        connect=connect,
+        bind=bind,
+        loop=loop,
+    )
     serv = PubSubService(loop, proto)
     if subscribe is not None:
         if isinstance(subscribe, (str, bytes)):
             subscribe = [subscribe]
         else:
             if not isinstance(subscribe, Iterable):
-                raise TypeError('bind should be str, bytes or iterable')
+                raise TypeError("bind should be str, bytes or iterable")
         for topic in subscribe:
             serv.subscribe(topic)
     return serv
 
 
 class _ClientProtocol(_BaseProtocol):
-
     def call(self, topic, name, args, kwargs):
         if self.transport is None:
             raise ServiceClosedError()
         if topic is None:
-            btopic = b''
+            btopic = b""
         elif isinstance(topic, str):
-            btopic = topic.encode('utf-8')
+            btopic = topic.encode("utf-8")
         elif isinstance(topic, bytes):
             btopic = topic
         else:
-            raise TypeError('topic argument should be None, str or bytes '
-                            '({!r})'.format(topic))
-        bname = name.encode('utf-8')
+            raise TypeError(
+                "topic argument should be None, str or bytes " "({!r})".format(topic)
+            )
+        bname = name.encode("utf-8")
         bargs = self.packer.packb(args)
         bkwargs = self.packer.packb(kwargs)
         self.transport.write([btopic, bname, bargs, bkwargs])
@@ -123,7 +142,6 @@ class _ClientProtocol(_BaseProtocol):
 
 
 class PubSubClient(Service):
-
     def __init__(self, loop, proto):
         super().__init__(loop, proto)
 
@@ -139,7 +157,6 @@ class PubSubClient(Service):
 
 
 class PubSubService(Service):
-
     def subscribe(self, topic):
         """Subscribe to the topic.
 
@@ -149,10 +166,9 @@ class PubSubService(Service):
         if isinstance(topic, bytes):
             btopic = topic
         elif isinstance(topic, str):
-            btopic = topic.encode('utf-8')
+            btopic = topic.encode("utf-8")
         else:
-            raise TypeError('topic should be str or bytes, got {!r}'
-                            .format(topic))
+            raise TypeError("topic should be str or bytes, got {!r}".format(topic))
         self.transport.subscribe(btopic)
 
     def unsubscribe(self, topic):
@@ -164,16 +180,15 @@ class PubSubService(Service):
         if isinstance(topic, bytes):
             btopic = topic
         elif isinstance(topic, str):
-            btopic = topic.encode('utf-8')
+            btopic = topic.encode("utf-8")
         else:
-            raise TypeError('topic should be str or bytes, got {!r}'
-                            .format(topic))
+            raise TypeError("topic should be str or bytes, got {!r}".format(topic))
         self.transport.unsubscribe(btopic)
 
 
 class _MethodCall:
 
-    __slots__ = ('_proto', '_topic', '_names')
+    __slots__ = ("_proto", "_topic", "_names")
 
     def __init__(self, proto, topic, names=()):
         self._proto = proto
@@ -181,25 +196,22 @@ class _MethodCall:
         self._names = names
 
     def __getattr__(self, name):
-        return self.__class__(self._proto, self._topic,
-                              self._names + (name,))
+        return self.__class__(self._proto, self._topic, self._names + (name,))
 
     def __call__(self, *args, **kwargs):
         if not self._names:
             raise ValueError("PubSub method name is empty")
-        return self._proto.call(self._topic, '.'.join(self._names),
-                                args, kwargs)
+        return self._proto.call(self._topic, ".".join(self._names), args, kwargs)
 
 
 class _ServerProtocol(_BaseServerProtocol):
-
     def msg_received(self, data):
         btopic, bname, bargs, bkwargs = data
 
         args = self.packer.unpackb(bargs)
         kwargs = self.packer.unpackb(bkwargs)
         try:
-            name = bname.decode('utf-8')
+            name = bname.decode("utf-8")
             func = self.dispatch(name)
             args, kwargs, ret_ann = self.check_args(func, args, kwargs)
         except (NotFoundError, ParametersError) as exc:
@@ -214,8 +226,9 @@ class _ServerProtocol(_BaseServerProtocol):
                     fut.set_result(func(*args, **kwargs))
                 except Exception as exc:
                     fut.set_exception(exc)
-        fut.add_done_callback(partial(self.process_call_result,
-                                      name=name, args=args, kwargs=kwargs))
+        fut.add_done_callback(
+            partial(self.process_call_result, name=name, args=args, kwargs=kwargs)
+        )
 
     def process_call_result(self, fut, *, name, args, kwargs):
         self.discard_pending(fut)

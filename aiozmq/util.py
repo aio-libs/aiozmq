@@ -3,7 +3,7 @@ from collections.abc import Set
 
 class _EndpointsSet(Set):
 
-    __slots__ = ('_collection',)
+    __slots__ = ("_collection",)
 
     def __init__(self, collection):
         self._collection = collection
@@ -18,6 +18,6 @@ class _EndpointsSet(Set):
         return iter(self._collection)
 
     def __repr__(self):
-        return '{' + ', '.join(sorted(self._collection)) + '}'
+        return "{" + ", ".join(sorted(self._collection)) + "}"
 
     __str__ = __repr__

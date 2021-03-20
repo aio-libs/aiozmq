@@ -3,7 +3,6 @@ import aiozmq.rpc
 
 
 class ServerHandler(aiozmq.rpc.AttrHandler):
-
     @aiozmq.rpc.method
     def remote_func(self, a: int, b: int) -> int:
         return a + b
@@ -11,12 +10,10 @@ class ServerHandler(aiozmq.rpc.AttrHandler):
 
 @asyncio.coroutine
 def go():
-    server = yield from aiozmq.rpc.serve_rpc(
-        ServerHandler(), bind='tcp://*:*')
+    server = yield from aiozmq.rpc.serve_rpc(ServerHandler(), bind="tcp://*:*")
     server_addr = list(server.transport.bindings())[0]
 
-    client = yield from aiozmq.rpc.connect_rpc(
-        connect=server_addr)
+    client = yield from aiozmq.rpc.connect_rpc(connect=server_addr)
 
     try:
         yield from client.call.unknown_function()
@@ -34,7 +31,7 @@ def go():
         print("client.rpc.remote_func(1): {}".format(exc))
 
     try:
-        yield from client.call.remote_func('a', 'b')
+        yield from client.call.remote_func("a", "b")
     except aiozmq.rpc.ParametersError as exc:
         print("client.rpc.remote_func('a', 'b'): {}".format(exc))
 
@@ -49,5 +46,5 @@ def main():
     print("DONE")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

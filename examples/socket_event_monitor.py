@@ -1,11 +1,10 @@
-
-'''
+"""
 This example demonstrates how to use the ZMQ socket monitor to receive
 socket events.
 
 The socket event monitor capability requires libzmq >= 4 and pyzmq >= 14.4.
 
-'''
+"""
 
 import asyncio
 import aiozmq
@@ -13,17 +12,17 @@ import zmq
 
 
 ZMQ_EVENTS = {
-    getattr(zmq, name): name.replace('EVENT_', '').lower().replace('_', ' ')
-    for name in [i for i in dir(zmq) if i.startswith('EVENT_')]}
+    getattr(zmq, name): name.replace("EVENT_", "").lower().replace("_", " ")
+    for name in [i for i in dir(zmq) if i.startswith("EVENT_")]
+}
 
 
 def event_description(event):
-    ''' Return a human readable description of the event '''
-    return ZMQ_EVENTS.get(event, 'unknown')
+    """ Return a human readable description of the event """
+    return ZMQ_EVENTS.get(event, "unknown")
 
 
 class Protocol(aiozmq.ZmqProtocol):
-
     def __init__(self):
         self.wait_ready = asyncio.Future()
         self.wait_done = asyncio.Future()
@@ -44,32 +43,33 @@ class Protocol(aiozmq.ZmqProtocol):
         # protocol.
         if len(data) == 2:
             identity, msg = data
-            assert msg == b'Hello'
-            self.transport.write([identity, b'World'])
+            assert msg == b"Hello"
+            self.transport.write([identity, b"World"])
         else:
             msg = data[0]
-            assert msg == b'World'
+            assert msg == b"World"
             self.count += 1
             if self.count >= 4:
                 self.wait_done.set_result(True)
 
     def event_received(self, event):
         print(
-            'event:{}, value:{}, endpoint:{}, description:{}'.format(
-                event.event, event.value, event.endpoint,
-                event_description(event.event)))
+            "event:{}, value:{}, endpoint:{}, description:{}".format(
+                event.event, event.value, event.endpoint, event_description(event.event)
+            )
+        )
 
 
 @asyncio.coroutine
 def go():
 
     st, sp = yield from aiozmq.create_zmq_connection(
-        Protocol, zmq.ROUTER, bind='tcp://127.0.0.1:*')
+        Protocol, zmq.ROUTER, bind="tcp://127.0.0.1:*"
+    )
     yield from sp.wait_ready
     addr = list(st.bindings())[0]
 
-    ct, cp = yield from aiozmq.create_zmq_connection(
-        Protocol, zmq.DEALER, connect=addr)
+    ct, cp = yield from aiozmq.create_zmq_connection(Protocol, zmq.DEALER, connect=addr)
     yield from cp.wait_ready
 
     # Enable the socket monitor on the client socket. Socket events
@@ -85,7 +85,7 @@ def go():
         yield from asyncio.sleep(0.1)
         yield from ct.connect(addr)
         yield from asyncio.sleep(0.1)
-        ct.write([b'Hello'])
+        ct.write([b"Hello"])
 
     yield from cp.wait_done
 
@@ -106,15 +106,17 @@ def main():
     print("DONE")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # import logging
     # logging.basicConfig(level=logging.DEBUG)
 
-    if (zmq.zmq_version_info() < (4,) or
-            zmq.pyzmq_version_info() < (14, 4,)):
+    if zmq.zmq_version_info() < (4,) or zmq.pyzmq_version_info() < (
+        14,
+        4,
+    ):
         raise NotImplementedError(
             "Socket monitor requires libzmq >= 4 and pyzmq >= 14.4, "
-            "have libzmq:{}, pyzmq:{}".format(
-                zmq.zmq_version(), zmq.pyzmq_version()))
+            "have libzmq:{}, pyzmq:{}".format(zmq.zmq_version(), zmq.pyzmq_version())
+        )
 
     main()

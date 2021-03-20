@@ -25,24 +25,28 @@ def _requires_unix_version(sysname, min_version):  # pragma: no cover
     For example, @_requires_unix_version('FreeBSD', (7, 2)) raises SkipTest if
     the FreeBSD version is less than 7.2.
     """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kw):
             if platform.system() == sysname:
-                version_txt = platform.release().split('-', 1)[0]
+                version_txt = platform.release().split("-", 1)[0]
                 try:
-                    version = tuple(map(int, version_txt.split('.')))
+                    version = tuple(map(int, version_txt.split(".")))
                 except ValueError:
                     pass
                 else:
                     if version < min_version:
-                        min_version_txt = '.'.join(map(str, min_version))
+                        min_version_txt = ".".join(map(str, min_version))
                         raise unittest.SkipTest(
                             "%s version %s or higher required, not %s"
-                            % (sysname, min_version_txt, version_txt))
+                            % (sysname, min_version_txt, version_txt)
+                        )
             return func(*args, **kw)
+
         wrapper.min_version = min_version
         return wrapper
+
     return decorator
 
 
@@ -53,7 +57,7 @@ def requires_freebsd_version(*min_version):  # pragma: no cover
     For example, @requires_freebsd_version(7, 2) raises SkipTest if the FreeBSD
     version is less than 7.2.
     """
-    return _requires_unix_version('FreeBSD', min_version)
+    return _requires_unix_version("FreeBSD", min_version)
 
 
 def requires_linux_version(*min_version):  # pragma: no cover
@@ -63,7 +67,7 @@ def requires_linux_version(*min_version):  # pragma: no cover
     For example, @requires_linux_version(2, 6, 32) raises SkipTest if the Linux
     version is less than 2.6.32.
     """
-    return _requires_unix_version('Linux', min_version)
+    return _requires_unix_version("Linux", min_version)
 
 
 def requires_mac_ver(*min_version):  # pragma: no cover
@@ -73,24 +77,28 @@ def requires_mac_ver(*min_version):  # pragma: no cover
     For example, @requires_mac_ver(10, 5) raises SkipTest if the OS X version
     is lesser than 10.5.
     """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kw):
-            if sys.platform == 'darwin':
+            if sys.platform == "darwin":
                 version_txt = platform.mac_ver()[0]
                 try:
-                    version = tuple(map(int, version_txt.split('.')))
+                    version = tuple(map(int, version_txt.split(".")))
                 except ValueError:
                     pass
                 else:
                     if version < min_version:
-                        min_version_txt = '.'.join(map(str, min_version))
+                        min_version_txt = ".".join(map(str, min_version))
                         raise unittest.SkipTest(
                             "Mac OS X %s or higher required, not %s"
-                            % (min_version_txt, version_txt))
+                            % (min_version_txt, version_txt)
+                        )
             return func(*args, **kw)
+
         wrapper.min_version = min_version
         return wrapper
+
     return decorator
 
 
@@ -119,8 +127,9 @@ def _is_ipv6_enabled():  # pragma: no cover
 IPV6_ENABLED = _is_ipv6_enabled()
 
 
-def find_unused_port(family=socket.AF_INET,
-                     socktype=socket.SOCK_STREAM):  # pragma: no cover
+def find_unused_port(
+    family=socket.AF_INET, socktype=socket.SOCK_STREAM
+):  # pragma: no cover
     """Returns an unused port that should be suitable for binding.  This is
     achieved by creating a temporary socket with the same family and type as
     the 'sock' parameter (default is AF_INET, SOCK_STREAM), and binding it to
@@ -199,22 +208,26 @@ def bind_port(sock, host=HOST):  # pragma: no cover
     """
 
     if sock.family == socket.AF_INET and sock.type == socket.SOCK_STREAM:
-        if hasattr(socket, 'SO_REUSEADDR'):
+        if hasattr(socket, "SO_REUSEADDR"):
             if sock.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR) == 1:
-                raise TestFailed("tests should never set the SO_REUSEADDR "
-                                 "socket option on TCP/IP sockets!")
-        if hasattr(socket, 'SO_REUSEPORT'):
+                raise TestFailed(
+                    "tests should never set the SO_REUSEADDR "
+                    "socket option on TCP/IP sockets!"
+                )
+        if hasattr(socket, "SO_REUSEPORT"):
             try:
                 opt = sock.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT)
                 if opt == 1:
-                    raise TestFailed("tests should never set the SO_REUSEPORT "
-                                     "socket option on TCP/IP sockets!")
+                    raise TestFailed(
+                        "tests should never set the SO_REUSEPORT "
+                        "socket option on TCP/IP sockets!"
+                    )
             except OSError:
                 # Python's socket module was compiled using modern headers
                 # thus defining SO_REUSEPORT but this process is running
                 # under an older kernel that does not support SO_REUSEPORT.
                 pass
-        if hasattr(socket, 'SO_EXCLUSIVEADDRUSE'):
+        if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
 
     sock.bind((host, 0))
@@ -228,7 +241,6 @@ def check_errno(errno, exc):
 
 
 class TestHandler(logging.Handler):
-
     def __init__(self, queue):
         super().__init__()
         self.queue = queue
@@ -253,7 +265,6 @@ def log_hook(logname, queue):
 
 
 class RpcMixin:
-
     def close_service(self, service):
         if service is None:
             return

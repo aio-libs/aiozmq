@@ -15,45 +15,47 @@ from .base import (
     ParametersError,
     ServiceClosedError,
     Service,
-    )
+)
 from .rpc import (
     connect_rpc,
     serve_rpc,
-    )
+)
 from .pipeline import (
     connect_pipeline,
     serve_pipeline,
-    )
+)
 from .pubsub import (
     connect_pubsub,
     serve_pubsub,
-    )
+)
 
 from .log import logger
 
 _MSGPACK_VERSION = (0, 4, 0)
-_MSGPACK_VERSION_STR = '.'.join(map(str, _MSGPACK_VERSION))
+_MSGPACK_VERSION_STR = ".".join(map(str, _MSGPACK_VERSION))
 
 if msgpack_version < _MSGPACK_VERSION:  # pragma: no cover
-    raise ImportError("aiozmq.rpc requires msgpack package"
-                      " (version >= {})".format(_MSGPACK_VERSION_STR))
+    raise ImportError(
+        "aiozmq.rpc requires msgpack package"
+        " (version >= {})".format(_MSGPACK_VERSION_STR)
+    )
 
 
 __all__ = [
-    'method',
-    'connect_rpc',
-    'serve_rpc',
-    'connect_pipeline',
-    'serve_pipeline',
-    'connect_pubsub',
-    'serve_pubsub',
-    'logger',
-    'Error',
-    'GenericError',
-    'NotFoundError',
-    'ParametersError',
-    'AbstractHandler',
-    'ServiceClosedError',
-    'AttrHandler',
-    'Service',
-    ]
+    "method",
+    "connect_rpc",
+    "serve_rpc",
+    "connect_pipeline",
+    "serve_pipeline",
+    "connect_pubsub",
+    "serve_pubsub",
+    "logger",
+    "Error",
+    "GenericError",
+    "NotFoundError",
+    "ParametersError",
+    "AbstractHandler",
+    "ServiceClosedError",
+    "AttrHandler",
+    "Service",
+]

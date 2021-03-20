@@ -6,6 +6,7 @@ import socket
 from time import sleep
 import unittest
 from unittest import mock
+
 try:
     from time import monotonic as time
 except ImportError:
@@ -20,12 +21,13 @@ from aiozmq.selector import ZmqSelector, EVENT_READ, EVENT_WRITE, SelectorKey
 from aiozmq._test_util import requires_mac_ver
 
 
-if hasattr(socket, 'socketpair'):
+if hasattr(socket, "socketpair"):
     socketpair = socket.socketpair
 else:
+
     def socketpair(family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0):
         with socket.socket(family, type, proto) as server:
-            server.bind(('127.0.0.1', 0))
+            server.bind(("127.0.0.1", 0))
             server.listen(3)
             c = socket.socket(family, type, proto)
             try:
@@ -83,18 +85,17 @@ class SelectorTests(unittest.TestCase):
         self.assertRaises(KeyError, s.register, rd, EVENT_READ)
 
         # register the same FD, but with a different object
-        self.assertRaises(KeyError, s.register, rd.fileno(),
-                          EVENT_READ)
+        self.assertRaises(KeyError, s.register, rd.fileno(), EVENT_READ)
 
         # register an invalid fd type
-        self.assertRaises(ValueError, s.register, 'abc', EVENT_READ)
+        self.assertRaises(ValueError, s.register, "abc", EVENT_READ)
 
     def test_register_with_zmq_error(self):
         s = self.SELECTOR()
         self.addCleanup(s.close)
 
         m = mock.Mock()
-        m.side_effect = zmq.ZMQError(errno.EFAULT, 'not a socket')
+        m.side_effect = zmq.ZMQError(errno.EFAULT, "not a socket")
         s._poller.register = m
 
         with self.assertRaises(OSError) as ctx:
@@ -125,7 +126,7 @@ class SelectorTests(unittest.TestCase):
         s.register(rd, EVENT_READ)
 
         m = mock.Mock()
-        m.side_effect = zmq.ZMQError(errno.EFAULT, 'not a socket')
+        m.side_effect = zmq.ZMQError(errno.EFAULT, "not a socket")
         s._poller.unregister = m
 
         with self.assertRaises(OSError) as ctx:
@@ -145,7 +146,7 @@ class SelectorTests(unittest.TestCase):
         s.unregister(r)
         s.unregister(w)
 
-    @unittest.skipUnless(os.name == 'posix', "requires posix")
+    @unittest.skipUnless(os.name == "posix", "requires posix")
     def test_unregister_after_fd_close_and_reuse(self):
         s = self.SELECTOR()
         self.addCleanup(s.close)
@@ -223,7 +224,7 @@ class SelectorTests(unittest.TestCase):
         s.register(rd, EVENT_READ)
 
         m = mock.Mock()
-        m.side_effect = zmq.ZMQError(errno.EFAULT, 'not a socket')
+        m.side_effect = zmq.ZMQError(errno.EFAULT, "not a socket")
         s._poller.modify = m
 
         with self.assertRaises(OSError) as ctx:
@@ -294,8 +295,7 @@ class SelectorTests(unittest.TestCase):
         for key, events in result:
             self.assertTrue(isinstance(key, SelectorKey))
             self.assertTrue(events)
-            self.assertFalse(events & ~(EVENT_READ |
-                                        EVENT_WRITE))
+            self.assertFalse(events & ~(EVENT_READ | EVENT_WRITE))
 
         self.assertEqual([(wr_key, EVENT_WRITE)], result)
 
@@ -307,7 +307,7 @@ class SelectorTests(unittest.TestCase):
         s.register(rd, EVENT_READ)
 
         m = mock.Mock()
-        m.side_effect = zmq.ZMQError(errno.EFAULT, 'not a socket')
+        m.side_effect = zmq.ZMQError(errno.EFAULT, "not a socket")
         s._poller.poll = m
 
         with self.assertRaises(OSError) as ctx:
@@ -344,7 +344,7 @@ class SelectorTests(unittest.TestCase):
         s = self.SELECTOR()
         self.addCleanup(s.close)
 
-        if hasattr(s, 'fileno'):
+        if hasattr(s, "fileno"):
             fd = s.fileno()
             self.assertTrue(isinstance(fd, int))
             self.assertGreaterEqual(fd, 0)
@@ -382,8 +382,7 @@ class SelectorTests(unittest.TestCase):
 
             for i in range(10):
                 ready = s.select()
-                ready_readers = find_ready_matching(ready,
-                                                    EVENT_READ)
+                ready_readers = find_ready_matching(ready, EVENT_READ)
                 if ready_readers:
                     break
                 # there might be a delay between the write to the write end and
@@ -427,8 +426,9 @@ class SelectorTests(unittest.TestCase):
         dt = t1 - t0
         self.assertTrue(0.8 <= dt <= 1.6, dt)
 
-    @unittest.skipUnless(hasattr(signal, "alarm"),
-                         "signal.alarm() required for this test")
+    @unittest.skipUnless(
+        hasattr(signal, "alarm"), "signal.alarm() required for this test"
+    )
     def test_select_interrupt(self):
         s = self.SELECTOR()
         self.addCleanup(s.close)
@@ -456,8 +456,7 @@ class SelectorTests(unittest.TestCase):
         soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
         try:
             resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
-            self.addCleanup(resource.setrlimit, resource.RLIMIT_NOFILE,
-                            (soft, hard))
+            self.addCleanup(resource.setrlimit, resource.RLIMIT_NOFILE, (soft, hard))
             NUM_FDS = hard
         except (OSError, ValueError):
             NUM_FDS = soft

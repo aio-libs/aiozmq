@@ -32,12 +32,13 @@ jobs:
         pip install --upgrade pip setuptools wheel && \
         python setup.py install && \
         test ${{ matrix.msgpack }} == 1 && pip install msgpack; \
-        pip install pyflakes pycodestyle docutils codecov
+        pip install pyflakes pycodestyle docutils codecov black==20.8b1
     - name: test
       run: |
         python -c "import zmq; print('ZMQ version:', zmq.zmq_version())" && \
         pycodestyle aiozmq examples tests benchmarks && \
         pyflakes . && \
+        black --check aiozmq/ benchmarks/ examples/ tests/ setup.py runtests.py
         export USE_MSGPACK=${{ matrix.msgpack }} && \
         export PYTHONASYNCIODEBUG=${{ matrix.debug }} && \
         python setup.py check -rm  && \

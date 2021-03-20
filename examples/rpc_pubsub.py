@@ -4,7 +4,6 @@ from itertools import count
 
 
 class Handler(aiozmq.rpc.AttrHandler):
-
     def __init__(self):
         self.connected = False
 
@@ -18,16 +17,15 @@ class Handler(aiozmq.rpc.AttrHandler):
 def go():
     handler = Handler()
     subscriber = yield from aiozmq.rpc.serve_pubsub(
-        handler, subscribe='topic', bind='tcp://127.0.0.1:*',
-        log_exceptions=True)
+        handler, subscribe="topic", bind="tcp://127.0.0.1:*", log_exceptions=True
+    )
     subscriber_addr = list(subscriber.transport.bindings())[0]
     print("SERVE", subscriber_addr)
 
-    publisher = yield from aiozmq.rpc.connect_pubsub(
-        connect=subscriber_addr)
+    publisher = yield from aiozmq.rpc.connect_pubsub(connect=subscriber_addr)
 
     for step in count(0):
-        yield from publisher.publish('topic').remote_func(step, 1, 2)
+        yield from publisher.publish("topic").remote_func(step, 1, 2)
         if handler.connected:
             break
         else:
@@ -44,5 +42,5 @@ def main():
     print("DONE")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

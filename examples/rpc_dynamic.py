@@ -3,7 +3,6 @@ import aiozmq.rpc
 
 
 class DynamicHandler(aiozmq.rpc.AttrHandler):
-
     def __init__(self, namespace=()):
         self.namespace = namespace
 
@@ -15,26 +14,24 @@ class DynamicHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
     def func(self):
-        return (self.namespace, 'val')
+        return (self.namespace, "val")
 
 
 @asyncio.coroutine
 def go():
-    server = yield from aiozmq.rpc.serve_rpc(
-        DynamicHandler(), bind='tcp://*:*')
+    server = yield from aiozmq.rpc.serve_rpc(DynamicHandler(), bind="tcp://*:*")
     server_addr = list(server.transport.bindings())[0]
 
-    client = yield from aiozmq.rpc.connect_rpc(
-        connect=server_addr)
+    client = yield from aiozmq.rpc.connect_rpc(connect=server_addr)
 
     ret = yield from client.call.func()
-    assert ((), 'val') == ret, ret
+    assert ((), "val") == ret, ret
 
     ret = yield from client.call.a.func()
-    assert (('a',), 'val') == ret, ret
+    assert (("a",), "val") == ret, ret
 
     ret = yield from client.call.a.b.func()
-    assert (('a', 'b'), 'val') == ret, ret
+    assert (("a", "b"), "val") == ret, ret
 
     server.close()
     yield from server.wait_closed()
@@ -47,5 +44,5 @@ def main():
     print("DONE")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
