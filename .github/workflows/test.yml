@@ -26,7 +26,7 @@ jobs:
         python-version: ${{ matrix.python }}
     - name: install zmq
       run: |
-        apt-get update -qq && apt-get install -qq libzmq3-dev
+        sudo apt-get update -qq && sudo apt-get install -qq libzmq3-dev
     - name: install python dependencies
       run: |
         pip install --upgrade pip setuptools wheel && \
