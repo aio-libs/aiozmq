@@ -327,18 +327,14 @@ class RpcTestsMixin(RpcMixin):
             self.assertTrue(0.08 <= t1 - t0 <= 0.12, t1 - t0)
             server.close()
             client.close()
-            await asyncio.gather(
-                server.wait_closed(), client.wait_closed()
-            )
+            await asyncio.gather(server.wait_closed(), client.wait_closed())
 
         self.loop.run_until_complete(communicate())
 
     def test_type_of_handler(self):
         async def go():
             with self.assertRaises(TypeError):
-                await aiozmq.rpc.serve_rpc(
-                    "Bad Handler", bind="tcp://127.0.0.1:*"
-                )
+                await aiozmq.rpc.serve_rpc("Bad Handler", bind="tcp://127.0.0.1:*")
 
         self.loop.run_until_complete(go())
 

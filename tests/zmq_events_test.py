@@ -142,9 +142,7 @@ class BaseZmqEventLoopTestsMixin:
             for i in range(5):
                 tr1.write([b"node_id", b"publish"])
                 try:
-                    request = await asyncio.wait_for(
-                        pr2.received.get(), 0.1
-                    )
+                    request = await asyncio.wait_for(pr2.received.get(), 0.1)
                     self.assertEqual([b"node_id", b"publish"], request)
                     break
                 except asyncio.TimeoutError:
