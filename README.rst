@@ -6,16 +6,16 @@ asyncio (PEP 3156) support for ZeroMQ.
 .. image:: https://travis-ci.com/aio-libs/aiozmq.svg?branch=master
    :target: https://travis-ci.com/aio-libs/aiozmq
 
-The difference between ``aiozmq`` and vanilla ``pyzmq`` (``zmq.asyncio``).
+The difference between ``aiozmq`` and vanilla ``pyzmq`` (``zmq.asyncio``) is:
 
-``zmq.asyncio`` works only by replacement *event loop* with custom one.
-This approach works but have two disadvantages:
+``zmq.asyncio`` works only by replacing the *base event loop* with a custom one.
+This approach works but has two disadvantages:
 
 1. ``zmq.asyncio.ZMQEventLoop`` cannot be combined with
-   other loop implementations (most notable is ultra fast ``uvloop``).
+   other loop implementations (most notable is the ultra fast ``uvloop``).
 
-2. It uses internal ZMQ Poller which has fast ZMQ Sockets support
-   but doesn't intended to work fast with many (thousands) regular TCP sockets.
+2. It uses the internal ZMQ Poller which has fast ZMQ Sockets support
+   but isn't intended to work fast with many (thousands) regular TCP sockets.
 
    In practice it means that ``zmq.asyncio`` is not recommended to be used with
    web servers like ``aiohttp``.
@@ -90,15 +90,15 @@ Low-level request-reply example:
 Comparison to pyzmq
 -------------------
 
-`zmq.asyncio` provides a *asyncio compatible loop* implementation.
+``zmq.asyncio`` provides an *asyncio compatible loop* implementation.
 
-But it's based on `zmq.Poller` which doesn't work well with massive
-non-zmq sockets usage.
+But it's based on ``zmq.Poller`` which doesn't work well with massive
+non-zmq socket usage.
 
 E.g. if you build a web server for handling at least thousands of
-parallel web requests (1000-5000) `pyzmq` internal Poller will be slow.
+parallel web requests (1000-5000) ``pyzmq``'s internal poller will be slow.
 
-`aiozmq` works with epoll natively, it doesn't need custom loop
+``aiozmq`` works with epoll natively, it doesn't need a custom loop
 implementation and cooperates pretty well with `uvloop` for example.
 
 For details see https://github.com/zeromq/pyzmq/issues/894
