@@ -20,10 +20,7 @@ class _MethodCall:
         if not self._names:
             raise ValueError("RPC method name is empty")
         fut = self._proto.call(".".join(self._names), args, kwargs)
-        loop = self._proto.loop
-        return asyncio.Task(
-            asyncio.wait_for(fut, timeout=self._timeout, loop=loop), loop=loop
-        )
+        return asyncio.Task(asyncio.wait_for(fut, timeout=self._timeout))
 
 
 def _fill_error_table():
