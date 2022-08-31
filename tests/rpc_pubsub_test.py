@@ -86,7 +86,7 @@ class PubSubTestsMixin(RpcMixin):
                 for i in range(3):
                     try:
                         await client.publish(pub).start()
-                        ret = await asyncio.wait_for(self.queue.get(), 0.1, loop=loop)
+                        ret = await asyncio.wait_for(self.queue.get(), 0.1)
                         self.assertEqual(ret, "started")
                         break
                     except asyncio.TimeoutError:
