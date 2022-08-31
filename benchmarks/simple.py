@@ -375,7 +375,7 @@ def print_and_plot_results(count, results, verbose, plot_file_name):
         rps = count / array(data)
         rps_mean = tmean(rps)
         rps_var = tvar(rps)
-        low, high = norm.interval(0.95, loc=rps_mean, scale=rps_var ** 0.5)
+        low, high = norm.interval(0.95, loc=rps_mean, scale=rps_var**0.5)
         times = array(data) * 1000000 / count
         times_mean = tmean(times)
         times_stdev = tstd(times)
