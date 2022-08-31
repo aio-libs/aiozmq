@@ -18,7 +18,7 @@ ZMQ_EVENTS = {
 
 
 def event_description(event):
-    """ Return a human readable description of the event """
+    """Return a human readable description of the event"""
     return ZMQ_EVENTS.get(event, "unknown")
 
 
