@@ -9,13 +9,6 @@ Glossary
 
 .. glossary::
 
-   annotaion
-
-      Additional value that can be bound to any function argument and
-      return value.
-
-      See :pep:`3107`.
-
    asyncio
 
       Reference implementation of :pep:`3156`

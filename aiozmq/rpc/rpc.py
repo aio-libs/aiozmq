@@ -288,7 +288,7 @@ class _ServerProtocol(_BaseServerProtocol):
             return
         try:
             func = self.dispatch(name)
-            args, kwargs, ret_ann = self.check_args(func, args, kwargs)
+            args, kwargs = self.check_args(func, args, kwargs)
         except (NotFoundError, ParametersError) as exc:
             fut = asyncio.Future()
             fut.add_done_callback(
@@ -316,24 +316,19 @@ class _ServerProtocol(_BaseServerProtocol):
                     self.process_call_result,
                     req_id=req_id,
                     pre=pre,
-                    return_annotation=ret_ann,
                     name=name,
                     args=args,
                     kwargs=kwargs,
                 )
             )
 
-    def process_call_result(
-        self, fut, *, req_id, pre, name, args, kwargs, return_annotation=None
-    ):
+    def process_call_result(self, fut, *, req_id, pre, name, args, kwargs):
         self.discard_pending(fut)
         self.try_log(fut, name, args, kwargs)
         if self.transport is None:
             return
         try:
             ret = fut.result()
-            if return_annotation is not None:
-                ret = return_annotation(ret)
             prefix = self.prefix + self.RESP_SUFFIX.pack(req_id, time.time(), False)
             self.transport.write(pre + [prefix, self.packer.packb(ret)])
         except asyncio.CancelledError:

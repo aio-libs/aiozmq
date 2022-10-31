@@ -211,7 +211,7 @@ class _ServerProtocol(_BaseServerProtocol):
         try:
             name = bname.decode("utf-8")
             func = self.dispatch(name)
-            args, kwargs, ret_ann = self.check_args(func, args, kwargs)
+            args, kwargs = self.check_args(func, args, kwargs)
         except (NotFoundError, ParametersError) as exc:
             fut = asyncio.Future()
             fut.set_exception(exc)
