@@ -20,8 +20,8 @@ jobs:
         debug: ['', '1']
 
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
     - name: install zmq
