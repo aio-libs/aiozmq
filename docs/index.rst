@@ -71,16 +71,8 @@ Please feel free to file an issue on `bug tracker
 <https://github.com/aio-libs/aiozmq/issues>`_ if you have found a bug
 or have some suggestion for library improvement.
 
-The library uses `Travis <https://travis-ci.org/aio-libs/aiozmq>`_ for
+The library uses Github Actions for
 Continious Integration.
-
-
-IRC channel
------------
-
-You can discuss the library on Freenode_ at **#aio-libs** channel.
-
-.. _Freenode: http://freenode.net
 
 
 Dependencies
@@ -94,8 +86,9 @@ Dependencies
 Authors and License
 -------------------
 
-The ``aiozmq`` package is initially written by Nikolay Kim, now
-maintained by Andrew Svetlov.  It's BSD licensed and freely available.
+The ``aiozmq`` package is initially written by Nikolay Kim, later
+maintained by Andrew Svetlov, and now by Jelle Zijlstra.
+It's BSD licensed and freely available.
 Feel free to improve this package and send a pull request to GitHub_.
 
 Getting Started
