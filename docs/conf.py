@@ -15,7 +15,7 @@
 import re, os, os.path
 
 def get_release():
-    regexp = re.compile(r"^__version__\W*=\W*'([\d.abrc]+)'")
+    regexp = re.compile(r'^__version__\W*=\W*"([\d.abrc]+)"')
     here = os.path.dirname(__file__)
     root = os.path.dirname(here)
     init_py = os.path.join(root, 'aiozmq', '__init__.py')

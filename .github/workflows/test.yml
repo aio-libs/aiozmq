@@ -32,7 +32,7 @@ jobs:
         pip install --upgrade pip setuptools wheel && \
         python setup.py install && \
         test ${{ matrix.msgpack }} == 1 && pip install msgpack; \
-        pip install pyflakes pycodestyle docutils codecov black==22.6.0
+        pip install pyflakes pycodestyle docutils codecov black==22.8.0
     - name: test
       run: |
         python -c "import zmq; print('ZMQ version:', zmq.zmq_version())" && \
