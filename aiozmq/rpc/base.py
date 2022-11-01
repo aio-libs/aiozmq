@@ -40,7 +40,7 @@ class NotFoundError(Error, LookupError):
 
 class ParametersError(Error, ValueError):
     """Error raised by server when RPC method's parameters could not
-    be validated against their annotations."""
+    be validated against the signature."""
 
 
 class ServiceClosedError(Error):
@@ -77,21 +77,9 @@ class AttrHandler(AbstractHandler):
 
 
 def method(func):
-    """Marks a decorated function as RPC endpoint handler.
-
-    The func object may provide arguments and/or return annotations.
-    If so annotations should be callable objects and
-    they will be used to validate received arguments and/or return value.
-    """
+    """Marks a decorated function as an RPC endpoint handler."""
     func.__rpc__ = {}
-    func.__signature__ = sig = inspect.signature(func)
-    for name, param in sig.parameters.items():
-        ann = param.annotation
-        if ann is not param.empty and not callable(ann):
-            raise ValueError("Expected {!r} annotation to be callable".format(name))
-    ann = sig.return_annotation
-    if ann is not sig.empty and not callable(ann):
-        raise ValueError("Expected return annotation to be callable")
+    func.__signature__ = inspect.signature(func)
     return func
 
 
@@ -211,7 +199,7 @@ class _BaseServerProtocol(_BaseProtocol):
     def check_args(self, func, args, kwargs):
         """Utility function for validating function arguments
 
-        Returns validated (args, kwargs, return annotation) tuple
+        Returns validated (args, kwargs) tuple
         """
         try:
             sig = inspect.signature(func)
@@ -219,23 +207,7 @@ class _BaseServerProtocol(_BaseProtocol):
         except TypeError as exc:
             raise ParametersError(repr(exc)) from exc
         else:
-            arguments = bargs.arguments
-            marker = object()
-            for name, param in sig.parameters.items():
-                if param.annotation is param.empty:
-                    continue
-                val = arguments.get(name, marker)
-                if val is marker:
-                    continue  # Skip default value
-                try:
-                    arguments[name] = param.annotation(val)
-                except (TypeError, ValueError) as exc:
-                    raise ParametersError(
-                        "Invalid value for argument {!r}: {!r}".format(name, exc)
-                    ) from exc
-            if sig.return_annotation is not sig.empty:
-                return bargs.args, bargs.kwargs, sig.return_annotation
-            return bargs.args, bargs.kwargs, None
+            return bargs.args, bargs.kwargs
 
     def try_log(self, fut, name, args, kwargs):
         try:

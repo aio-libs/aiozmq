@@ -465,75 +465,9 @@ that's up to you.
 Signature validation
 ====================
 
-The library supports **optional** validation of the remote call signatures.
-
-If validation fails then :exc:`ParameterError` is raised on client side.
-
-All validations are done on RPC server side, then errors are translated
-back to client.
-
-Let's take a look on example of user-defined RPC handler::
-
-   class Handler(rpc.AttrHandler):
-
-       @rpc.method
-       def func(self, arg1: int, arg2) -> float:
-           return arg1 + arg2
-
-*Parameter* *arg1* and *return value* has :term:`annotaions <annotaion>`,
-*int* and *float* correspondingly.
-
-At the call time, if *parameter* has an :term:`annotaion`, then *actual
-value* passed and RPC method is calculated as ``actual_value =
-annotation(value)``. If there is no annotaion for parameter, the value
-is passed as-is.
-
-.. versionchanged:: 0.1.2
-   Function default values are not passed to an :term:`annotaion`.
-
-Annotaion should be any :term:`callable` that accepts a value as single argument
-and returns *actual value*.
-
-If annotation call raises exception, that exception is sent to the client
-wrapped in :exc:`ParameterError`.
-
-Value, returned by RPC call, can be checked by optional *return annotation*.
-
-Thus :class:`int` can be a good annotation: it raises :exc:`TypeError`
-if *arg1* cannot be converted to *int*.
-
-Usually you need more complex check, say parameter can be *int* or
-*None*.
-
-You always can write a custom validator::
-
-   def int_or_none(val):
-      if isinstance(val, int) or val is None:
-          return val
-      else:
-          raise ValueError('bad value')
-
-   class Handler(rpc.AttrHandler):
-       @rpc.method
-       def func(self, arg: int_or_none):
-           return arg
-
-Writing a tons of custom validators is inconvenient, so we recommend
-to use :term:`trafaret` library (can be installed via ``pip3 install
-trafaret``).
-
-This is example of trafaret annotation::
-
-   import trafaret as t
-
-   class Handler(rpc.AttrHandler):
-       @rpc.method
-       def func(self, arg: t.Int|t.Null):
-           return arg
-
-Trafaret has advanced types like *List* and *Dict*, so you can put
-your complex JSON-like structure as RPC method annotation. Also you
-can create custom trafarets if needed. It's easy, trust me.
+Previous versions of the library performed automatic conversion of call
+parameters using the function's annotations. This feature interfered with
+PEP 484-style type annotations and it was removed in version 1.0.
 
 .. _aiozmq-rpc-value-translators:
 
@@ -758,8 +692,7 @@ Exceptions
 .. exception:: ParameterError
 
    Subclass of both :exc:`Error` and :exc:`ValueError`, raised by
-   remote call when parameter substitution or :ref:`remote method
-   signature validation <aiozmq-rpc-signature-validation>` is failed.
+   remote call when parameter substitution failed.
 
 .. exception:: ServiceClosedError
 
@@ -776,16 +709,6 @@ Classes
 .. decorator:: method
 
    Marks a decorated function as RPC endpoint handler.
-
-   The func object may provide arguments and/or return annotations.
-   If so annotations should be callable objects and
-   they will be used to validate received arguments and/or return value.
-
-   Example::
-
-       @aiozmq.rpc.method
-       def remote(a: int, b: int) -> int:
-           return a + b
 
    Methods are objects that returned by
    :meth:`AbstractHandler.__getitem__` lookup at RPC method search
@@ -860,9 +783,6 @@ Classes
 
       :ref:`Coroutine <coroutine>` to wait until service is closed.
 
-      .. seealso::
-         :ref:`aiozmq-rpc-signature-validation`
-
 
 .. class:: RPCClient
 
@@ -919,8 +839,7 @@ Classes
 
 
    .. seealso::
-      :ref:`aiozmq-rpc-exception-translation` and
-      :ref:`aiozmq-rpc-signature-validation`
+      :ref:`aiozmq-rpc-exception-translation`
 
 .. class:: PipelineClient
 
@@ -961,9 +880,6 @@ Classes
       ``b'topic'`` and returns *None*.
 
       You cannot get any answer from the server.
-
-   .. seealso::
-      :ref:`aiozmq-rpc-signature-validation`
 
 
 Logger

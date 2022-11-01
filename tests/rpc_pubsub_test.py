@@ -6,6 +6,7 @@ import logging
 
 from unittest import mock
 from aiozmq._test_util import find_unused_port, log_hook, RpcMixin
+from aiozmq.rpc.base import ParametersError
 
 
 class MyHandler(aiozmq.rpc.AttrHandler):
@@ -24,6 +25,8 @@ class MyHandler(aiozmq.rpc.AttrHandler):
 
     @aiozmq.rpc.method
     def func(self, arg: int):
+        if not isinstance(arg, int):
+            raise ParametersError("arg must be int")
         self.queue.put_nowait(arg + 1)
 
     @aiozmq.rpc.method
