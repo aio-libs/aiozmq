@@ -25,7 +25,7 @@ __all__ = (
     "version",
 )
 
-__version__ = "0.9.0"
+__version__ = "1.0.0"
 
 version = __version__ + " , Python " + sys.version
 
