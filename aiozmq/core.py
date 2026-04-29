@@ -19,7 +19,10 @@ from .util import _EndpointsSet
 if sys.platform == "win32":
     from asyncio.windows_events import SelectorEventLoop
 else:
-    from asyncio.unix_events import SelectorEventLoop, SafeChildWatcher
+    if sys.version_info < (3, 14):
+        from asyncio.unix_events import SelectorEventLoop, SafeChildWatcher
+    else:
+        from asyncio.unix_events import SelectorEventLoop
 
 
 __all__ = ["ZmqEventLoop", "ZmqEventLoopPolicy", "create_zmq_connection"]
@@ -871,33 +874,33 @@ class ZmqEventLoopPolicy(asyncio.AbstractEventLoopPolicy):
         ):
             self._watcher.attach_loop(loop)
 
-    if sys.platform != "win32":
+    if sys.platform != "win32" and sys.version_info < (3, 14):
 
-        def _init_watcher(self):
-            with asyncio.events._lock:
-                if self._watcher is None:  # pragma: no branch
-                    self._watcher = SafeChildWatcher()
-                    if isinstance(threading.current_thread(), threading._MainThread):
-                        self._watcher.attach_loop(self._local._loop)
+            def _init_watcher(self):
+                with asyncio.events._lock:
+                    if self._watcher is None:  # pragma: no branch
+                        self._watcher = SafeChildWatcher()
+                        if isinstance(threading.current_thread(), threading._MainThread):
+                            self._watcher.attach_loop(self._local._loop)
 
-        def get_child_watcher(self):
-            """Get the child watcher.
+            def get_child_watcher(self):
+                """Get the child watcher.
 
-            If not yet set, a SafeChildWatcher object is automatically created.
-            """
-            if self._watcher is None:
-                self._init_watcher()
+                If not yet set, a SafeChildWatcher object is automatically created.
+                """
+                if self._watcher is None:
+                    self._init_watcher()
 
-            return self._watcher
+                return self._watcher
 
-        def set_child_watcher(self, watcher):
-            """Set the child watcher."""
+            def set_child_watcher(self, watcher):
+                """Set the child watcher."""
 
-            assert watcher is None or isinstance(
-                watcher, asyncio.AbstractChildWatcher
-            ), "watcher should be None or AbstractChildWatcher instance"
+                assert watcher is None or isinstance(
+                    watcher, asyncio.AbstractChildWatcher
+                ), "watcher should be None or AbstractChildWatcher instance"
 
-            if self._watcher is not None:
-                self._watcher.close()
+                if self._watcher is not None:
+                    self._watcher.close()
 
-            self._watcher = watcher
+                self._watcher = watcher
